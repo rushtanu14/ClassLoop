@@ -1,0 +1,239 @@
+{
+  "accounts": [
+    {
+      "id": "demo-teacher",
+      "role": "teacher",
+      "email": "teacher@classloop.demo",
+      "name": "Ms. Rivera",
+      "passwordHash": "92d96446c5fa184300fb96631d4ca0b18e536cfab5c0da5eead1edb535190e84",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "demo": true
+    },
+    {
+      "id": "demo-student-maya",
+      "role": "student",
+      "email": "maya@classloop.demo",
+      "name": "Maya Chen",
+      "passwordHash": "fecc0c0136b0cc27f320c7bdf5ffb1f6b902f517595f243cfa07999ef9035fe7",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "demo": true
+    }
+  ],
+  "sessions": [
+    {
+      "id": "demo-geometry-review",
+      "title": "Geometry Review: Similar Triangles + Algebra",
+      "type": "Math review",
+      "date": "2026-04-27",
+      "status": "published",
+      "students": [
+        {
+          "id": "maya-chen",
+          "name": "Maya Chen",
+          "email": "maya@classloop.demo",
+          "avatarColor": "#f59e0b"
+        },
+        {
+          "id": "aarav-patel",
+          "name": "Aarav Patel",
+          "email": "aarav@classloop.demo",
+          "avatarColor": "#0ea5e9"
+        },
+        {
+          "id": "jordan-lee",
+          "name": "Jordan Lee",
+          "email": "jordan@classloop.demo",
+          "avatarColor": "#8b5cf6"
+        },
+        {
+          "id": "sofia-ramirez",
+          "name": "Sofia Ramirez",
+          "email": "sofia@classloop.demo",
+          "avatarColor": "#10b981"
+        },
+        {
+          "id": "ethan-brooks",
+          "name": "Ethan Brooks",
+          "email": "ethan@classloop.demo",
+          "avatarColor": "#ef4444"
+        },
+        {
+          "id": "priya-shah",
+          "name": "Priya Shah",
+          "email": "priya@classloop.demo",
+          "avatarColor": "#14b8a6"
+        }
+      ],
+      "transcript": "Teacher: Today we are reviewing similar triangles and how AA similarity lets us prove triangles are similar when two angle pairs match.\nTeacher: We will use proportions to find missing side lengths. Remember, corresponding sides need to be matched in the same order.\nMaya: If two triangles share one angle and both have a right angle, is that enough for AA?\nTeacher: Yes. The shared angle and the right angle give us two matching angle pairs.\nAarav: So if triangle ABC is similar to triangle DEF, AB over DE should equal AC over DF?\nTeacher: Exactly. Keep the corresponding sides aligned.\nJordan: I keep cross-multiplying wrong. I put 6 over x equals 9 over 12, then I multiply 6 times 9 instead of 6 times 12.\nTeacher: Great catch. Cross products are diagonal, so 6 times 12 equals 9 times x.\nSofia: The scale factor from the small triangle to the big one is 3 over 2, so the missing side should be 15.\nTeacher: Nice answer. Explain why.\nSofia: Because 10 times 3 over 2 is 15, and the matching side grew by that scale factor.\nTeacher: Priya, I see you are here but quiet today. I will send you a practice set and you can check in after class.\nTeacher: Ethan is absent. He needs the catch-up recap and the review video.\nTeacher: Homework is problems 7-12 on the similar triangles worksheet. Due Friday.\nTeacher: Resource link: https://example.com/similar-triangles-review",
+      "notes": "Geometry review with some algebra cleanup.\nNeed to reinforce:\n- AA similarity from two matching angles\n- Corresponding sides must stay in the same order\n- Cross multiplication errors\n- Homework problems 7-12 due Friday\n- Ethan absent, Priya quiet, Jordan needs cross-multiplication reminder",
+      "recap": "ClassLoop detected a math review focused on Similar Triangles + Algebra, AA similarity from two matching angles, Corresponding sides must stay in the same order. The draft connects the session record to student follow-ups, resources, attendance signals, and the next completion check.",
+      "essentialQuestions": [
+        "What were the most important takeaways about Similar Triangles + Algebra?",
+        "Which students need support or catch-up before the next session?",
+        "What follow-up work should be completed by 2026-05-01?"
+      ],
+      "attendance": {
+        "maya-chen": "present",
+        "aarav-patel": "present",
+        "jordan-lee": "present",
+        "sofia-ramirez": "present",
+        "ethan-brooks": "absent",
+        "priya-shah": "present"
+      },
+      "resources": [
+        {
+          "id": "res-1",
+          "title": "example.com",
+          "url": "https://example.com/similar-triangles-review",
+          "type": "link",
+          "relatedTopic": "Similar Triangles + Algebra"
+        }
+      ],
+      "actionItems": [
+        {
+          "id": "task-class-mokoovke",
+          "title": "Complete assigned follow-up work",
+          "description": "Class-level follow-up generated from the imported math review record.",
+          "dueDate": "2026-05-01",
+          "status": "todo",
+          "source": "Detected from transcript, notes, or teacher-entered session details."
+        },
+        {
+          "id": "task-student-0-mokoovke",
+          "title": "Ethan Brooks support check",
+          "description": "Catch up on Similar Triangles + Algebra before starting the assigned work.",
+          "ownerId": "ethan-brooks",
+          "dueDate": "2026-05-01",
+          "status": "todo",
+          "source": "Generated from attendance and participation signals."
+        }
+      ],
+      "participationEvents": [
+        {
+          "id": "p-maya-chen-0-mokoovke",
+          "studentId": "maya-chen",
+          "type": "asked_question",
+          "text": "Asked: If two triangles share one angle and both have a right angle, is that enough for AA?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-aarav-patel-0-mokoovke",
+          "studentId": "aarav-patel",
+          "type": "asked_question",
+          "text": "Asked: So if triangle ABC is similar to triangle DEF, AB over DE should equal AC over DF?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-jordan-lee-0-mokoovke",
+          "studentId": "jordan-lee",
+          "type": "answered_question",
+          "text": "Contributed: I keep cross-multiplying wrong. I put 6 over x equals 9 over 12, then I multiply 6 times 9 instead of 6 times 12.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-sofia-ramirez-0-mokoovke",
+          "studentId": "sofia-ramirez",
+          "type": "answered_question",
+          "text": "Contributed: The scale factor from the small triangle to the big one is 3 over 2, so the missing side should be 15.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-sofia-ramirez-1-mokoovke",
+          "studentId": "sofia-ramirez",
+          "type": "answered_question",
+          "text": "Contributed: Because 10 times 3 over 2 is 15, and the matching side grew by that scale factor.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-ethan-brooks-absent-mokoovke",
+          "studentId": "ethan-brooks",
+          "type": "absent",
+          "text": "Marked absent and needs catch-up materials.",
+          "confidence": 0.94,
+          "approved": true
+        }
+      ],
+      "followUps": [
+        {
+          "studentId": "maya-chen",
+          "reminder": "Review Similar Triangles + Algebra and complete the assigned follow-up.",
+          "catchUp": "ClassLoop found your participation in this session and connected it to the follow-up work.",
+          "tasks": [
+            "Homework is problems 7-12 on the similar triangles worksheet. Due Friday.",
+            "Review the answer to your class question"
+          ],
+          "dueDate": "2026-05-01",
+          "status": "todo",
+          "score": 74
+        },
+        {
+          "studentId": "aarav-patel",
+          "reminder": "Review Similar Triangles + Algebra and complete the assigned follow-up.",
+          "catchUp": "ClassLoop found your participation in this session and connected it to the follow-up work.",
+          "tasks": [
+            "Homework is problems 7-12 on the similar triangles worksheet. Due Friday.",
+            "Review the answer to your class question"
+          ],
+          "dueDate": "2026-05-01",
+          "status": "todo",
+          "score": 74
+        },
+        {
+          "studentId": "jordan-lee",
+          "reminder": "Review Similar Triangles + Algebra and complete the assigned follow-up.",
+          "catchUp": "ClassLoop found your participation in this session and connected it to the follow-up work.",
+          "tasks": [
+            "Homework is problems 7-12 on the similar triangles worksheet. Due Friday."
+          ],
+          "dueDate": "2026-05-01",
+          "status": "todo",
+          "score": 74
+        },
+        {
+          "studentId": "sofia-ramirez",
+          "reminder": "Review Similar Triangles + Algebra and complete the assigned follow-up.",
+          "catchUp": "ClassLoop found your participation in this session and connected it to the follow-up work.",
+          "tasks": [
+            "Homework is problems 7-12 on the similar triangles worksheet. Due Friday."
+          ],
+          "dueDate": "2026-05-01",
+          "status": "todo",
+          "score": 74
+        },
+        {
+          "studentId": "ethan-brooks",
+          "reminder": "Catch up on Similar Triangles + Algebra before starting the assigned work.",
+          "catchUp": "You were marked absent for this session. Start with the recap, then use the resources and assigned work to catch up.",
+          "tasks": [
+            "Read the catch-up recap",
+            "Homework is problems 7-12 on the similar triangles worksheet. Due Friday."
+          ],
+          "dueDate": "2026-05-01",
+          "status": "todo",
+          "score": 30
+        },
+        {
+          "studentId": "priya-shah",
+          "reminder": "Review Similar Triangles + Algebra and complete the assigned follow-up.",
+          "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
+          "tasks": [
+            "Homework is problems 7-12 on the similar triangles worksheet. Due Friday."
+          ],
+          "dueDate": "2026-05-01",
+          "status": "todo",
+          "score": 62
+        }
+      ],
+      "ownerEmail": "teacher@classloop.demo",
+      "isDemo": true
+    }
+  ],
+  "draft": null,
+  "demoLoaded": true,
+  "updatedAt": "2026-04-29T23:26:21.464Z"
+}
