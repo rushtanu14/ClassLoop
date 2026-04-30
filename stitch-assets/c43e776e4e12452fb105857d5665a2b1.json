@@ -1,0 +1,23 @@
+{
+  "id": 543666700,
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [
+      {
+        "text": "{\"name\":\"projects/9884415059820275587/screens/c43e776e4e12452fb105857d5665a2b1\",\"title\":\"A cinematic, high-fidelity hero image for an educational AI platform. A glowing, bioluminescent jellyfish-like structure representing a network of knowledge, floating in a deep midnight-blue oceanic void. Soft light rays filtering from above. High-contrast, ethereal, and premium, matching the style of {{DATA:IMAGE:IMAGE_13}}.\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/c173c8e848384f74a275edb372af628e\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uhCedAFq361l2vI1vEr2MmVoi2_iMiLZESxjhMk_X_OzM8VNP3lXfxKEjahBe9ceXs0LM9fWaFFKhk4PXvynVhzX_fw40dGjWgibHdLWYgghkBDwUl7_rWk7bSBIZfp2OIbkx0WF7D3js6Y0SAN3HhiMRDLev0c3KAhph7VmOuJi6O_Xw6dQ6f8sM8JD_mw-lNROL10bSGNb96dLciBiJ7d-DxkjBQFz4rfSI85EAwT0C-2jTV-liACB8Q\"},\"htmlCode\":{},\"width\":\"1024\",\"height\":\"1024\"}",
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "height": "1024",
+      "htmlCode": {},
+      "name": "projects/9884415059820275587/screens/c43e776e4e12452fb105857d5665a2b1",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uhCedAFq361l2vI1vEr2MmVoi2_iMiLZESxjhMk_X_OzM8VNP3lXfxKEjahBe9ceXs0LM9fWaFFKhk4PXvynVhzX_fw40dGjWgibHdLWYgghkBDwUl7_rWk7bSBIZfp2OIbkx0WF7D3js6Y0SAN3HhiMRDLev0c3KAhph7VmOuJi6O_Xw6dQ6f8sM8JD_mw-lNROL10bSGNb96dLciBiJ7d-DxkjBQFz4rfSI85EAwT0C-2jTV-liACB8Q",
+        "name": "projects/9884415059820275587/files/c173c8e848384f74a275edb372af628e"
+      },
+      "title": "A cinematic, high-fidelity hero image for an educational AI platform. A glowing, bioluminescent jellyfish-like structure representing a network of knowledge, floating in a deep midnight-blue oceanic void. Soft light rays filtering from above. High-contrast, ethereal, and premium, matching the style of {{DATA:IMAGE:IMAGE_13}}.",
+      "width": "1024"
+    }
+  }
+}

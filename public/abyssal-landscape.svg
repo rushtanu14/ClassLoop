@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#020617"/>
+      <stop offset=".46" stop-color="#06213a"/>
+      <stop offset="1" stop-color="#08051a"/>
+    </linearGradient>
+    <radialGradient id="node" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#e0f2fe"/>
+      <stop offset=".25" stop-color="#67e8f9"/>
+      <stop offset=".7" stop-color="#2563eb" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#020617" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <g opacity=".44" filter="url(#soft)">
+    <path d="M-70 618c211-93 370-118 477-75 114 46 192 54 305 4 140-63 267-54 382 28 91 65 230 78 417 38 77-23 142-29 195-18" fill="none" stroke="#38bdf8" stroke-width="42"/>
+    <path d="M8 704c143-52 263-52 361 0 112 59 239 56 380-8 105-48 214-46 328 7 150 70 316 57 499-38" fill="none" stroke="#a78bfa" stroke-width="24"/>
+  </g>
+  <g opacity=".7">
+    <path d="M189 704c73-124 165-192 275-203 83-8 162 18 236 79 99 81 196 108 291 80 96-28 181-13 255 45" fill="none" stroke="#22d3ee" stroke-width="3"/>
+    <path d="M356 518l174 58 146-30 224 112 174-34 170 86" fill="none" stroke="#c4b5fd" stroke-width="2"/>
+    <circle cx="356" cy="518" r="10" fill="url(#node)"/>
+    <circle cx="530" cy="576" r="13" fill="url(#node)"/>
+    <circle cx="676" cy="546" r="8" fill="url(#node)"/>
+    <circle cx="900" cy="658" r="14" fill="url(#node)"/>
+    <circle cx="1074" cy="624" r="8" fill="url(#node)"/>
+    <circle cx="1244" cy="710" r="11" fill="url(#node)"/>
+  </g>
+  <g opacity=".44">
+    <path d="M0 756c140-45 260-59 360-41 103 18 201 58 296 119 72 46 154 53 246 20 115-41 215-44 301-7 122 53 254 47 397-18v71H0z" fill="#01040b"/>
+    <path d="M0 826c103-27 202-30 297-9 114 25 205 26 273 3 86-30 164-25 235 13 77 41 159 42 246 3 110-49 239-42 387 20 50 21 104 31 162 29v15H0z" fill="#0a1022"/>
+  </g>
+  <g fill="#e0f2fe" opacity=".25">
+    <circle cx="241" cy="180" r="3"/>
+    <circle cx="371" cy="107" r="2"/>
+    <circle cx="612" cy="201" r="3"/>
+    <circle cx="802" cy="122" r="2"/>
+    <circle cx="1120" cy="188" r="3"/>
+    <circle cx="1325" cy="109" r="2"/>
+  </g>
+</svg>

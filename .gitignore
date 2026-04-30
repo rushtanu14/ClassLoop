@@ -1,0 +1,5 @@
+node_modules
+dist
+.classloop-data.json
+.DS_Store
+*.log

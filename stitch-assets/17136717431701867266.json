@@ -1,0 +1,23 @@
+{
+  "id": 809085056,
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [
+      {
+        "text": "{\"name\":\"projects/9884415059820275587/screens/17136717431701867266\",\"title\":\"image.png\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/17136717431701868111\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uiWcXVS2qWqt85hvon0fctItiPg9h6-jpyaAJBm8n89VXO_cbmFu-GBuyqPWIIGOJNZP504oHObWq-DkbWFVdCrUJkV3Fxeie5Da3GxpLgpR5sJVQzaCTSIWLXkYnPEJv_ko2dxcdF3lv3VF9XX4oy71byKGCfeihYtOMASMnxUW0L4GrjHyyOO8Kowlf_pFmY8qjTf3hQyJ7P11B7OxolRrdvJfU63EJX2XbnQuowd5waekNgFPtU4R0DEtK06NgGWQk8HjKswlQ\"},\"htmlCode\":{},\"width\":\"736\",\"height\":\"1307\"}",
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "height": "1307",
+      "htmlCode": {},
+      "name": "projects/9884415059820275587/screens/17136717431701867266",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uiWcXVS2qWqt85hvon0fctItiPg9h6-jpyaAJBm8n89VXO_cbmFu-GBuyqPWIIGOJNZP504oHObWq-DkbWFVdCrUJkV3Fxeie5Da3GxpLgpR5sJVQzaCTSIWLXkYnPEJv_ko2dxcdF3lv3VF9XX4oy71byKGCfeihYtOMASMnxUW0L4GrjHyyOO8Kowlf_pFmY8qjTf3hQyJ7P11B7OxolRrdvJfU63EJX2XbnQuowd5waekNgFPtU4R0DEtK06NgGWQk8HjKswlQ",
+        "name": "projects/9884415059820275587/files/17136717431701868111"
+      },
+      "title": "image.png",
+      "width": "736"
+    }
+  }
+}
