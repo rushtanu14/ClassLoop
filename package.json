@@ -1,0 +1,14 @@
+{
+  "name": "classloop-main-static",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite preview --host 127.0.0.1",
+    "start": "vite preview --host 127.0.0.1",
+    "build": "echo \"main serves the checked-in dist build; use ui-test for source UI work\""
+  },
+  "devDependencies": {
+    "vite": "^7.3.2"
+  }
+}

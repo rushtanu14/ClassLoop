@@ -1,0 +1,6 @@
+node_modules
+dist/assets/index-*.js
+dist/assets/index-*.css
+.classloop-data.json
+.DS_Store
+*.log
