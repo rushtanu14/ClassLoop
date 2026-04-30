@@ -1,0 +1,41 @@
+:root[data-theme="abyssal"] {
+  --muted: #d6e7f6;
+}
+
+:root[data-theme="abyssal"] .student-hero {
+  background:
+    linear-gradient(135deg, rgba(4, 15, 29, 0.92), rgba(7, 30, 52, 0.72)),
+    url("/abyssal-hero.png"),
+    radial-gradient(circle at 72% 18%, rgba(56, 189, 248, 0.34), transparent 32%),
+    linear-gradient(160deg, #020817, #06213a);
+  background-size: cover;
+  background-position: center;
+}
+
+:root[data-theme="abyssal"] .today-card {
+  background:
+    linear-gradient(135deg, rgba(4, 15, 29, 0.88), rgba(6, 23, 42, 0.78)),
+    radial-gradient(circle at 74% 24%, rgba(56, 189, 248, 0.2), transparent 30%),
+    rgba(7, 20, 36, 0.9);
+}
+
+:root[data-theme="abyssal"] .student-hero h2,
+:root[data-theme="abyssal"] .today-card h3,
+:root[data-theme="abyssal"] .panel-header h3 {
+  color: #f8fbff;
+  text-shadow: 0 16px 40px rgba(0, 0, 0, 0.52);
+}
+
+:root[data-theme="abyssal"] .student-hero p,
+:root[data-theme="abyssal"] .today-card p,
+:root[data-theme="abyssal"] .task-row small,
+:root[data-theme="abyssal"] .resource-row small,
+:root[data-theme="abyssal"] .student-note p,
+:root[data-theme="abyssal"] .inline-empty p {
+  color: #d6e7f6;
+}
+
+:root[data-theme="abyssal"] .student-picker-item {
+  color: #ecf7ff;
+  background: rgba(5, 18, 35, 0.72);
+}
