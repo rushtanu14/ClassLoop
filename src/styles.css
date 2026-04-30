@@ -1841,6 +1841,23 @@ th {
   min-height: 380px;
 }
 
+:root[data-theme="abyssal"] .student-hero {
+  background:
+    linear-gradient(135deg, rgba(4, 15, 29, 0.9), rgba(7, 30, 52, 0.68)),
+    url("/abyssal-hero.png"),
+    radial-gradient(circle at 72% 18%, rgba(56, 189, 248, 0.34), transparent 32%),
+    linear-gradient(160deg, #020817, #06213a);
+  background-size: cover;
+  background-position: center;
+}
+
+:root[data-theme="abyssal"] .today-card {
+  background:
+    linear-gradient(135deg, rgba(4, 15, 29, 0.84), rgba(6, 23, 42, 0.74)),
+    radial-gradient(circle at 74% 24%, rgba(56, 189, 248, 0.2), transparent 30%),
+    rgba(7, 20, 36, 0.86);
+}
+
 :root[data-theme="abyssal"] .topbar h1,
 :root[data-theme="abyssal"] .hero-copy h2,
 :root[data-theme="abyssal"] .section-heading h2,
@@ -1850,7 +1867,8 @@ th {
 :root[data-theme="abyssal"] .analytics-header h2,
 :root[data-theme="abyssal"] .student-session-header h2,
 :root[data-theme="abyssal"] .appearance-hero h2,
-:root[data-theme="abyssal"] .processing-core h2 {
+:root[data-theme="abyssal"] .processing-core h2,
+:root[data-theme="abyssal"] .today-card h3 {
   color: #f8fbff;
   text-shadow: 0 18px 44px rgba(0, 0, 0, 0.46);
 }
