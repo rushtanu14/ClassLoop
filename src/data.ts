@@ -49,7 +49,16 @@ export type ImportDraftInput = {
   resources: string;
 };
 
+export type TranscriptTextFile = {
+  name?: string;
+  text: () => Promise<string>;
+};
+
 const avatarColors = ["#f59e0b", "#0ea5e9", "#8b5cf6", "#10b981", "#ef4444", "#14b8a6", "#6366f1", "#d946ef"];
+
+export async function readTranscriptFileText(file: TranscriptTextFile) {
+  return file.text();
+}
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -96,7 +105,7 @@ function isTranscriptMetadataSpeaker(speaker: string) {
   const normalized = normalizeSpeakerName(speaker);
   return (
     !normalized ||
-    /^(teacher|instructor|professor|facilitator|host|classloop|meeting title|meeting date|meeting id|meeting passcode|passcode|date|duration|participants?|transcript|transcription|recording|audio|chat|question|questions|answer|answers|summary|agenda|topic|topics|name|email|attendance|zoom names?|student access|speaker|speakers|speaker matching|transcript speaker matching|start time|end time|timezone|language|notes)$/i.test(
+    /^(teacher|instructor|professor|facilitator|host|classloop|meeting title|meeting date|meeting id|meeting passcode|passcode|date|duration|participants?|transcript|transcription|recording|audio|chat|question|questions|answer|answers|summary|agenda|topic|topics|resources?|links?|name|email|attendance|zoom names?|student access|speaker|speakers|speaker matching|transcript speaker matching|start time|end time|timezone|language|notes)$/i.test(
       normalized,
     ) ||
     /^\d+$/.test(normalized) ||
@@ -182,7 +191,7 @@ function cleanRosterNameChunk(value: string) {
     .filter((segment) => !isRosterMetadataText(segment));
   const candidate = segments[segments.length - 1] ?? text;
   return candidate
-    .replace(/^\s*#?\s*(?:student\s*)?\d+\s*/i, "")
+    .replace(/^\s*#?\s*(?:student\s*)?\d+[\s.)-]*/i, "")
     .replace(/^\s*(?:student|learner)\s+/i, "")
     .replace(/\b(?:name|email)\b/gi, " ")
     .replace(/[#()[\]{}]+/g, " ")

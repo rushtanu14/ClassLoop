@@ -1,4 +1,4 @@
-import { createGeneratedSession } from "../src/data.js";
+import { createGeneratedSession, readTranscriptFileText } from "../src/data.js";
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
@@ -96,6 +96,43 @@ const session = createGeneratedSession({
   resources: "",
 });
 
+const rosterFormatVariants = [
+  {
+    name: "comma-separated lines",
+    roster: `Roster
+Aaliyah Carter, acarter@cs4all.nyc
+Danny Reyes, dreyes@cs4all.nyc
+Jalen Thompson, jthompson@cs4all.nyc`,
+  },
+  {
+    name: "pipe-separated rows",
+    roster: `Student Name | Email
+Aaliyah Carter | acarter@cs4all.nyc
+Danny Reyes | dreyes@cs4all.nyc
+Jalen Thompson | jthompson@cs4all.nyc`,
+  },
+  {
+    name: "numbered angle-bracket rows",
+    roster: `Class roster
+1. Aaliyah Carter <acarter@cs4all.nyc>
+2. Danny Reyes <dreyes@cs4all.nyc>
+3. Jalen Thompson <jthompson@cs4all.nyc>`,
+  },
+  {
+    name: "tabular pasted rows",
+    roster: `# Student Name\tEmail
+1\tAaliyah Carter\tacarter@cs4all.nyc
+2\tDanny Reyes\tdreyes@cs4all.nyc
+3\tJalen Thompson\tjthompson@cs4all.nyc`,
+  },
+];
+
+const speakerFormatTranscript = `Mr. Agrawal: Teacher instructions should not become a student.
+Learner (Aaliyah Carter): I can explain the steps.
+Speaker - Danny Reyes: I think directions are an algorithm.
+Jalen Thompson: Is the worksheet due Thursday?
+Resource: https://www.youtube.com/watch?v=6hfOvs8pY1k`;
+
 const expectedStudents = [
   ["Aaliyah Carter", "acarter@cs4all.nyc"],
   ["Danny Reyes", "dreyes@cs4all.nyc"],
@@ -152,3 +189,49 @@ assert(!unmatchedNames.includes("Mr. Agrawal"), "roster teacher metadata should 
 expectedMatchedSpeakers.forEach((speaker) => {
   assert(!unmatchedNames.includes(speaker), `${speaker} should match a roster student`);
 });
+
+rosterFormatVariants.forEach((variant) => {
+  const variantSession = createGeneratedSession({
+    title: `Import robustness check: ${variant.name}`,
+    template: "General classroom",
+    transcript: speakerFormatTranscript,
+    notes: "",
+    roster: variant.roster,
+    resources: "",
+  });
+  assertEqual(variantSession.students.length, 3, `${variant.name} should parse three roster students`);
+  assert(
+    variantSession.students.some((student) => student.name === "Aaliyah Carter" && student.email === "acarter@cs4all.nyc"),
+    `${variant.name} should parse Aaliyah Carter`,
+  );
+  assert(
+    variantSession.students.some((student) => student.name === "Danny Reyes" && student.email === "dreyes@cs4all.nyc"),
+    `${variant.name} should parse Danny Reyes`,
+  );
+  assert(
+    variantSession.students.some((student) => student.name === "Jalen Thompson" && student.email === "jthompson@cs4all.nyc"),
+    `${variant.name} should parse Jalen Thompson`,
+  );
+  assertEqual(variantSession.unmatchedParticipants?.length ?? 0, 0, `${variant.name} should match known speaker variants`);
+  assert(variantSession.participationEvents.length > 0, `${variant.name} should generate participation events`);
+  assertEqual(variantSession.resources.length, 1, `${variant.name} should preserve transcript URL extraction`);
+});
+
+const transcriptFile =
+  typeof File === "function"
+    ? new File([zoomTranscript], "cs4all-demo.vtt", { type: "text/vtt" })
+    : { name: "cs4all-demo.vtt", text: async () => zoomTranscript };
+const fileTranscript = await readTranscriptFileText(transcriptFile);
+const fileSession = createGeneratedSession({
+  title: "CS4All file upload path",
+  template: "General classroom",
+  transcript: fileTranscript,
+  notes: "",
+  roster: compressedRoster,
+  resources: "",
+});
+
+assertEqual(fileTranscript, zoomTranscript, "transcript file text should load unchanged");
+assertEqual(fileSession.students.length, 18, "file transcript path should preserve roster parsing");
+assert(fileSession.participationEvents.length > 0, "file transcript path should generate participation events");
+assertEqual(fileSession.resources.length, 2, "file transcript path should preserve resource extraction");

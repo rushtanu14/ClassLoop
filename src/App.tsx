@@ -49,6 +49,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createGeneratedSession,
   extractTranscriptSpeakers,
+  readTranscriptFileText,
   sampleNotes,
   sampleRoster,
   sampleTranscript,
@@ -2108,14 +2109,10 @@ function ImportSession({
     onUseDemo();
   };
 
-  const handleTranscriptFile = (file?: File) => {
+  const handleTranscriptFile = async (file?: File) => {
     if (!file) return;
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => {
-      setTranscript(String(reader.result ?? ""));
-    };
-    reader.readAsText(file);
+    setTranscript(await readTranscriptFileText(file));
   };
 
   const generateDraft = () => {
