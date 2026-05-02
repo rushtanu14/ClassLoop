@@ -14,6 +14,24 @@ ClassLoop runs as a desktop application.
 
 The launcher installs missing dependencies when needed, then opens ClassLoop in a native Electron window.
 
+## Tech Stack
+
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Electron](https://img.shields.io/badge/Electron-47848F?style=for-the-badge&logo=electron&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![CSS](https://img.shields.io/badge/CSS-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+
+| Layer | Technology |
+|---|---|
+| **Framework** | React 18 |
+| **Language** | TypeScript 5 |
+| **Desktop Shell** | Electron 41 |
+| **Build Tool** | Vite 6 |
+| **Icons** | Lucide React |
+| **Styling** | CSS |
+| **Package Manager** | npm |
+
 ## Current Main Experience
 
 - Original classroom visual style: clean white surfaces with green education-focused accents.
