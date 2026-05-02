@@ -74,16 +74,40 @@ function normalizeSpeakerName(value: string) {
     .trim();
 }
 
+const genericSpeakerLabelPattern = /^(student|learner|participant|attendee|speaker|user|guest)\b/i;
+
+function stripGenericSpeakerLabel(value: string) {
+  return value
+    .replace(/^\s*(student|learner|participant|attendee|speaker|user|guest)\s*\(([^)]+)\)\s*$/i, "$2")
+    .replace(/^\s*(student|learner|participant|attendee|speaker|user|guest)\s*[-:#]?\s*/i, "")
+    .replace(/^\(([^)]+)\)$/i, "$1")
+    .trim();
+}
+
+function normalizedSpeakerCandidates(value: string) {
+  const candidates = [value, stripGenericSpeakerLabel(value)];
+  for (const match of value.matchAll(/\(([^)]+)\)/g)) {
+    candidates.push(match[1]);
+  }
+  return unique(candidates.map(normalizeSpeakerName).filter(Boolean));
+}
+
 function isTranscriptMetadataSpeaker(speaker: string) {
   const normalized = normalizeSpeakerName(speaker);
   return (
     !normalized ||
-    /^(teacher|instructor|professor|facilitator|host|classloop|meeting title|meeting date|date|duration|participants?|transcript|recording|audio|chat|question|answer|summary|agenda|start time|end time)$/i.test(
+    /^(teacher|instructor|professor|facilitator|host|classloop|meeting title|meeting date|meeting id|meeting passcode|passcode|date|duration|participants?|transcript|transcription|recording|audio|chat|question|questions|answer|answers|summary|agenda|topic|topics|name|email|attendance|zoom names?|student access|speaker|speakers|speaker matching|transcript speaker matching|start time|end time|timezone|language|notes)$/i.test(
       normalized,
     ) ||
     /^\d+$/.test(normalized) ||
-    /\d{1,2}\s+\d{2}/.test(normalized)
+    /\d{1,2}\s+\d{2}/.test(normalized) ||
+    /^(mon|tue|wed|thu|fri|sat|sun)\b/i.test(normalized)
   );
+}
+
+function isTeacherLikeSpeaker(speaker: string) {
+  const normalized = normalizeSpeakerName(speaker);
+  return /^(ms|mrs|mr|mx|dr|prof|professor)\s+[a-z]/i.test(normalized);
 }
 
 type SpeakerLine = {
@@ -99,7 +123,16 @@ function parseSpeakerLine(line: string): SpeakerLine | null {
   );
   if (!match) return null;
   const speaker = match[1].replace(/\s+/g, " ").trim();
-  if (!speaker || /^https?$/i.test(speaker) || isTranscriptMetadataSpeaker(speaker)) return null;
+  if (
+    !speaker ||
+    /^https?$/i.test(speaker) ||
+    /-->|webvtt|zoom meeting|recording transcript/i.test(speaker) ||
+    !/[a-z]/i.test(speaker) ||
+    isTranscriptMetadataSpeaker(speaker) ||
+    isTeacherLikeSpeaker(speaker)
+  ) {
+    return null;
+  }
   return { speaker, text: match[2].trim(), line: trimmed };
 }
 
@@ -123,26 +156,141 @@ function nextFriday() {
   return toDateInput(date);
 }
 
+function isRosterMetadataText(value: string) {
+  const normalized = normalizeSpeakerName(value);
+  return (
+    !normalized ||
+    /^(class roster|roster|demo session|teacher|instructor|period|spring|fall|winter|summer|student name email|student name|name email|student email|students?|participants?)\b/i.test(
+      normalized,
+    ) ||
+    /\b(period|spring|fall|winter|summer)\s+\d{1,4}\b/i.test(normalized) ||
+    isTeacherLikeSpeaker(value)
+  );
+}
+
+function cleanRosterNameChunk(value: string) {
+  let text = value
+    .replace(/\r/g, "\n")
+    .replace(/[|<>;,]+/g, "\n")
+    .replace(/[–—]/g, " ");
+
+  text = text.replace(/[\s\S]*#?\s*(?:student\s*)?name\s*email\s*/i, "");
+  const segments = text
+    .split(/\n+/)
+    .map((segment) => segment.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .filter((segment) => !isRosterMetadataText(segment));
+  const candidate = segments[segments.length - 1] ?? text;
+  return candidate
+    .replace(/^\s*#?\s*(?:student\s*)?\d+\s*/i, "")
+    .replace(/^\s*(?:student|learner)\s+/i, "")
+    .replace(/\b(?:name|email)\b/gi, " ")
+    .replace(/[#()[\]{}]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isPlausibleRosterName(name: string) {
+  const normalized = normalizeSpeakerName(name);
+  return Boolean(
+    normalized &&
+      !isRosterMetadataText(name) &&
+      /[a-z]/i.test(name) &&
+      !/@/.test(name) &&
+      !genericSpeakerLabelPattern.test(name.trim()) &&
+      normalized.split(" ").length <= 5,
+  );
+}
+
+function studentFromRosterEntry(name: string, email: string, index: number): Student {
+  const cleanName = name.trim() || `Student ${index + 1}`;
+  const cleanEmail = email.trim().toLowerCase();
+  return {
+    id: slugify(cleanName, `student-${index + 1}`),
+    name: cleanName,
+    email: cleanEmail || `${slugify(cleanName, `student-${index + 1}`)}@classloop.local`,
+    avatarColor: avatarColors[index % avatarColors.length],
+  };
+}
+
+function compactNameToken(value: string) {
+  return normalizeSpeakerName(value).replace(/\s+/g, "");
+}
+
+function splitGluedNameAndEmail(baseName: string, rawEmail: string) {
+  const [rawLocal, ...domainParts] = rawEmail.split("@");
+  const domain = domainParts.join("@").toLowerCase();
+  const baseTokens = normalizeSpeakerName(baseName).split(" ").filter(Boolean);
+  if (!rawLocal || !domain || !baseTokens.length) {
+    return { name: baseName, email: rawEmail.toLowerCase() };
+  }
+
+  const localLower = rawLocal.toLowerCase();
+  const initials = baseTokens.map((token) => token.charAt(0)).join("");
+  let bestSplit: { name: string; email: string } | null = null;
+
+  for (let index = 1; index < rawLocal.length - 1; index += 1) {
+    const gluedNameSuffix = rawLocal.slice(0, index);
+    const emailLocal = rawLocal.slice(index);
+    const suffixToken = compactNameToken(gluedNameSuffix);
+    const emailToken = compactNameToken(emailLocal);
+    const firstInitialPattern = `${baseTokens[0].charAt(0)}${suffixToken}`;
+    const allInitialsPattern = `${initials}${suffixToken}`;
+
+    if (emailToken === firstInitialPattern || emailToken === allInitialsPattern) {
+      bestSplit = {
+        name: `${baseName} ${gluedNameSuffix}`.replace(/\s+/g, " ").trim(),
+        email: `${emailLocal.toLowerCase()}@${domain}`,
+      };
+    }
+  }
+
+  return bestSplit ?? { name: baseName, email: rawEmail.toLowerCase() };
+}
+
+function parseEmailRosterEntries(roster: string) {
+  const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,24}(?=\d|[^A-Z0-9]|$)/gi;
+  const matches = Array.from(roster.matchAll(emailPattern));
+  const entries: Array<{ name: string; email: string }> = [];
+  let previousEmailEnd = 0;
+
+  matches.forEach((match) => {
+    const rawEmail = match[0].replace(/[.,;:)]+$/, "");
+    const matchIndex = match.index ?? 0;
+    const baseName = cleanRosterNameChunk(roster.slice(previousEmailEnd, matchIndex));
+    previousEmailEnd = matchIndex + match[0].length;
+    const { name, email } = splitGluedNameAndEmail(baseName, rawEmail);
+    if (isPlausibleRosterName(name)) {
+      entries.push({ name, email });
+    }
+  });
+
+  const seenEmails = new Set<string>();
+  return entries.filter((entry) => {
+    if (seenEmails.has(entry.email)) return false;
+    seenEmails.add(entry.email);
+    return true;
+  });
+}
+
 function parseRoster(roster: string, transcript: string): Student[] {
+  const emailEntries = parseEmailRosterEntries(roster);
+  if (emailEntries.length) {
+    return emailEntries.map((entry, index) => studentFromRosterEntry(entry.name, entry.email, index));
+  }
+
   const rosterStudents = roster
     .split(/\n+/)
     .map((line) => line.trim())
     .filter(Boolean)
+    .filter((line) => !isRosterMetadataText(line))
     .map((line, index) => {
       const emailMatch = line.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
       const email = emailMatch?.[0] ?? "";
-      const name = line
-        .replace(email, "")
-        .replace(/[<>,;]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-      return {
-        id: slugify(name || `Student ${index + 1}`, `student-${index + 1}`),
-        name: name || `Student ${index + 1}`,
-        email: email || `${slugify(name || `student-${index + 1}`, `student-${index + 1}`)}@classloop.local`,
-        avatarColor: avatarColors[index % avatarColors.length],
-      };
-    });
+      const name = cleanRosterNameChunk(line.replace(email, ""));
+      return isPlausibleRosterName(name) ? studentFromRosterEntry(name, email, index) : null;
+    })
+    .filter((student): student is Student => Boolean(student));
 
   if (rosterStudents.length) return rosterStudents;
 
@@ -266,14 +414,13 @@ function parseResources(resourcesText: string, sessionText: string, relatedTopic
 }
 
 function speakerMatchesStudent(speaker: string, student: Student) {
-  const normalizedSpeaker = normalizeSpeakerName(speaker);
-  const normalizedName = normalizeSpeakerName(student.name);
   const first = student.name.split(" ")[0];
   const aliases = student.aliases ?? [];
-  return [student.name, first, ...aliases].some((candidate) => {
-    const normalizedCandidate = normalizeSpeakerName(candidate);
-    return normalizedCandidate && normalizedSpeaker === normalizedCandidate;
-  }) || normalizedSpeaker === normalizedName;
+  const normalizedSpeakers = normalizedSpeakerCandidates(speaker);
+  const normalizedStudentCandidates = [student.name, first, ...aliases].flatMap(normalizedSpeakerCandidates);
+  return normalizedSpeakers.some((speakerCandidate) =>
+    normalizedStudentCandidates.some((studentCandidate) => speakerCandidate === studentCandidate),
+  );
 }
 
 function lineForStudent(lines: string[], student: Student) {
@@ -286,13 +433,15 @@ function lineForStudent(lines: string[], student: Student) {
 }
 
 function suggestedStudentIdForSpeaker(name: string, roster: Student[]) {
-  const normalized = normalizeSpeakerName(name);
-  const firstToken = normalized.split(" ")[0];
-  const firstInitial = firstToken.charAt(0);
-  return roster.find((student) => {
-    const studentName = normalizeSpeakerName(student.name);
-    return studentName.startsWith(firstToken) || (firstInitial && studentName.charAt(0) === firstInitial);
-  })?.id;
+  const speakerCandidates = normalizedSpeakerCandidates(name);
+  return roster.find((student) =>
+    speakerCandidates.some((candidate) => {
+      const firstToken = candidate.split(" ")[0];
+      const firstInitial = firstToken.charAt(0);
+      const studentName = normalizeSpeakerName(student.name);
+      return studentName.startsWith(firstToken) || (firstInitial && studentName.charAt(0) === firstInitial);
+    }),
+  )?.id;
 }
 
 function findUnmatchedParticipants(sessionText: string, roster: Student[], hasExplicitRoster: boolean): UnmatchedParticipant[] {

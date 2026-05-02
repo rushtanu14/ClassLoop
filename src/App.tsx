@@ -77,6 +77,7 @@ type RouteKey =
   | "student"
   | "student-session"
   | "analytics"
+  | "tutorial"
   | "appearance";
 
 type NavItem = {
@@ -113,6 +114,11 @@ type AccountSettingsInput = {
   newPassword: string;
 };
 
+type PasswordResetRecord = {
+  code: string;
+  expiresAt: number;
+};
+
 type SharedState = {
   accounts: Account[];
   sessions: Session[];
@@ -138,14 +144,16 @@ const navItems: NavItem[] = [
   { route: "report", label: "Session report", icon: ClipboardCheck },
   { route: "student", label: "Student view", icon: GraduationCap },
   { route: "analytics", label: "Analytics", icon: BarChart3 },
+  { route: "tutorial", label: "How it works", icon: BookOpen },
   { route: "appearance", label: "Appearance", icon: Palette },
 ];
 
 const studentNavItems: NavItem[] = [
   { route: "student", label: "My portal", icon: GraduationCap },
+  { route: "tutorial", label: "How it works", icon: BookOpen },
 ];
 
-const studentRoutes = new Set<RouteKey>(["student", "student-session"]);
+const studentRoutes = new Set<RouteKey>(["student", "student-session", "tutorial"]);
 const demoTeacherEmail = "teacher@classloop.demo";
 const demoStudentEmail = "maya@classloop.demo";
 const teacherPasswordHash = "92d96446c5fa184300fb96631d4ca0b18e536cfab5c0da5eead1edb535190e84";
@@ -172,9 +180,9 @@ const demoAccounts: Account[] = [
 ];
 
 const templateOptions: SessionType[] = [
+  "General classroom",
   "Math review",
   "CS workshop",
-  "General classroom",
   "Club meeting",
   "Study group",
 ];
@@ -185,6 +193,30 @@ const templateDescriptions: Record<SessionType, string> = {
   "General classroom": "Recaps, attendance, resources, and daily student follow-ups.",
   "Club meeting": "Roles, decisions, owners, deadlines, and meeting catch-up.",
   "Study group": "Shared notes, peer questions, practice goals, and check-ins.",
+};
+
+const templateDetailFields: Record<SessionType, Array<{ id: string; label: string; placeholder: string }>> = {
+  "Math review": [
+    { id: "practiceProblems", label: "Practice problems", placeholder: "Problems 7-12, worksheet B, textbook p. 144" },
+    { id: "focusSkills", label: "Skills to reinforce", placeholder: "Similar triangles, proportions, cross multiplication" },
+    { id: "commonMistakes", label: "Common mistakes", placeholder: "Wrong corresponding sides, diagonal products mixed up" },
+  ],
+  "CS workshop": [
+    { id: "projectLinks", label: "Project or repo", placeholder: "GitHub link, Replit, starter file, or branch name" },
+    { id: "debugTargets", label: "Debug targets", placeholder: "Array indexing, event handlers, state updates" },
+    { id: "deliverable", label: "Workshop deliverable", placeholder: "Submit fixed function, write reflection, push commit" },
+  ],
+  "General classroom": [],
+  "Club meeting": [
+    { id: "decisions", label: "Decisions made", placeholder: "Event theme, budget choice, outreach plan" },
+    { id: "owners", label: "Owners", placeholder: "Who owns each next step" },
+    { id: "nextCheckpoint", label: "Next checkpoint", placeholder: "Deadline, meeting date, milestone" },
+  ],
+  "Study group": [
+    { id: "topics", label: "Topics", placeholder: "Exam units, readings, problem types" },
+    { id: "peerQuestions", label: "Peer questions", placeholder: "Questions the group could not fully answer" },
+    { id: "practiceGoals", label: "Practice goals", placeholder: "Timed practice, explain one solution, review flashcards" },
+  ],
 };
 
 const defaultTheme: ThemeSettings = {
@@ -240,6 +272,7 @@ const routeLabels: Record<RouteKey, string> = {
   student: "Student dashboard",
   "student-session": "Student session detail",
   analytics: "Teacher analytics",
+  tutorial: "How it works",
   appearance: "Appearance",
 };
 
@@ -618,6 +651,7 @@ function App() {
   const [demoLoaded, setDemoLoaded] = useState(false);
   const [sharedReady, setSharedReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connecting");
+  const [passwordResetCodes, setPasswordResetCodes] = useState<Record<string, PasswordResetRecord>>({});
   const serverSyncRef = useRef(false);
   const isSavingRef = useRef(false);
   const writeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -962,13 +996,85 @@ function App() {
     return { ok: true, message: "Settings saved." };
   };
 
+  const handleRequestPasswordReset = async (role: AuthRole, email: string) => {
+    const normalizedEmail = normalizeEmail(email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return { ok: false, message: "Enter the email for the account you want to reset." };
+    }
+
+    const account = accounts.find((item) => item.role === role && normalizeEmail(item.email) === normalizedEmail);
+    if (!account) {
+      return { ok: true, message: "If an account exists for that email, a reset code can be sent." };
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const key = `${role}:${normalizedEmail}`;
+    setPasswordResetCodes((current) => ({
+      ...current,
+      [key]: {
+        code,
+        expiresAt: Date.now() + 15 * 60 * 1000,
+      },
+    }));
+    return {
+      ok: true,
+      message: "Reset code ready.",
+      code,
+      email: normalizedEmail,
+      name: account.name,
+    };
+  };
+
+  const handleCompletePasswordReset = async (
+    role: AuthRole,
+    email: string,
+    code: string,
+    newPassword: string,
+  ) => {
+    const normalizedEmail = normalizeEmail(email);
+    const key = `${role}:${normalizedEmail}`;
+    const resetRecord = passwordResetCodes[key];
+    const account = accounts.find((item) => item.role === role && normalizeEmail(item.email) === normalizedEmail);
+
+    if (!account || !resetRecord || resetRecord.expiresAt < Date.now() || resetRecord.code !== code.trim()) {
+      return { ok: false, message: "Reset code is incorrect or expired." };
+    }
+    if (newPassword.length < 8) return { ok: false, message: "Use at least 8 characters for the new password." };
+    if (account.demo) return { ok: false, message: "Sample account passwords stay fixed. Create your own account to change it." };
+
+    const passwordHash = await hashSecret(newPassword);
+    setAccounts((current) =>
+      current.map((item) =>
+        item.id === account.id
+          ? {
+              ...item,
+              passwordHash,
+            }
+          : item,
+      ),
+    );
+    setPasswordResetCodes((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    return { ok: true, message: "Password reset. You can sign in now." };
+  };
+
   const logout = () => {
     setAuth(null);
     navigate("dashboard");
   };
 
   if (!auth) {
-    return <LoginPage onLogin={handleLogin} onCreateAccount={handleCreateAccount} />;
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        onCreateAccount={handleCreateAccount}
+        onRequestPasswordReset={handleRequestPasswordReset}
+        onCompletePasswordReset={handleCompletePasswordReset}
+      />
+    );
   }
 
   return (
@@ -986,8 +1092,8 @@ function App() {
         {effectiveRoute === "new-session" && (
           <ImportSession
             ownerEmail={auth.email}
-              setDraft={setDraft}
-              onUseDemo={() => setDemoLoaded(true)}
+            setDraft={setDraft}
+            onUseDemo={() => setDemoLoaded(true)}
           />
         )}
         {effectiveRoute === "processing" && <Processing draft={visibleDraft} />}
@@ -1039,6 +1145,7 @@ function App() {
           />
         )}
         {effectiveRoute === "analytics" && <TeacherAnalytics sessions={teacherSessions} />}
+        {effectiveRoute === "tutorial" && <TutorialPage auth={auth} />}
         {effectiveRoute === "appearance" && <DesignSystemPage theme={activeTheme} setTheme={setTheme} />}
       </main>
     </div>
@@ -1048,6 +1155,8 @@ function App() {
 function LoginPage({
   onLogin,
   onCreateAccount,
+  onRequestPasswordReset,
+  onCompletePasswordReset,
 }: {
   onLogin: (role: AuthRole, email: string, password: string) => Promise<{ ok: boolean; message?: string }>;
   onCreateAccount: (
@@ -1055,6 +1164,16 @@ function LoginPage({
     name: string,
     email: string,
     password: string,
+  ) => Promise<{ ok: boolean; message?: string }>;
+  onRequestPasswordReset: (
+    role: AuthRole,
+    email: string,
+  ) => Promise<{ ok: boolean; message?: string; code?: string; email?: string; name?: string }>;
+  onCompletePasswordReset: (
+    role: AuthRole,
+    email: string,
+    code: string,
+    newPassword: string,
   ) => Promise<{ ok: boolean; message?: string }>;
 }) {
   const [mode, setMode] = useState<"signin" | "create">("signin");
@@ -1064,7 +1183,15 @@ function LoginPage({
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetStep, setResetStep] = useState<"request" | "confirm">("request");
+  const [resetCode, setResetCode] = useState("");
+  const [issuedResetCode, setIssuedResetCode] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const demoEmail = role === "teacher" ? demoTeacherEmail : demoStudentEmail;
   const demoPassword = role === "teacher" ? "classloop-teacher" : "classloop-student";
@@ -1072,13 +1199,17 @@ function LoginPage({
   const chooseRole = (nextRole: AuthRole) => {
     setRole(nextRole);
     setError("");
+    setNotice("");
+    setResetMessage("");
   };
 
   const chooseMode = (nextMode: "signin" | "create") => {
     setMode(nextMode);
     setError("");
+    setNotice("");
     setPassword("");
     setConfirmPassword("");
+    setResetOpen(false);
     if (nextMode === "create") {
       setEmail("");
       setName("");
@@ -1090,12 +1221,71 @@ function LoginPage({
     setEmail(demoEmail);
     setPassword(demoPassword);
     setError("");
+    setNotice("");
+  };
+
+  const closeResetModal = () => {
+    setResetOpen(false);
+    setResetStep("request");
+    setResetCode("");
+    setIssuedResetCode("");
+    setResetPassword("");
+    setResetConfirmPassword("");
+    setResetMessage("");
+  };
+
+  const requestReset = async () => {
+    setResetMessage("");
+    const result = await onRequestPasswordReset(role, email);
+    setResetMessage(result.message ?? "Reset request received.");
+    if (result.ok && result.code && result.email) {
+      setResetStep("confirm");
+      setIssuedResetCode(result.code);
+      setEmail(result.email);
+    }
+  };
+
+  const openResetEmailDraft = () => {
+    if (!issuedResetCode || !email) return;
+    const subject = encodeURIComponent("ClassLoop password reset code");
+    const body = encodeURIComponent(
+      `Your ClassLoop password reset code is ${issuedResetCode}.\n\nThis code expires in 15 minutes.\n`,
+    );
+    window.open(`mailto:${normalizeEmail(email)}?subject=${subject}&body=${body}`);
+  };
+
+  const copyResetCode = async () => {
+    if (!issuedResetCode) return;
+    try {
+      await navigator.clipboard.writeText(issuedResetCode);
+      setResetMessage("Reset code copied.");
+    } catch {
+      setResetMessage("Copy failed. Select the code and copy it manually.");
+    }
+  };
+
+  const completeReset = async () => {
+    setResetMessage("");
+    if (resetPassword !== resetConfirmPassword) {
+      setResetMessage("New passwords do not match.");
+      return;
+    }
+    const result = await onCompletePasswordReset(role, email, resetCode, resetPassword);
+    setResetMessage(result.message ?? "Password reset.");
+    if (result.ok) {
+      setMode("signin");
+      setPassword("");
+      setConfirmPassword("");
+      closeResetModal();
+      setNotice(result.message ?? "Password reset. You can sign in now.");
+    }
   };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsSubmitting(true);
     setError("");
+    setNotice("");
     if (mode === "create" && password !== confirmPassword) {
       setError("Passwords do not match.");
       setIsSubmitting(false);
@@ -1184,6 +1374,19 @@ function LoginPage({
               </button>
             </div>
           </label>
+          {mode === "signin" && (
+            <button
+              type="button"
+              className="text-button forgot-password-link"
+              onClick={() => {
+                setResetOpen(true);
+                setResetStep("request");
+                setResetMessage("");
+              }}
+            >
+              Forgot password?
+            </button>
+          )}
           {mode === "create" && (
             <label className="field compact">
               <span>Confirm password</span>
@@ -1206,6 +1409,7 @@ function LoginPage({
             </label>
           )}
           {error && <p className="login-error">{error}</p>}
+          {notice && <p className="login-success">{notice}</p>}
           <button className="primary-button full" type="submit" disabled={isSubmitting}>
             <KeyRound size={17} />
             {isSubmitting ? "Working..." : mode === "signin" ? "Sign in" : "Create account"}
@@ -1221,6 +1425,76 @@ function LoginPage({
           </button>
         </div>
       </section>
+      {mode === "signin" && resetOpen && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Reset password">
+          <section className="password-reset-modal">
+            <div className="modal-header">
+              <div>
+                <span className="eyebrow">Account recovery</span>
+                <h2>Reset password</h2>
+                <p>Choose the account, get a short reset code, then set a new password.</p>
+              </div>
+              <button type="button" className="text-button" onClick={closeResetModal}>
+                Close
+              </button>
+            </div>
+            <div className="reset-account-row">
+              <span>{role === "teacher" ? "Teacher" : "Student"} account</span>
+              <strong>{email || "Enter email on the sign-in form"}</strong>
+            </div>
+            {resetStep === "request" ? (
+              <button type="button" className="primary-button full" onClick={requestReset}>
+                <KeyRound size={17} />
+                Get reset code
+              </button>
+            ) : (
+              <div className="reset-confirm-grid">
+                {issuedResetCode && (
+                  <div className="reset-code-card">
+                    <span>Reset code</span>
+                    <button type="button" onClick={copyResetCode}>{issuedResetCode}</button>
+                  </div>
+                )}
+                <button type="button" className="ghost-button full" onClick={openResetEmailDraft}>
+                  <Mail size={17} />
+                  Open email draft
+                </button>
+                <label className="field compact">
+                  <span>Code</span>
+                  <input value={resetCode} onChange={(event) => setResetCode(event.target.value)} placeholder="6-digit code" />
+                </label>
+                <label className="field compact">
+                  <span>New password</span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={resetPassword}
+                    onChange={(event) => setResetPassword(event.target.value)}
+                    placeholder="New password"
+                  />
+                </label>
+                <label className="field compact">
+                  <span>Confirm new password</span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={resetConfirmPassword}
+                    onChange={(event) => setResetConfirmPassword(event.target.value)}
+                    placeholder="Confirm new password"
+                  />
+                </label>
+                <button type="button" className="primary-button full" onClick={completeReset}>
+                  <KeyRound size={17} />
+                  Reset password
+                </button>
+              </div>
+            )}
+            {resetMessage && (
+              <p className={/incorrect|expired|match|enter|failed/i.test(resetMessage) ? "settings-message" : "settings-message success"}>
+                {resetMessage}
+              </p>
+            )}
+          </section>
+        </div>
+      )}
       <section className="login-side">
         <div className="security-card">
           <span>
@@ -1816,6 +2090,8 @@ function ImportSession({
   const [roster, setRoster] = useState("");
   const [resources, setResources] = useState("");
   const [fileName, setFileName] = useState("");
+  const [templateDetails, setTemplateDetails] = useState<Record<string, string>>({});
+  const activeTemplateFields = templateDetailFields[template];
 
   const loadSample = () => {
     setTitle("Geometry Review: Similar Triangles + Algebra");
@@ -1824,6 +2100,11 @@ function ImportSession({
     setNotes(sampleNotes);
     setRoster(sampleRoster);
     setResources("https://example.com/similar-triangles-review");
+    setTemplateDetails({
+      practiceProblems: "Problems 7-12 on the similar triangles worksheet",
+      focusSkills: "AA similarity, corresponding sides, proportions, and missing side lengths",
+      commonMistakes: "Cross-multiplication order and matching the wrong sides",
+    });
     onUseDemo();
   };
 
@@ -1838,9 +2119,27 @@ function ImportSession({
   };
 
   const generateDraft = () => {
-    const session = createGeneratedSession({ title, template, transcript, notes, roster, resources });
+    const detailNotes = activeTemplateFields
+      .map((field) => {
+        const value = templateDetails[field.id]?.trim();
+        return value ? `${field.label}: ${value}` : "";
+      })
+      .filter(Boolean)
+      .join("\n");
+    const session = createGeneratedSession({
+      title,
+      template,
+      transcript,
+      notes: [notes, detailNotes].filter(Boolean).join("\n\n"),
+      roster,
+      resources,
+    });
     setDraft({ ...session, ownerEmail });
     navigate("processing", { session: session.id });
+  };
+
+  const updateTemplateDetail = (id: string, value: string) => {
+    setTemplateDetails((current) => ({ ...current, [id]: value }));
   };
 
   return (
@@ -1873,6 +2172,26 @@ function ImportSession({
                 ))}
               </div>
             </div>
+            {activeTemplateFields.length > 0 && (
+              <div className="template-detail-card wide">
+                <div>
+                  <strong>{template} details</strong>
+                  <small>These optional fields shape the draft without adding extra review work later.</small>
+                </div>
+                <div className="template-detail-grid">
+                  {activeTemplateFields.map((field) => (
+                    <label key={field.id} className="field compact">
+                      <span>{field.label}</span>
+                      <textarea
+                        value={templateDetails[field.id] ?? ""}
+                        onChange={(event) => updateTemplateDetail(field.id, event.target.value)}
+                        placeholder={field.placeholder}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             <label className="upload-zone wide">
               <UploadCloud size={24} />
               <strong>{fileName || "Upload transcript file"}</strong>
@@ -1883,7 +2202,7 @@ function ImportSession({
                 onChange={(event) => handleTranscriptFile(event.target.files?.[0])}
               />
             </label>
-            <label className="field">
+            <label className="field paste-field large-paste wide">
               <span>Paste transcript text</span>
               <textarea
                 value={transcript}
@@ -1891,7 +2210,7 @@ function ImportSession({
                 placeholder="Paste the raw transcript here..."
               />
             </label>
-            <label className="field">
+            <label className="field paste-field wide">
               <span>Paste meeting notes</span>
               <textarea
                 value={notes}
@@ -1899,7 +2218,7 @@ function ImportSession({
                 placeholder="Paste teacher notes, chat summaries, reminders, and homework here..."
               />
             </label>
-            <label className="field">
+            <label className="field paste-field large-paste wide">
               <span>Bulk roster</span>
               <textarea
                 value={roster}
@@ -1907,7 +2226,7 @@ function ImportSession({
                 placeholder="Name, email per line"
               />
             </label>
-            <label className="field">
+            <label className="field paste-field wide">
               <span>Resources and links</span>
               <textarea
                 value={resources}
@@ -2280,15 +2599,15 @@ function RosterManager({
         {students.map((student, index) => (
           <article key={student.id} className="roster-row">
             <Avatar student={student} />
-            <label className="field compact">
+            <label className="field compact roster-name-field">
               <span>Name</span>
               <input value={student.name} onChange={(event) => updateStudent(student.id, { name: event.target.value })} />
             </label>
-            <label className="field compact">
+            <label className="field compact roster-email-field">
               <span>Email</span>
               <input value={student.email} onChange={(event) => updateStudent(student.id, { email: event.target.value })} />
             </label>
-            <label className="field compact">
+            <label className="field compact roster-attendance-field">
               <span>Attendance</span>
               <select
                 value={attendance[student.id] ?? "present"}
@@ -2299,7 +2618,7 @@ function RosterManager({
                 <option value="absent">Absent</option>
               </select>
             </label>
-            <label className="field compact">
+            <label className="field compact roster-aliases-field">
               <span>Zoom names</span>
               <input
                 value={(student.aliases ?? []).join(", ")}
@@ -2336,7 +2655,7 @@ function RosterManager({
                 </button>
               </div>
             </div>
-            <button className="icon-button danger" type="button" onClick={() => removeStudent(student.id)} aria-label={`Remove ${student.name}`}>
+            <button className="icon-button danger roster-remove-button" type="button" onClick={() => removeStudent(student.id)} aria-label={`Remove ${student.name}`}>
               <Trash2 size={17} />
             </button>
           </article>
@@ -2386,9 +2705,12 @@ function ParticipantResolutionPanel({
           return (
             <article key={participant.name} className="participant-card">
               <div>
-                <span className="eyebrow">Unknown Zoom name</span>
+                <span className="eyebrow">Zoom name found</span>
                 <h4>{participant.name}</h4>
-                {participant.lines[0] && <p>{participant.lines[0]}</p>}
+                <p>
+                  Add this exact display name as a new student, or link it to an existing roster student for future sessions.
+                </p>
+                {participant.lines[0] && <small>{participant.lines[0]}</small>}
               </div>
               <div className="participant-actions">
                 <button className="ghost-button" type="button" onClick={() => onResolve(participant, "add")}>
@@ -3251,6 +3573,243 @@ function TeacherAnalytics({ sessions }: { sessions: Session[] }) {
             ))}
         </div>
       </Panel>
+    </div>
+  );
+}
+
+function TutorialPage({ auth }: { auth: AuthSession }) {
+  const isTeacher = auth.role === "teacher";
+  const homeRoute: RouteKey = isTeacher ? "dashboard" : "student";
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const teacherSteps = [
+    {
+      title: "Create a session",
+      eyebrow: "Start the loop",
+      detail: "Choose a template, paste a transcript or notes, add your roster, and include any links students should use.",
+      checklist: ["Open New session", "Pick the closest template", "Add transcript, notes, roster, and resources"],
+      action: "Create a session",
+      route: "new-session" as RouteKey,
+      icon: PlusCircle,
+    },
+    {
+      title: "Resolve speaker names",
+      eyebrow: "Match participation",
+      detail: "If a Zoom display name is not on the roster, add it as a student or link it to the right student account.",
+      checklist: ["Review unknown Zoom names", "Add real new students", "Link nicknames or device names to existing students"],
+      action: "Open draft review",
+      route: "review" as RouteKey,
+      icon: Link2,
+    },
+    {
+      title: "Review before publishing",
+      eyebrow: "Teacher control",
+      detail: "Edit the recap, action items, resources, attendance, participation labels, due dates, and each student preview.",
+      checklist: ["Fix the class recap", "Check due dates and resources", "Edit student-specific follow-ups"],
+      action: "Review draft",
+      route: "review" as RouteKey,
+      icon: ClipboardCheck,
+    },
+    {
+      title: "Publish the follow-up",
+      eyebrow: "Student-ready view",
+      detail: "Students only see the approved version. They get their own recap, tasks, resources, and completion check-in.",
+      checklist: ["Open publish preview", "Switch between students", "Publish once each preview looks right"],
+      action: "Preview publishing",
+      route: "publish-preview" as RouteKey,
+      icon: Send,
+    },
+    {
+      title: "Track follow-through",
+      eyebrow: "Close the loop",
+      detail: "Use analytics to see completion, quiet or absent students, and private support opportunities.",
+      checklist: ["Check completion", "Look for quiet or absent students", "Plan the next support touchpoint"],
+      action: "Open analytics",
+      route: "analytics" as RouteKey,
+      icon: BarChart3,
+    },
+  ];
+  const studentSteps = [
+    {
+      title: "Open your portal",
+      eyebrow: "Your class hub",
+      detail: "Sign in with the email your teacher used on the roster or the invite sent to you.",
+      checklist: ["Use your roster email", "Open My portal", "Choose the latest class"],
+      action: "Open my portal",
+      route: "student" as RouteKey,
+      icon: GraduationCap,
+    },
+    {
+      title: "Read the latest recap",
+      eyebrow: "Catch the context",
+      detail: "Start with what happened in class, then review the resources your teacher approved.",
+      checklist: ["Read the class recap", "Open the resources", "Check anything marked for catch-up"],
+      action: "View portal",
+      route: "student" as RouteKey,
+      icon: BookOpen,
+    },
+    {
+      title: "Complete your tasks",
+      eyebrow: "Do the work",
+      detail: "Your task list includes class-wide work plus any follow-up connected to your questions or catch-up needs.",
+      checklist: ["Review due dates", "Finish assigned work", "Use resources before marking complete"],
+      action: "View tasks",
+      route: "student" as RouteKey,
+      icon: ListChecks,
+    },
+    {
+      title: "Check in",
+      eyebrow: "Close your loop",
+      detail: "Mark work complete when you finish so your teacher can see that the loop is closed.",
+      checklist: ["Mark complete", "Revisit anything unfinished", "Ask for help if a task is unclear"],
+      action: "Open my portal",
+      route: "student" as RouteKey,
+      icon: CheckCircle2,
+    },
+  ];
+  const walkthroughSteps = isTeacher ? teacherSteps : studentSteps;
+  const activeStep = walkthroughSteps[activeStepIndex] ?? walkthroughSteps[0];
+  const ActiveIcon = activeStep.icon;
+  const isFirstStep = activeStepIndex === 0;
+  const isLastStep = activeStepIndex === walkthroughSteps.length - 1;
+  const progress = Math.round(((activeStepIndex + 1) / walkthroughSteps.length) * 100);
+  const skipWalkthrough = () => navigate(homeRoute);
+  const useCases = isTeacher
+    ? [
+        ["Daily classes", "Turn class notes and transcripts into next-step dashboards."],
+        ["Tutoring", "Send each learner a clean recap and targeted practice after a session."],
+        ["Clubs", "Track decisions, owners, quiet members, and follow-up tasks."],
+        ["Study groups", "Convert peer questions into shared resources and personal reminders."],
+      ]
+    : [
+        ["Missed class", "Catch up from the approved recap without searching through chat logs."],
+        ["Homework", "See what is due, why it matters, and when to finish it."],
+        ["Questions", "Review explanations connected to what you asked in class."],
+        ["Resources", "Keep links and practice materials in one place."],
+      ];
+
+  return (
+    <div className="page-stack tutorial-page">
+      <section className="walkthrough-hero">
+        <div>
+          <span className="eyebrow">Interactive walkthrough</span>
+          <h2>{isTeacher ? "Learn the class follow-up loop one step at a time." : "Learn how to use your student portal."}</h2>
+          <p>
+            {isTeacher
+              ? "Move through the workflow in order, or skip whenever you are ready to return to the dashboard."
+              : "Move through the portal basics, or skip whenever you want to return home."}
+          </p>
+        </div>
+        <button className="ghost-button large" onClick={skipWalkthrough}>
+          <ChevronRight size={18} />
+          Skip tutorial
+        </button>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title={`Step ${activeStepIndex + 1} of ${walkthroughSteps.length}`} icon={ActiveIcon}>
+          <div className="walkthrough-card">
+            <div className="walkthrough-progress-header">
+              <span>{activeStep.eyebrow}</span>
+              <strong>{progress}%</strong>
+            </div>
+            <div className="walkthrough-progress-bar" aria-label={`Tutorial progress ${progress}%`}>
+              <i style={{ width: `${progress}%` }} />
+            </div>
+            <div className="walkthrough-step-main">
+              <span className="walkthrough-icon">
+                <ActiveIcon size={24} />
+              </span>
+              <div>
+                <h3>{activeStep.title}</h3>
+                <p>{activeStep.detail}</p>
+              </div>
+            </div>
+            <ul className="walkthrough-checklist">
+              {activeStep.checklist.map((item) => (
+                <li key={item}>
+                  <CheckCircle2 size={17} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <div className="walkthrough-controls">
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => setActiveStepIndex((index) => Math.max(0, index - 1))}
+                disabled={isFirstStep}
+              >
+                Back
+              </button>
+              <button className="text-button" type="button" onClick={() => navigate(activeStep.route)}>
+                {activeStep.action}
+                <ChevronRight size={16} />
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => (isLastStep ? skipWalkthrough() : setActiveStepIndex((index) => Math.min(walkthroughSteps.length - 1, index + 1)))}
+              >
+                {isLastStep ? "Finish" : "Next"}
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            <button className="text-button walkthrough-skip" type="button" onClick={skipWalkthrough}>
+              Skip and return home
+            </button>
+          </div>
+        </Panel>
+
+        <Panel title={isTeacher ? "Workflow map" : "Portal map"} icon={ListChecks}>
+          <div className="walkthrough-map">
+            {walkthroughSteps.map((step, index) => (
+              <button
+                key={step.title}
+                className={index === activeStepIndex ? "walkthrough-map-item active" : "walkthrough-map-item"}
+                type="button"
+                onClick={() => setActiveStepIndex(index)}
+              >
+                <span>{index + 1}</span>
+                <div>
+                  <strong>{step.title}</strong>
+                  <small>{step.eyebrow}</small>
+                </div>
+              </button>
+            ))}
+          </div>
+        </Panel>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title="Common uses" icon={BookOpen}>
+          <div className="usage-grid">
+            {useCases.map(([title, detail]) => (
+              <article key={title} className="usage-card">
+                <strong>{title}</strong>
+                <p>{detail}</p>
+              </article>
+            ))}
+          </div>
+        </Panel>
+        {isTeacher && (
+          <Panel title="What to prepare for each session" icon={ClipboardCheck}>
+            <div className="session-prep-grid">
+              <div>
+                <strong>Required</strong>
+                <p>Session title, template, roster names, and either a transcript or teacher notes.</p>
+              </div>
+              <div>
+                <strong>Helpful</strong>
+                <p>Homework details, due date, resource links, student absences, and any participation notes.</p>
+              </div>
+              <div>
+                <strong>Before publishing</strong>
+                <p>Check speaker matches, review each student preview, and confirm the publish button sends the right follow-up.</p>
+              </div>
+            </div>
+          </Panel>
+        )}
+      </section>
     </div>
   );
 }

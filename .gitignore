@@ -1,4 +1,5 @@
 node_modules
+.test-build
 dist/assets/index-*.js
 dist/assets/index-*.css
 .classloop-data.json

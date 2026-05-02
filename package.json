@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "start": "electron .",
-    "build": "tsc && vite build"
+    "build": "tsc && vite build",
+    "test:import": "tsc -p tsconfig.test.json && node --experimental-specifier-resolution=node .test-build/tests/import-flow.test.js"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
