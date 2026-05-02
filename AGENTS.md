@@ -218,7 +218,10 @@ We introduced decomposition: breaking complex problems (the sandwich) into sub-p
 confirmed understanding of algorithms vs. data representations.
 
 Homework: Algorithm Design Worksheet due Thursday (pick 2 of 3 flowchart problems). 
-Marcus, come see me about the missing exit ticket. Unit 2 reflections are now overdue."
+Marcus, come see me about the missing exit ticket. Unit 2 reflections are now overdue.
+
+Resources shared: Algorithm basics video and problem decomposition video (links below)."
+```
 
 Essential Questions:
 1. What makes an instruction precise enough for a computer?
