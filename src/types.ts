@@ -25,6 +25,8 @@ export type Student = {
   avatarColor: string;
   guardian?: string;
   aliases?: string[];
+  linkedAccountEmail?: string;
+  inviteSentAt?: string;
 };
 
 export type Resource = {

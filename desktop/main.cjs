@@ -5,6 +5,7 @@ const path = require("path");
 
 const rootDir = path.join(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
+const dataFile = path.join(rootDir, ".classloop-data.json");
 
 const mimeTypes = {
   ".css": "text/css",
@@ -28,8 +29,90 @@ function resolveAsset(requestUrl) {
   return filePath;
 }
 
+function readDataFile() {
+  try {
+    if (!fs.existsSync(dataFile)) {
+      return {
+        accounts: [],
+        sessions: [],
+        draft: null,
+        demoLoaded: false,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    return JSON.parse(fs.readFileSync(dataFile, "utf8"));
+  } catch {
+    return {
+      accounts: [],
+      sessions: [],
+      draft: null,
+      demoLoaded: false,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+}
+
+function writeDataFile(payload) {
+  const nextState = {
+    accounts: Array.isArray(payload.accounts) ? payload.accounts : [],
+    sessions: Array.isArray(payload.sessions) ? payload.sessions : [],
+    draft: payload.draft ?? null,
+    demoLoaded: Boolean(payload.demoLoaded),
+    updatedAt: new Date().toISOString(),
+  };
+  fs.writeFileSync(dataFile, `${JSON.stringify(nextState, null, 2)}\n`);
+  return nextState;
+}
+
+function readRequestBody(request) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    request.on("data", (chunk) => {
+      body += chunk;
+      if (body.length > 8_000_000) {
+        reject(new Error("Request body is too large."));
+        request.destroy();
+      }
+    });
+    request.on("end", () => resolve(body));
+    request.on("error", reject);
+  });
+}
+
+async function handleStateApi(request, response) {
+  if (request.method === "GET") {
+    response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    response.end(JSON.stringify(readDataFile()));
+    return true;
+  }
+
+  if (request.method === "PUT") {
+    try {
+      const body = await readRequestBody(request);
+      const state = writeDataFile(JSON.parse(body || "{}"));
+      response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+      response.end(JSON.stringify(state));
+    } catch {
+      response.writeHead(400, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+      response.end(JSON.stringify({ error: "Unable to save ClassLoop data." }));
+    }
+    return true;
+  }
+
+  response.writeHead(405, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+  response.end(JSON.stringify({ error: "Method not allowed." }));
+  return true;
+}
+
 function createStaticServer() {
-  const server = http.createServer((request, response) => {
+  const server = http.createServer(async (request, response) => {
+    const parsed = new URL(request.url || "/", "http://127.0.0.1");
+    if (parsed.pathname === "/api/state") {
+      await handleStateApi(request, response);
+      return;
+    }
+
     const filePath = resolveAsset(request.url || "/");
 
     if (!filePath || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {

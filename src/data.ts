@@ -74,6 +74,18 @@ function normalizeSpeakerName(value: string) {
     .trim();
 }
 
+function isTranscriptMetadataSpeaker(speaker: string) {
+  const normalized = normalizeSpeakerName(speaker);
+  return (
+    !normalized ||
+    /^(teacher|instructor|professor|facilitator|host|classloop|meeting title|meeting date|date|duration|participants?|transcript|recording|audio|chat|question|answer|summary|agenda|start time|end time)$/i.test(
+      normalized,
+    ) ||
+    /^\d+$/.test(normalized) ||
+    /\d{1,2}\s+\d{2}/.test(normalized)
+  );
+}
+
 type SpeakerLine = {
   speaker: string;
   text: string;
@@ -87,7 +99,7 @@ function parseSpeakerLine(line: string): SpeakerLine | null {
   );
   if (!match) return null;
   const speaker = match[1].replace(/\s+/g, " ").trim();
-  if (!speaker || /^https?$/i.test(speaker)) return null;
+  if (!speaker || /^https?$/i.test(speaker) || isTranscriptMetadataSpeaker(speaker)) return null;
   return { speaker, text: match[2].trim(), line: trimmed };
 }
 
@@ -96,7 +108,7 @@ export function extractTranscriptSpeakers(text: string) {
     .split(/\n+/)
     .map(parseSpeakerLine)
     .filter((line): line is SpeakerLine => Boolean(line))
-    .filter((line) => !/^(teacher|instructor|professor|facilitator|host|classloop)$/i.test(line.speaker));
+    .filter((line) => !isTranscriptMetadataSpeaker(line.speaker));
 }
 
 function toDateInput(date: Date) {
@@ -134,11 +146,7 @@ function parseRoster(roster: string, transcript: string): Student[] {
 
   if (rosterStudents.length) return rosterStudents;
 
-  const speakerNames = transcript
-    .split(/\n+/)
-    .map((line) => line.match(/^([^:]{2,40}):/)?.[1]?.trim())
-    .filter((name): name is string => Boolean(name))
-    .filter((name) => !/^(teacher|instructor|professor|facilitator|host)$/i.test(name));
+  const speakerNames = extractTranscriptSpeakers(transcript).map((line) => line.speaker);
 
   return unique(speakerNames).map((name, index) => ({
     id: slugify(name, `student-${index + 1}`),
@@ -151,6 +159,11 @@ function parseRoster(roster: string, transcript: string): Student[] {
 function cleanLine(line: string) {
   const parsed = parseSpeakerLine(line);
   return (parsed?.text ?? line).replace(/^[-*]\s*/, "").replace(/^[^:]{2,40}:\s*/, "").trim();
+}
+
+function shortText(value: string, maxLength = 96) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength - 1).trim()}...` : normalized;
 }
 
 function extractTopics(title: string, text: string, template: SessionType) {
@@ -187,6 +200,43 @@ function extractAssignment(text: string) {
     .map(cleanLine)
     .find((item) => /(homework|assignment|problems?|finish|complete|submit|due)/i.test(item));
   return line || "Review the session recap and complete the assigned follow-up check.";
+}
+
+function eventTypeFromText(text: string) {
+  if (text.includes("?")) return "asked_question" as const;
+  if (/(because|so|should|equals|answer|i think|we can|it is|therefore|the fix|the reason)/i.test(text)) {
+    return "answered_question" as const;
+  }
+  return "chat" as const;
+}
+
+function detectsMisconception(text: string) {
+  return /(wrong|mistake|confus|hard|stuck|error|bug|doesn't|does not|not sure|missed|forgot|failed|incorrect)/i.test(text);
+}
+
+function studentReadinessScore({
+  attendance,
+  isQuiet,
+  askedQuestion,
+  hasMisconception,
+  answeredQuestion,
+  usefulChat,
+}: {
+  attendance: "present" | "absent" | "late";
+  isQuiet: boolean;
+  askedQuestion: boolean;
+  hasMisconception: boolean;
+  answeredQuestion: boolean;
+  usefulChat: boolean;
+}) {
+  if (attendance === "absent") return 22;
+  let score = attendance === "late" ? 45 : 52;
+  if (usefulChat) score += 6;
+  if (askedQuestion) score += 7;
+  if (answeredQuestion) score += 13;
+  if (isQuiet) score -= 18;
+  if (hasMisconception) score -= 16;
+  return Math.max(18, Math.min(88, score));
 }
 
 function parseResources(resourcesText: string, sessionText: string, relatedTopic: string): Resource[] {
@@ -270,6 +320,7 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
   const dueDate = nextFriday();
   const lines = sessionText.split(/\n+/).map((line) => line.trim()).filter(Boolean);
   const resources = parseResources(input.resources, sessionText, topics[0] ?? input.template);
+  const speakerLines = extractTranscriptSpeakers(sessionText);
 
   const attendance = roster.reduce<Record<string, "present" | "absent" | "late">>((acc, student) => {
     const first = student.name.split(" ")[0].toLowerCase();
@@ -291,11 +342,7 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     const spoken = lineForStudent(lines, student);
     const events: ParticipationEvent[] = spoken.slice(0, 2).map((line, index) => {
       const clean = cleanLine(line);
-      const type = clean.includes("?")
-        ? "asked_question"
-        : /(because|so|should|equals|answer|i think|we can|it is)/i.test(clean)
-          ? "answered_question"
-          : "chat";
+      const type = eventTypeFromText(clean);
       return {
         id: `p-${student.id}-${index}-${suffix}`,
         studentId: student.id,
@@ -341,10 +388,24 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     const isAbsent = attendance[student.id] === "absent";
     const isQuiet = events.some((event) => event.type === "quiet");
     const askedQuestion = events.find((event) => event.type === "asked_question");
+    const answeredQuestion = events.find((event) => event.type === "answered_question");
+    const usefulChat = events.some((event) => event.type === "chat");
+    const misconceptionEvent = events.find((event) => detectsMisconception(event.text));
     const baseTasks = [assignment];
     if (isAbsent) baseTasks.unshift("Read the catch-up recap");
     if (isQuiet) baseTasks.push("Submit a quick confidence check-in");
-    if (askedQuestion) baseTasks.push("Review the answer to your class question");
+    if (askedQuestion) baseTasks.push(`Review the answer to your question: ${shortText(askedQuestion.text.replace(/^Asked:\s*/i, ""), 72)}`);
+    if (misconceptionEvent) baseTasks.push(`Redo the step connected to: ${shortText(misconceptionEvent.text.replace(/^(Asked|Contributed|Shared):\s*/i, ""), 72)}`);
+    if (answeredQuestion && !misconceptionEvent) baseTasks.push("Write one sentence explaining the idea you contributed in class.");
+
+    const readinessScore = studentReadinessScore({
+      attendance: attendance[student.id],
+      isQuiet,
+      askedQuestion: Boolean(askedQuestion),
+      hasMisconception: Boolean(misconceptionEvent),
+      answeredQuestion: Boolean(answeredQuestion),
+      usefulChat,
+    });
 
     return {
       studentId: student.id,
@@ -352,16 +413,24 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
         ? `Catch up on ${topics[0]} before starting the assigned work.`
         : isQuiet
           ? `Use the recap to check your confidence on ${topics[0]}, then send a quick check-in.`
-          : `Review ${topics[0]} and complete the assigned follow-up.`,
+          : misconceptionEvent
+            ? `Revisit the part of ${topics[0]} that caused confusion, then complete the class follow-up.`
+            : askedQuestion
+              ? `Start with the answer to your question, then complete the shared class follow-up.`
+              : `Review ${topics[0]} and complete the assigned follow-up.`,
       catchUp: isAbsent
         ? "You were marked absent for this session. Start with the recap, then use the resources and assigned work to catch up."
         : events.length
-          ? "ClassLoop found your participation in this session and connected it to the follow-up work."
+          ? misconceptionEvent
+            ? "Your dashboard includes the shared class recap plus extra review for the part that seemed confusing during class."
+            : askedQuestion
+              ? "Your dashboard includes the shared class recap plus a review task tied to the question you asked."
+              : "Your dashboard connects your class participation to the follow-up work."
           : "You were marked present. Use the recap and resources to confirm the main takeaways.",
       tasks: unique(baseTasks),
       dueDate,
       status: "todo",
-      score: isAbsent ? 30 : isQuiet ? 48 : events.length ? 74 : 62,
+      score: readinessScore,
     };
   });
 
@@ -397,7 +466,7 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     transcript: input.transcript,
     notes: input.notes,
     recap: sessionText
-      ? `ClassLoop detected a ${input.template.toLowerCase()} focused on ${topics.slice(0, 3).join(", ")}. The draft connects the session record to student follow-ups, resources, attendance signals, and the next completion check.`
+      ? `This ${input.template.toLowerCase()} focused on ${topics.slice(0, 3).join(", ")}. Students leave with a shared recap, class-wide follow-up work, and personal review steps based on attendance, questions, and participation from the session.`
       : `ClassLoop created a blank ${input.template.toLowerCase()} draft. Add transcript details or teacher notes to make the recap more specific.`,
     essentialQuestions: [
       `What were the most important takeaways about ${topics[0]}?`,

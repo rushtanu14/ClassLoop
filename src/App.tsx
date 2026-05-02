@@ -11,6 +11,7 @@ import {
   ClipboardCheck,
   Clock3,
   Eye,
+  EyeOff,
   FileText,
   GraduationCap,
   KeyRound,
@@ -105,6 +106,13 @@ type Account = {
   demo?: boolean;
 };
 
+type AccountSettingsInput = {
+  name: string;
+  email: string;
+  currentPassword: string;
+  newPassword: string;
+};
+
 type SharedState = {
   accounts: Account[];
   sessions: Session[];
@@ -126,11 +134,11 @@ type ThemeSettings = {
 const navItems: NavItem[] = [
   { route: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { route: "new-session", label: "New session", icon: PlusCircle },
-  { route: "review", label: "AI review", icon: Sparkles },
+  { route: "review", label: "Draft review", icon: Sparkles },
   { route: "report", label: "Session report", icon: ClipboardCheck },
   { route: "student", label: "Student view", icon: GraduationCap },
   { route: "analytics", label: "Analytics", icon: BarChart3 },
-  { route: "appearance", label: "Design system", icon: Palette },
+  { route: "appearance", label: "Appearance", icon: Palette },
 ];
 
 const studentNavItems: NavItem[] = [
@@ -225,14 +233,14 @@ const accentOptions = ["#0f766e", "#2563eb", "#38bdf8", "#8b5cf6", "#e11d48", "#
 const routeLabels: Record<RouteKey, string> = {
   dashboard: "Teacher dashboard",
   "new-session": "Import session",
-  processing: "AI processing",
-  review: "AI review",
+  processing: "Draft processing",
+  review: "Draft review",
   "publish-preview": "Publish preview",
   report: "Session report",
   student: "Student dashboard",
   "student-session": "Student session detail",
   analytics: "Teacher analytics",
-  appearance: "Design system",
+  appearance: "Appearance",
 };
 
 function getRoute(): RouteKey {
@@ -903,6 +911,57 @@ function App() {
     return { ok: true };
   };
 
+  const handleUpdateAccount = async (settings: AccountSettingsInput) => {
+    if (!auth) return { ok: false, message: "Sign in again before changing account settings." };
+    const account = accounts.find((item) => item.id === auth.accountId);
+    if (!account) return { ok: false, message: "This account could not be found." };
+
+    const nextName = settings.name.trim();
+    const nextEmail = normalizeEmail(settings.email);
+    if (!nextName) return { ok: false, message: "Enter a name for the account." };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+      return { ok: false, message: "Enter a valid email address." };
+    }
+    if (
+      accounts.some(
+        (item) =>
+          item.id !== account.id &&
+          item.role === account.role &&
+          normalizeEmail(item.email) === nextEmail,
+      )
+    ) {
+      return { ok: false, message: "Another account already uses that email." };
+    }
+    if (auth.demo && (nextEmail !== normalizeEmail(account.email) || settings.newPassword)) {
+      return { ok: false, message: "Sample account sign-in details stay fixed. Create your own account to change them." };
+    }
+
+    let passwordHash = account.passwordHash;
+    if (settings.newPassword) {
+      if (settings.newPassword.length < 8) {
+        return { ok: false, message: "Use at least 8 characters for the new password." };
+      }
+      const currentHash = await hashSecret(settings.currentPassword);
+      if (currentHash !== account.passwordHash) {
+        return { ok: false, message: "Current password is incorrect." };
+      }
+      passwordHash = await hashSecret(settings.newPassword);
+    }
+
+    const nextAccount = { ...account, name: nextName, email: nextEmail, passwordHash };
+    setAccounts((current) => current.map((item) => (item.id === account.id ? nextAccount : item)));
+    setAuth((current) =>
+      current
+        ? {
+            ...current,
+            name: nextName,
+            email: nextEmail,
+          }
+        : current,
+    );
+    return { ok: true, message: "Settings saved." };
+  };
+
   const logout = () => {
     setAuth(null);
     navigate("dashboard");
@@ -916,7 +975,13 @@ function App() {
     <div className="app-shell">
       <Sidebar route={effectiveRoute} auth={auth} onLogout={logout} showDemoCard={Boolean(auth.demo && demoLoaded)} />
       <main className="main-area">
-        <Topbar route={effectiveRoute} latestSession={latestPublished} auth={auth} onLogout={logout} />
+        <Topbar
+          route={effectiveRoute}
+          latestSession={latestPublished}
+          auth={auth}
+          syncStatus={syncStatus}
+          onUpdateAccount={handleUpdateAccount}
+        />
         {effectiveRoute === "dashboard" && <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} />}
         {effectiveRoute === "new-session" && (
           <ImportSession
@@ -926,7 +991,15 @@ function App() {
           />
         )}
         {effectiveRoute === "processing" && <Processing draft={visibleDraft} />}
-        {effectiveRoute === "review" && <ReviewDraft draft={visibleDraft} setDraft={setDraft} />}
+        {effectiveRoute === "review" && (
+          <ReviewDraft
+            draft={visibleDraft}
+            setDraft={setDraft}
+            studentAccountEmails={accounts
+              .filter((account) => account.role === "student")
+              .map((account) => normalizeEmail(account.email))}
+          />
+        )}
         {effectiveRoute === "publish-preview" && (
           <PublishPreview
             draft={visibleDraft}
@@ -989,6 +1062,8 @@ function LoginPage({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const demoEmail = role === "teacher" ? demoTeacherEmail : demoStudentEmail;
@@ -1003,6 +1078,7 @@ function LoginPage({
     setMode(nextMode);
     setError("");
     setPassword("");
+    setConfirmPassword("");
     if (nextMode === "create") {
       setEmail("");
       setName("");
@@ -1020,6 +1096,11 @@ function LoginPage({
     event.preventDefault();
     setIsSubmitting(true);
     setError("");
+    if (mode === "create" && password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setIsSubmitting(false);
+      return;
+    }
     try {
       const result =
         mode === "signin"
@@ -1090,16 +1171,40 @@ function LoginPage({
           </label>
           <label className="field compact">
             <span>Password</span>
-            <div className="input-with-icon">
+            <div className="input-with-icon password-control">
               <KeyRound size={17} />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Enter password"
               />
+              <button type="button" onClick={() => setShowPassword((show) => !show)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </label>
+          {mode === "create" && (
+            <label className="field compact">
+              <span>Confirm password</span>
+              <div className="input-with-icon password-control">
+                <KeyRound size={17} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Re-enter password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((show) => !show)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </label>
+          )}
           {error && <p className="login-error">{error}</p>}
           <button className="primary-button full" type="submit" disabled={isSubmitting}>
             <KeyRound size={17} />
@@ -1203,13 +1308,16 @@ function Topbar({
   route,
   latestSession,
   auth,
-  onLogout,
+  syncStatus,
+  onUpdateAccount,
 }: {
   route: RouteKey;
   latestSession?: Session;
   auth: AuthSession;
-  onLogout: () => void;
+  syncStatus: SyncStatus;
+  onUpdateAccount: (settings: AccountSettingsInput) => Promise<{ ok: boolean; message?: string }>;
 }) {
+  const [profileOpen, setProfileOpen] = useState(false);
   return (
     <header className="topbar">
       <div>
@@ -1223,10 +1331,15 @@ function Topbar({
         </h1>
       </div>
       <div className="topbar-actions">
-        <span className="account-pill">
-          {auth.role === "teacher" ? <UserRound size={16} /> : <GraduationCap size={16} />}
-          {auth.name}
-        </span>
+        <div className="profile-control">
+          <button className="account-pill" onClick={() => setProfileOpen((open) => !open)} aria-expanded={profileOpen}>
+            {auth.role === "teacher" ? <UserRound size={16} /> : <GraduationCap size={16} />}
+            {auth.name}
+          </button>
+          {profileOpen && (
+            <ProfileMenu auth={auth} syncStatus={syncStatus} onUpdateAccount={onUpdateAccount} onClose={() => setProfileOpen(false)} />
+          )}
+        </div>
         {auth.role === "teacher" && (
           <>
             <button className="ghost-button" onClick={() => navigate("student")}>
@@ -1243,12 +1356,115 @@ function Topbar({
             </button>
           </>
         )}
-        <button className="ghost-button" onClick={onLogout}>
-          <LogOut size={17} />
-          Sign out
-        </button>
       </div>
     </header>
+  );
+}
+
+function ProfileMenu({
+  auth,
+  syncStatus,
+  onUpdateAccount,
+  onClose,
+}: {
+  auth: AuthSession;
+  syncStatus: SyncStatus;
+  onUpdateAccount: (settings: AccountSettingsInput) => Promise<{ ok: boolean; message?: string }>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(auth.name);
+  const [email, setEmail] = useState(auth.email);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const saveSettings = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setMessage("");
+    if (newPassword && newPassword !== confirmPassword) {
+      setMessage("New passwords do not match.");
+      return;
+    }
+    setSaving(true);
+    const result = await onUpdateAccount({ name, email, currentPassword, newPassword });
+    setSaving(false);
+    setMessage(result.message ?? (result.ok ? "Settings saved." : "Unable to save settings."));
+    if (result.ok) {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+  };
+
+  return (
+    <form className="profile-menu" onSubmit={saveSettings}>
+      <div className="profile-menu-header">
+        <div>
+          <strong>Profile settings</strong>
+          <small>{syncStatus === "shared" ? "Saved on this device" : "Saved in this browser"}</small>
+        </div>
+        <button type="button" className="text-button" onClick={onClose}>
+          Done
+        </button>
+      </div>
+      <label className="field compact">
+        <span>Name</span>
+        <input value={name} onChange={(event) => setName(event.target.value)} />
+      </label>
+      <label className="field compact">
+        <span>Email</span>
+        <input value={email} onChange={(event) => setEmail(event.target.value)} />
+      </label>
+      <label className="field compact">
+        <span>Current password</span>
+        <div className="input-with-icon password-control">
+          <KeyRound size={17} />
+          <input
+            type={showPassword ? "text" : "password"}
+            value={currentPassword}
+            onChange={(event) => setCurrentPassword(event.target.value)}
+            placeholder="Required to change password"
+          />
+          <button type="button" onClick={() => setShowPassword((show) => !show)} aria-label={showPassword ? "Hide password" : "Show password"}>
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
+      </label>
+      <label className="field compact">
+        <span>New password</span>
+        <input
+          type={showPassword ? "text" : "password"}
+          value={newPassword}
+          onChange={(event) => setNewPassword(event.target.value)}
+          placeholder="Leave blank to keep current"
+        />
+      </label>
+      <label className="field compact">
+        <span>Confirm new password</span>
+        <input
+          type={showPassword ? "text" : "password"}
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          placeholder="Confirm new password"
+        />
+      </label>
+      {message && <p className={message.includes("saved") ? "settings-message success" : "settings-message"}>{message}</p>}
+      <div className="profile-actions">
+        {auth.role === "teacher" && (
+          <button type="button" className="ghost-button" onClick={() => navigate("appearance")}>
+            <Palette size={17} />
+            Appearance
+          </button>
+        )}
+        <button className="primary-button" type="submit" disabled={saving}>
+          <Save size={17} />
+          {saving ? "Saving..." : "Save settings"}
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -1260,6 +1476,7 @@ function TeacherDashboard({ sessions, draft }: { sessions: Session[]; draft: Ses
   const overdue = latest?.followUps.filter((followUp) => followUp.status === "overdue") ?? [];
   const absentStudents = latest ? Object.entries(latest.attendance).filter(([, status]) => status === "absent") : [];
   const quietStudents = latest?.participationEvents.filter((event) => event.approved && event.type === "quiet") ?? [];
+  const hasAttention = absentStudents.length > 0 || quietStudents.length > 0 || overdue.length > 0;
 
   return (
     <div className="page-stack">
@@ -1357,30 +1574,36 @@ function TeacherDashboard({ sessions, draft }: { sessions: Session[]; draft: Ses
         <Panel title="Attention queue" icon={AlertTriangle} action="Open analytics" onAction={() => navigate("analytics")}>
           {hasSessions ? (
             <div className="attention-list">
-              {absentStudents.map(([studentId]) => (
-                <AttentionItem
-                  key={studentId}
-                  icon={UserX}
-                  title={`${studentById(studentId, latestRoster).name} missed the latest session`}
-                  detail="Catch-up recap and review video assigned."
-                />
-              ))}
-              {quietStudents.map((event) => (
-                <AttentionItem
-                  key={event.id}
-                  icon={Mic2}
-                  title={`${studentById(event.studentId, latestRoster).name} was quiet`}
-                  detail="Confidence check-in and practice pair recommended."
-                />
-              ))}
-              {overdue.slice(0, 2).map((followUp) => (
-                <AttentionItem
-                  key={`${followUp.studentId}-${followUp.dueDate}`}
-                  icon={Clock3}
-                  title={`${studentById(followUp.studentId, latestRoster).name} has an overdue check-in`}
-                  detail={followUp.reminder}
-                />
-              ))}
+              {hasAttention ? (
+                <>
+                  {absentStudents.map(([studentId]) => (
+                    <AttentionItem
+                      key={studentId}
+                      icon={UserX}
+                      title={`${studentById(studentId, latestRoster).name} missed the latest session`}
+                      detail="Catch-up recap and review video assigned."
+                    />
+                  ))}
+                  {quietStudents.map((event) => (
+                    <AttentionItem
+                      key={event.id}
+                      icon={Mic2}
+                      title={`${studentById(event.studentId, latestRoster).name} was quiet`}
+                      detail="Confidence check-in and practice pair recommended."
+                    />
+                  ))}
+                  {overdue.slice(0, 2).map((followUp) => (
+                    <AttentionItem
+                      key={`${followUp.studentId}-${followUp.dueDate}`}
+                      icon={Clock3}
+                      title={`${studentById(followUp.studentId, latestRoster).name} has an overdue check-in`}
+                      detail={followUp.reminder}
+                    />
+                  ))}
+                </>
+              ) : (
+                <SupportSnapshotChart session={latest} />
+              )}
             </div>
           ) : (
             <InlineEmpty
@@ -1407,7 +1630,7 @@ function TeacherDashboard({ sessions, draft }: { sessions: Session[]; draft: Ses
         <Panel title="Plan options" icon={ShieldCheck}>
           <div className="plan-stack">
             <PlanRow tier="Free" detail="Limited sessions, basic recaps, and class action items." />
-            <PlanRow tier="Pro" detail="Unlimited sessions, AI transcript processing, student dashboards, analytics, exports." />
+            <PlanRow tier="Pro" detail="Unlimited sessions, transcript processing, student dashboards, analytics, exports." />
           </div>
         </Panel>
       </section>
@@ -1545,6 +1768,38 @@ function TrendChart({ sessions }: { sessions: Session[] }) {
   );
 }
 
+function SupportSnapshotChart({ session }: { session?: Session }) {
+  if (!session) return null;
+  const completed = completionRate([session]);
+  const participation = classParticipationRate(session);
+  const averageReadiness = session.followUps.length
+    ? Math.round(session.followUps.reduce((sum, followUp) => sum + followUp.score, 0) / session.followUps.length)
+    : 0;
+  const rows = [
+    { label: "Participation", value: participation },
+    { label: "Completion", value: completed },
+    { label: "Readiness", value: averageReadiness },
+  ];
+
+  return (
+    <div className="support-snapshot">
+      <div>
+        <strong>No urgent follow-ups</strong>
+        <small>Latest session snapshot</small>
+      </div>
+      {rows.map((row) => (
+        <div key={row.label} className="snapshot-row">
+          <span>{row.label}</span>
+          <div>
+            <i style={{ width: `${Math.max(row.value, 4)}%` }} />
+          </div>
+          <small>{row.value}%</small>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ImportSession({
   ownerEmail,
   setDraft,
@@ -1570,6 +1825,16 @@ function ImportSession({
     setRoster(sampleRoster);
     setResources("https://example.com/similar-triangles-review");
     onUseDemo();
+  };
+
+  const handleTranscriptFile = (file?: File) => {
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setTranscript(String(reader.result ?? ""));
+    };
+    reader.readAsText(file);
   };
 
   const generateDraft = () => {
@@ -1614,8 +1879,8 @@ function ImportSession({
               <small>Zoom, Meet, text, or VTT file.</small>
               <input
                 type="file"
-                accept=".txt,.vtt,.srt,.doc,.docx"
-                onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
+                accept=".txt,.vtt,.srt"
+                onChange={(event) => handleTranscriptFile(event.target.files?.[0])}
               />
             </label>
             <label className="field">
@@ -1658,7 +1923,7 @@ function ImportSession({
             <span className="summary-icon">
               <Sparkles size={22} />
             </span>
-            <h3>AI draft will include</h3>
+            <h3>Draft will include</h3>
             <ul>
               <li>Clean teacher recap</li>
               <li>Homework and due dates</li>
@@ -1672,7 +1937,7 @@ function ImportSession({
             </button>
             <button className="primary-button full" onClick={generateDraft}>
               <Wand2 size={18} />
-              Generate AI draft
+              Generate draft
             </button>
           </div>
         </aside>
@@ -1705,7 +1970,7 @@ function Processing({ draft }: { draft: Session | null }) {
         <span className="processing-orbit">
           <Sparkles size={34} />
         </span>
-        <span className="eyebrow">AI draft in progress</span>
+        <span className="eyebrow">Draft in progress</span>
         <h2>{draft?.title ?? "Preparing draft"}</h2>
         <p>ClassLoop is turning the messy record into a teacher-editable follow-up loop.</p>
         <div className="processing-steps">
@@ -1724,15 +1989,19 @@ function Processing({ draft }: { draft: Session | null }) {
 function ReviewDraft({
   draft,
   setDraft,
+  studentAccountEmails,
 }: {
   draft: Session | null;
   setDraft: (session: Session | null) => void;
+  studentAccountEmails: string[];
 }) {
+  const [saveMessage, setSaveMessage] = useState("");
+
   if (!draft) {
     return (
       <EmptyState
         icon={Sparkles}
-        title="No AI draft yet"
+        title="No draft yet"
         detail="Import the sample geometry transcript to generate a teacher review page."
         action="Create new session"
         onAction={() => navigate("new-session")}
@@ -1774,14 +2043,18 @@ function ReviewDraft({
     setDraft(resolveParticipant(draft, participant, mode, studentId));
   };
 
-  const saveDraft = () => setDraft({ ...draft });
+  const saveDraft = () => {
+    setDraft({ ...draft });
+    setSaveMessage("Draft saved.");
+    window.setTimeout(() => setSaveMessage(""), 1800);
+  };
 
   return (
     <div className="page-stack review-page">
       <section className="review-banner">
         <div>
           <span className="eyebrow">Teacher control center</span>
-          <h2>Edit the AI draft before publishing.</h2>
+          <h2>Edit the draft before publishing.</h2>
           <p>
             Student dashboards stay private until the teacher approves the recap, assignments, resources, and participation
             labels.
@@ -1790,11 +2063,11 @@ function ReviewDraft({
         <div className="review-actions">
           <button className="ghost-button" onClick={saveDraft}>
             <Save size={17} />
-            Save draft
+            {saveMessage || "Save draft"}
           </button>
           <button className="primary-button" onClick={() => navigate("publish-preview")}>
-            <Eye size={17} />
-            Preview student view
+            <Send size={17} />
+            Preview and publish
           </button>
         </div>
       </section>
@@ -1803,6 +2076,8 @@ function ReviewDraft({
         <RosterManager
           students={draft.students}
           attendance={draft.attendance}
+          studentAccountEmails={studentAccountEmails}
+          sessionTitle={draft.title}
           onStudentsChange={updateRoster}
           onAttendanceChange={updateAttendance}
         />
@@ -1968,11 +2243,15 @@ function ReviewDraft({
 function RosterManager({
   students,
   attendance,
+  studentAccountEmails,
+  sessionTitle,
   onStudentsChange,
   onAttendanceChange,
 }: {
   students: Student[];
   attendance: Record<string, AttendanceStatus>;
+  studentAccountEmails: string[];
+  sessionTitle: string;
   onStudentsChange: (students: Student[]) => void;
   onAttendanceChange: (studentId: string, status: AttendanceStatus) => void;
 }) {
@@ -1981,6 +2260,19 @@ function RosterManager({
   };
   const addStudent = () => onStudentsChange([...students, makeRosterStudent("", "", students.length)]);
   const removeStudent = (studentId: string) => onStudentsChange(students.filter((student) => student.id !== studentId));
+  const linkAccount = (student: Student) => {
+    updateStudent(student.id, { linkedAccountEmail: normalizeEmail(student.email) });
+  };
+  const sendInvite = (student: Student) => {
+    const email = normalizeEmail(student.email);
+    if (!email) return;
+    const subject = encodeURIComponent(`ClassLoop follow-up for ${sessionTitle}`);
+    const body = encodeURIComponent(
+      `Hi ${student.name},\n\nYour teacher prepared a ClassLoop follow-up for ${sessionTitle}.\n\nYou can create or sign in to your ClassLoop student account with this email address to see your recap, resources, and tasks.\n\nThanks!`,
+    );
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`);
+    updateStudent(student.id, { inviteSentAt: new Date().toISOString() });
+  };
 
   return (
     <Panel title="Roster manager" icon={Users}>
@@ -2022,6 +2314,28 @@ function RosterManager({
                 placeholder={index === 0 ? "Maya C, Maya iPad" : "Optional aliases"}
               />
             </label>
+            <div className="student-access-cell">
+              <span>Student access</span>
+              <small>
+                {student.linkedAccountEmail
+                  ? `Linked to ${student.linkedAccountEmail}`
+                  : studentAccountEmails.includes(normalizeEmail(student.email))
+                    ? "Matching account found"
+                    : student.inviteSentAt
+                      ? "Email invite prepared"
+                      : "No account linked"}
+              </small>
+              <div>
+                <button className="text-button" type="button" onClick={() => linkAccount(student)} disabled={!student.email}>
+                  <Link2 size={16} />
+                  Link
+                </button>
+                <button className="text-button" type="button" onClick={() => sendInvite(student)} disabled={!student.email}>
+                  <Mail size={16} />
+                  Email
+                </button>
+              </div>
+            </div>
             <button className="icon-button danger" type="button" onClick={() => removeStudent(student.id)} aria-label={`Remove ${student.name}`}>
               <Trash2 size={17} />
             </button>
@@ -2143,6 +2457,7 @@ function PublishPreview({
     : draft.students[0]?.id ?? selectedStudentId;
   const student = studentById(activeStudentId, draft.students);
   const followUp = draft.followUps.find((item) => item.studentId === activeStudentId);
+  const personalEvents = draft.participationEvents.filter((event) => event.studentId === activeStudentId && event.approved);
   const updatePreviewSession = (sessionId: string, updater: (session: Session) => Session) => {
     if (sessionId === draft.id) setDraft(updater(draft));
   };
@@ -2211,16 +2526,29 @@ function PublishPreview({
         )}
         <div className="student-preview-columns">
           <div>
-            <strong>What happened</strong>
+            <strong>Class-wide recap</strong>
             <p>{draft.recap}</p>
           </div>
           <div>
-            <strong>My next steps</strong>
+            <strong>Personal next steps</strong>
+            {followUp?.reminder && <p>{followUp.reminder}</p>}
             <ul>
               {(followUp?.tasks ?? []).map((task) => (
                 <li key={task}>{task}</li>
               ))}
             </ul>
+          </div>
+          <div>
+            <strong>Why this is assigned</strong>
+            {personalEvents.length ? (
+              <ul>
+                {personalEvents.slice(0, 3).map((event) => (
+                  <li key={event.id}>{event.text}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>This student receives the shared recap and any class-wide work for the session.</p>
+            )}
           </div>
           <div>
             <strong>Resources</strong>
@@ -2944,11 +3272,11 @@ function DesignSystemPage({
     <div className="page-stack appearance-page">
       <section className="appearance-hero">
         <div>
-          <span className="eyebrow">Abyssal design system</span>
-          <h2>Image-backed screens with a premium AI classroom feel.</h2>
+          <span className="eyebrow">Experience settings</span>
+          <h2>Customize ClassLoop around your classroom.</h2>
           <p>
-            Choose a visual backdrop preset, tune the accent color, or paste an image URL to make ClassLoop feel more
-            like a polished product site while keeping the classroom workflow clear.
+            Choose a calmer workspace, tune the accent color, or use an image backdrop so the product feels comfortable
+            for your teaching style while staying easy to scan during a busy school day.
           </p>
         </div>
         <div className={`live-theme-preview ${themePresets[theme.key].previewClass}`}>
