@@ -3,6 +3,7 @@ import type {
   ParticipationEvent,
   Resource,
   Session,
+  SessionCaptureMode,
   SessionType,
   Student,
   StudentFollowUp,
@@ -47,6 +48,10 @@ export type ImportDraftInput = {
   notes: string;
   roster: string;
   resources: string;
+  captureMode?: SessionCaptureMode;
+  captureSourceLabel?: string;
+  captureDurationSeconds?: number;
+  transcriptSource?: "file" | "paste" | "live_transcription" | "audio_recording";
 };
 
 export type TranscriptTextFile = {
@@ -698,6 +703,13 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     students: roster,
     transcript: input.transcript,
     notes: input.notes,
+    capture: {
+      mode: input.captureMode ?? "transcript",
+      sourceLabel: input.captureSourceLabel ?? "Transcript import",
+      capturedAt: new Date().toISOString(),
+      durationSeconds: input.captureDurationSeconds,
+      transcriptSource: input.transcriptSource ?? (input.transcript.trim() ? "paste" : "audio_recording"),
+    },
     recap,
     essentialQuestions,
     attendance,
@@ -707,5 +719,11 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     followUps,
     unmatchedParticipants,
     transcriptAliases: {},
+    emailDelivery: {
+      status: "not_sent",
+      recipients: [],
+      skipped: [],
+    },
+    integrations: {},
   };
 }

@@ -61,6 +61,7 @@ import type {
   ParticipationType,
   Resource,
   Session,
+  SessionCaptureMode,
   SessionType,
   Student,
   StudentFollowUp,
@@ -136,6 +137,65 @@ type ThemeSettings = {
   key: ThemeKey;
   accent: string;
   imageUrl: string;
+};
+
+type SpeechRecognitionResultLike = {
+  isFinal: boolean;
+  0?: { transcript: string };
+};
+
+type SpeechRecognitionEventLike = {
+  resultIndex?: number;
+  results: ArrayLike<SpeechRecognitionResultLike>;
+};
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
+type IntegrationStatus = {
+  email: {
+    configured: boolean;
+    provider: string;
+    from?: string;
+  };
+  googleClassroom: {
+    configured: boolean;
+    connected: boolean;
+  };
+  lms: {
+    configured: boolean;
+    connected: boolean;
+    provider: string;
+    baseUrl?: string;
+  };
+};
+
+type IntegrationCourse = {
+  id: string;
+  name: string;
+};
+
+type EmailDeliveryResult = {
+  provider: string;
+  sentAt: string;
+  recipients: string[];
+  skipped: string[];
+  failed: string[];
 };
 
 const navItems: NavItem[] = [
@@ -309,6 +369,67 @@ async function hashSecret(value: string) {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function getSpeechRecognitionConstructor() {
+  const speechWindow = window as SpeechRecognitionWindow;
+  return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+}
+
+const captureModeLabels: Record<SessionCaptureMode, string> = {
+  transcript: "Transcript import",
+  audio: "Audio recording",
+  live_call: "Background call capture",
+};
+
+function appendCapturedText(current: string, text: string) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (!clean) return current;
+  return [current.trim(), clean].filter(Boolean).join("\n");
+}
+
+function studentEmailRecipients(session: Session) {
+  return session.students
+    .map((student) => normalizeEmail(student.linkedAccountEmail || student.email))
+    .filter((email) => email && !email.endsWith("@classloop.local"));
+}
+
+function studentsWithoutDeliverableEmail(session: Session) {
+  return session.students
+    .filter((student) => {
+      const email = normalizeEmail(student.linkedAccountEmail || student.email);
+      return !email || email.endsWith("@classloop.local");
+    })
+    .map((student) => student.name);
+}
+
+function markSessionEmailsSent(session: Session, result: EmailDeliveryResult): Session {
+  return {
+    ...session,
+    emailDelivery: {
+      status: "sent",
+      sentAt: result.sentAt,
+      provider: result.provider,
+      recipients: result.recipients,
+      skipped: result.skipped,
+      failed: result.failed,
+    },
+  };
+}
+
+async function apiJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options?.headers ?? {}),
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || `Request failed with status ${response.status}.`);
+  }
+  return data as T;
 }
 
 function makeAccountId(role: AuthRole) {
@@ -848,9 +969,10 @@ function App() {
     return demoSession;
   };
 
-  const publishDraft = () => {
+  const publishDraft = (sessionOverride?: Session) => {
     if (!visibleDraft || !auth) return;
-    const published = { ...visibleDraft, ownerEmail: auth.email, status: "published" as const };
+    const source = sessionOverride ?? visibleDraft;
+    const published = { ...source, ownerEmail: auth.email, status: "published" as const };
     updateSession(published);
     setDraft(published);
     navigate("report", { session: published.id });
@@ -2092,11 +2214,132 @@ function ImportSession({
   const [resources, setResources] = useState("");
   const [fileName, setFileName] = useState("");
   const [templateDetails, setTemplateDetails] = useState<Record<string, string>>({});
+  const [captureMode, setCaptureMode] = useState<SessionCaptureMode>("transcript");
+  const [captureStatus, setCaptureStatus] = useState<"idle" | "recording" | "stopped">("idle");
+  const [captureMessage, setCaptureMessage] = useState("");
+  const [recordedSeconds, setRecordedSeconds] = useState(0);
+  const [transcriptionAvailable, setTranscriptionAvailable] = useState(true);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const captureTimerRef = useRef<number | null>(null);
+  const captureStartedAtRef = useRef<number | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const activeTemplateFields = templateDetailFields[template];
+
+  const stopCapture = () => {
+    speechRecognitionRef.current?.stop();
+    speechRecognitionRef.current = null;
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    mediaStreamRef.current = null;
+    if (captureTimerRef.current) window.clearInterval(captureTimerRef.current);
+    captureTimerRef.current = null;
+
+    const duration = captureStartedAtRef.current
+      ? Math.max(1, Math.round((Date.now() - captureStartedAtRef.current) / 1000))
+      : recordedSeconds;
+    captureStartedAtRef.current = null;
+    setRecordedSeconds(duration);
+    setCaptureStatus("stopped");
+    setCaptureMessage(
+      `${captureModeLabels[captureMode]} saved for this draft${transcriptionAvailable ? "." : ". Add notes if the browser did not create a live transcript."}`,
+    );
+  };
+
+  const startSpeechRecognition = (mode: SessionCaptureMode) => {
+    const SpeechRecognitionCtor = getSpeechRecognitionConstructor();
+    if (!SpeechRecognitionCtor) {
+      setTranscriptionAvailable(false);
+      setCaptureMessage("Recording is active. Live transcription is not available in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.onresult = (event) => {
+      let finalText = "";
+      for (let index = event.resultIndex ?? 0; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        if (result?.isFinal && result[0]?.transcript) {
+          finalText = appendCapturedText(finalText, result[0].transcript);
+        }
+      }
+      if (finalText) {
+        setTranscript((current) => appendCapturedText(current, `${captureModeLabels[mode]}: ${finalText}`));
+      }
+    };
+    recognition.onerror = () => {
+      setTranscriptionAvailable(false);
+      setCaptureMessage("Recording is active. Live transcription paused, so add short notes before generating.");
+    };
+    recognition.onend = null;
+    recognition.start();
+    speechRecognitionRef.current = recognition;
+    setTranscriptionAvailable(true);
+  };
+
+  const startCapture = async (mode: SessionCaptureMode) => {
+    if (captureStatus === "recording") stopCapture();
+    setCaptureMode(mode);
+    setCaptureMessage("");
+    audioChunksRef.current = [];
+
+    try {
+      const stream =
+        mode === "live_call"
+          ? await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+          : await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      captureStartedAtRef.current = Date.now();
+      setRecordedSeconds(0);
+      setCaptureStatus("recording");
+      setCaptureMessage(
+        mode === "live_call"
+          ? "Call capture is running. Keep ClassLoop open while the meeting continues."
+          : "Audio recording is running. Speak normally and keep this window open.",
+      );
+
+      if (typeof MediaRecorder !== "undefined") {
+        const recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) audioChunksRef.current.push(event.data);
+        };
+        recorder.start();
+        mediaRecorderRef.current = recorder;
+      }
+
+      captureTimerRef.current = window.setInterval(() => {
+        if (captureStartedAtRef.current) {
+          setRecordedSeconds(Math.max(1, Math.round((Date.now() - captureStartedAtRef.current) / 1000)));
+        }
+      }, 1000);
+
+      startSpeechRecognition(mode);
+    } catch {
+      setCaptureStatus("idle");
+      setCaptureMessage("Audio permission was not granted, or this browser cannot capture that source.");
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      speechRecognitionRef.current?.stop();
+      if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+      if (captureTimerRef.current) window.clearInterval(captureTimerRef.current);
+    };
+  }, []);
 
   const loadSample = () => {
     setTitle("Geometry Review: Similar Triangles + Algebra");
     setTemplate("Math review");
+    setCaptureMode("transcript");
     setTranscript(sampleTranscript);
     setNotes(sampleNotes);
     setRoster(sampleRoster);
@@ -2112,6 +2355,8 @@ function ImportSession({
   const handleTranscriptFile = async (file?: File) => {
     if (!file) return;
     setFileName(file.name);
+    setCaptureMode("transcript");
+    setCaptureMessage(`Loaded ${file.name}.`);
     setTranscript(await readTranscriptFileText(file));
   };
 
@@ -2123,13 +2368,35 @@ function ImportSession({
       })
       .filter(Boolean)
       .join("\n");
+    const captureNotes =
+      captureMode === "transcript"
+        ? ""
+        : [
+            `Capture method: ${captureModeLabels[captureMode]}.`,
+            recordedSeconds ? `Captured duration: ${recordedSeconds} seconds.` : "",
+            transcriptionAvailable ? "Live transcript was added when available." : "No live transcript was available; teacher notes should guide the draft.",
+          ]
+            .filter(Boolean)
+            .join("\n");
+    const transcriptSource =
+      captureMode === "audio" || captureMode === "live_call"
+        ? transcript.trim()
+          ? "live_transcription"
+          : "audio_recording"
+        : fileName
+          ? "file"
+          : "paste";
     const session = createGeneratedSession({
       title,
       template,
       transcript,
-      notes: [notes, detailNotes].filter(Boolean).join("\n\n"),
+      notes: [notes, detailNotes, captureNotes].filter(Boolean).join("\n\n"),
       roster,
       resources,
+      captureMode,
+      captureSourceLabel: captureModeLabels[captureMode],
+      captureDurationSeconds: recordedSeconds || undefined,
+      transcriptSource,
     });
     setDraft({ ...session, ownerEmail });
     navigate("processing", { session: session.id });
@@ -2189,6 +2456,77 @@ function ImportSession({
                 </div>
               </div>
             )}
+            <div className="capture-panel wide">
+              <div>
+                <span className="eyebrow">Capture source</span>
+                <h3>Use a transcript, record audio, or capture an online call.</h3>
+                <p>
+                  ClassLoop will use the pasted transcript, live transcription, and your notes together when generating the draft.
+                </p>
+              </div>
+              <div className="capture-mode-grid">
+                <button
+                  type="button"
+                  className={captureMode === "transcript" ? "capture-mode-card active" : "capture-mode-card"}
+                  onClick={() => setCaptureMode("transcript")}
+                >
+                  <UploadCloud size={18} />
+                  <strong>Transcript</strong>
+                  <small>Upload or paste Zoom, Meet, text, VTT, or notes.</small>
+                </button>
+                <button
+                  type="button"
+                  className={captureMode === "audio" ? "capture-mode-card active" : "capture-mode-card"}
+                  onClick={() => setCaptureMode("audio")}
+                >
+                  <Mic2 size={18} />
+                  <strong>Record audio</strong>
+                  <small>Use the device microphone during an in-person class.</small>
+                </button>
+                <button
+                  type="button"
+                  className={captureMode === "live_call" ? "capture-mode-card active" : "capture-mode-card"}
+                  onClick={() => setCaptureMode("live_call")}
+                >
+                  <PlayCircle size={18} />
+                  <strong>Online call</strong>
+                  <small>Capture a meeting tab or window while the call runs.</small>
+                </button>
+              </div>
+              {captureMode !== "transcript" && (
+                <div className="capture-controls">
+                  <div>
+                    <strong>{captureStatus === "recording" ? "Recording now" : captureModeLabels[captureMode]}</strong>
+                    <small>
+                      {captureStatus === "recording"
+                        ? `${recordedSeconds}s captured`
+                        : "Start capture before class, then stop it before generating the draft."}
+                    </small>
+                  </div>
+                  <div className="capture-buttons">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={() => startCapture(captureMode)}
+                      disabled={captureStatus === "recording"}
+                    >
+                      <Mic2 size={17} />
+                      Start capture
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={stopCapture}
+                      disabled={captureStatus !== "recording"}
+                    >
+                      <CheckCircle2 size={17} />
+                      Stop
+                    </button>
+                  </div>
+                </div>
+              )}
+              {captureMessage && <p className="capture-message">{captureMessage}</p>}
+            </div>
             <label className="upload-zone wide">
               <UploadCloud size={24} />
               <strong>{fileName || "Upload transcript file"}</strong>
@@ -2796,7 +3134,7 @@ function PublishPreview({
   selectedStudentId: string;
   setSelectedStudentId: (id: string) => void;
   setDraft: (session: Session | null) => void;
-  publishDraft: () => void;
+  publishDraft: (sessionOverride?: Session) => void;
 }) {
   if (!draft) {
     return (
@@ -2816,9 +3154,130 @@ function PublishPreview({
   const student = studentById(activeStudentId, draft.students);
   const followUp = draft.followUps.find((item) => item.studentId === activeStudentId);
   const personalEvents = draft.participationEvents.filter((event) => event.studentId === activeStudentId && event.approved);
+  const delivery = draft.emailDelivery ?? { status: "not_sent" as const, recipients: [], skipped: [] };
+  const emailSent = delivery.status === "sent";
+  const recipientCount = studentEmailRecipients(draft).length;
+  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus | null>(null);
+  const [deliveryMessage, setDeliveryMessage] = useState("");
+  const [integrationMessage, setIntegrationMessage] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [classroomCourses, setClassroomCourses] = useState<IntegrationCourse[]>([]);
+  const [lmsCourses, setLmsCourses] = useState<IntegrationCourse[]>([]);
+  const [selectedClassroomCourseId, setSelectedClassroomCourseId] = useState(draft.integrations?.googleClassroomCourseId ?? "");
+  const [selectedLmsCourseId, setSelectedLmsCourseId] = useState(draft.integrations?.lmsCourseId ?? "");
+  const [isPostingClassroom, setIsPostingClassroom] = useState(false);
+  const [isPostingLms, setIsPostingLms] = useState(false);
   const updatePreviewSession = (sessionId: string, updater: (session: Session) => Session) => {
     if (sessionId === draft.id) setDraft(updater(draft));
   };
+  const updateDraft = (updater: (session: Session) => Session) => setDraft(updater(draft));
+  const updateIntegrations = (changes: NonNullable<Session["integrations"]>) => {
+    updateDraft((current) => ({
+      ...current,
+      integrations: {
+        ...(current.integrations ?? {}),
+        ...changes,
+      },
+    }));
+  };
+  const loadIntegrationStatus = async () => {
+    try {
+      const status = await apiJson<IntegrationStatus>("/api/integrations/status");
+      setIntegrationStatus(status);
+      setIntegrationMessage("");
+      if (status.googleClassroom.connected) {
+        const data = await apiJson<{ courses: IntegrationCourse[] }>("/api/google-classroom/courses");
+        setClassroomCourses(data.courses);
+        if (!selectedClassroomCourseId && data.courses[0]) setSelectedClassroomCourseId(data.courses[0].id);
+      }
+      if (status.lms.connected) {
+        const data = await apiJson<{ courses: IntegrationCourse[] }>("/api/lms/courses");
+        setLmsCourses(data.courses);
+        if (!selectedLmsCourseId && data.courses[0]) setSelectedLmsCourseId(data.courses[0].id);
+      }
+    } catch (error) {
+      setIntegrationMessage(error instanceof Error ? error.message : "Unable to load integration status.");
+    }
+  };
+  const sendStudentEmails = async () => {
+    if (emailSent || recipientCount === 0 || isSendingEmail) return;
+    setIsSendingEmail(true);
+    setDeliveryMessage("");
+    try {
+      const result = await apiJson<EmailDeliveryResult>("/api/email/send-recaps", {
+        method: "POST",
+        body: JSON.stringify({ session: draft }),
+      });
+      updateDraft((current) => markSessionEmailsSent(current, result));
+      setDeliveryMessage(`Sent through ${result.provider} to ${result.recipients.length} students.`);
+    } catch (error) {
+      setDeliveryMessage(error instanceof Error ? error.message : "Unable to send recap emails.");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+  const connectGoogleClassroom = async () => {
+    try {
+      const data = await apiJson<{ authUrl: string }>("/api/google-classroom/auth-url");
+      window.open(data.authUrl, "_blank", "noopener,noreferrer");
+      setIntegrationMessage("Finish Google Classroom sign-in, then refresh courses.");
+    } catch (error) {
+      setIntegrationMessage(error instanceof Error ? error.message : "Unable to start Google Classroom sign-in.");
+    }
+  };
+  const postToGoogleClassroom = async () => {
+    const course = classroomCourses.find((item) => item.id === selectedClassroomCourseId);
+    if (!course || isPostingClassroom) return;
+    setIsPostingClassroom(true);
+    setIntegrationMessage("");
+    try {
+      const result = await apiJson<{ postedAt: string; courseId: string; courseName: string }>("/api/google-classroom/post-recap", {
+        method: "POST",
+        body: JSON.stringify({ session: draft, courseId: course.id, courseName: course.name }),
+      });
+      updateIntegrations({
+        googleClassroomConnected: true,
+        googleClassroomCourseId: result.courseId,
+        googleClassroomCourseName: result.courseName || course.name,
+        googleClassroomPostedAt: result.postedAt,
+      });
+      setIntegrationMessage(`Posted to Google Classroom: ${result.courseName || course.name}.`);
+    } catch (error) {
+      setIntegrationMessage(error instanceof Error ? error.message : "Unable to post to Google Classroom.");
+    } finally {
+      setIsPostingClassroom(false);
+    }
+  };
+  const postToLms = async () => {
+    const course = lmsCourses.find((item) => item.id === selectedLmsCourseId);
+    const fallbackCourse = { id: selectedLmsCourseId, name: draft.integrations?.lmsName || "Linked LMS course" };
+    const target = course ?? fallbackCourse;
+    if (!target.id && !integrationStatus?.lms.configured) return;
+    setIsPostingLms(true);
+    setIntegrationMessage("");
+    try {
+      const result = await apiJson<{ postedAt: string; courseId: string; courseName: string; provider: string }>("/api/lms/post-recap", {
+        method: "POST",
+        body: JSON.stringify({ session: draft, courseId: target.id, courseName: target.name }),
+      });
+      updateIntegrations({
+        lmsConnected: true,
+        lmsName: result.provider || draft.integrations?.lmsName || integrationStatus?.lms.provider,
+        lmsCourseId: result.courseId || target.id,
+        lmsCourseName: result.courseName || target.name,
+        lmsPostedAt: result.postedAt,
+      });
+      setIntegrationMessage(`Posted to ${result.provider || "LMS"}.`);
+    } catch (error) {
+      setIntegrationMessage(error instanceof Error ? error.message : "Unable to post to the LMS.");
+    } finally {
+      setIsPostingLms(false);
+    }
+  };
+
+  useEffect(() => {
+    loadIntegrationStatus();
+  }, []);
 
   return (
     <div className="page-stack publish-preview-page">
@@ -2836,11 +3295,131 @@ function PublishPreview({
             <ChevronRight size={17} />
             Back to edit
           </button>
-          <button className="primary-button" onClick={publishDraft}>
+          <button className="primary-button" onClick={() => publishDraft()}>
             <Send size={17} />
             Publish to students
           </button>
         </div>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title="One-click student delivery" icon={Mail}>
+          <div className="delivery-card">
+            <div>
+              <strong>{emailSent ? "Recaps sent" : "Send recap and action items"}</strong>
+              <p>
+                {emailSent
+                  ? `Sent to ${delivery.recipients.length} students${delivery.sentAt ? ` on ${formatDate(delivery.sentAt)}` : ""}.`
+                  : `${recipientCount} students have deliverable roster or linked account emails.`}
+              </p>
+              {delivery.skipped.length > 0 && <small>Skipped: {delivery.skipped.join(", ")}</small>}
+              {delivery.failed?.length ? <small>Failed: {delivery.failed.join("; ")}</small> : null}
+              {deliveryMessage && <small>{deliveryMessage}</small>}
+            </div>
+            <button
+              className="primary-button full"
+              type="button"
+              onClick={sendStudentEmails}
+              disabled={emailSent || recipientCount === 0 || isSendingEmail}
+            >
+              {emailSent ? <CheckCircle2 size={17} /> : <Send size={17} />}
+              {emailSent ? "Emails sent" : isSendingEmail ? "Sending..." : "Send recap emails"}
+            </button>
+          </div>
+        </Panel>
+
+        <Panel title="Classroom and LMS posting" icon={Link2}>
+          <div className="integration-grid">
+            <div className={integrationStatus?.googleClassroom.connected ? "integration-card active" : "integration-card"}>
+              <CheckCircle2 size={18} />
+              <span>
+                <strong>Google Classroom</strong>
+                <small>
+                  {integrationStatus?.googleClassroom.connected
+                    ? "Connected"
+                    : integrationStatus?.googleClassroom.configured
+                      ? "Ready to connect"
+                      : "OAuth credentials not configured"}
+                </small>
+              </span>
+            </div>
+            {integrationStatus?.googleClassroom.connected ? (
+              <>
+                <label className="field compact">
+                  <span>Google Classroom course</span>
+                  <select value={selectedClassroomCourseId} onChange={(event) => setSelectedClassroomCourseId(event.target.value)}>
+                    {classroomCourses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="primary-button full"
+                  onClick={postToGoogleClassroom}
+                  disabled={!selectedClassroomCourseId || isPostingClassroom}
+                >
+                  <Send size={17} />
+                  {isPostingClassroom ? "Posting..." : "Post to Google Classroom"}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="ghost-button full"
+                onClick={connectGoogleClassroom}
+                disabled={!integrationStatus?.googleClassroom.configured}
+              >
+                <Link2 size={17} />
+                Connect Google Classroom
+              </button>
+            )}
+            {draft.integrations?.googleClassroomPostedAt && (
+              <small className="integration-note">Posted to {draft.integrations.googleClassroomCourseName || "Google Classroom"}.</small>
+            )}
+
+            <div className={integrationStatus?.lms.connected ? "integration-card active" : "integration-card"}>
+              <LinkIcon size={18} />
+              <span>
+                <strong>Learning management system</strong>
+                <small>
+                  {integrationStatus?.lms.connected
+                    ? `${integrationStatus.lms.provider} connected`
+                    : "Set LMS provider environment variables"}
+                </small>
+              </span>
+            </div>
+            {lmsCourses.length > 0 && (
+              <label className="field compact">
+                <span>LMS course</span>
+                <select value={selectedLmsCourseId} onChange={(event) => setSelectedLmsCourseId(event.target.value)}>
+                  {lmsCourses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <button
+              type="button"
+              className="primary-button full"
+              onClick={postToLms}
+              disabled={!integrationStatus?.lms.connected || isPostingLms || (lmsCourses.length > 0 && !selectedLmsCourseId)}
+            >
+              <Send size={17} />
+              {isPostingLms ? "Posting..." : "Post to LMS"}
+            </button>
+            {draft.integrations?.lmsPostedAt && <small className="integration-note">Posted to {draft.integrations.lmsCourseName || "LMS"}.</small>}
+            <button type="button" className="text-button sample-link" onClick={loadIntegrationStatus}>
+              <RefreshCw size={16} />
+              Refresh integrations
+            </button>
+            {integrationMessage && <small className="integration-note">{integrationMessage}</small>}
+          </div>
+        </Panel>
       </section>
 
       <section className="content-grid two-columns align-start">
