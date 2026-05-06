@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, shell, safeStorage } = require("electron");
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -10,6 +10,16 @@ const distDir = path.join(rootDir, "dist");
 const dataFile = path.join(rootDir, ".classloop-data.json");
 const integrationsFile = path.join(rootDir, ".classloop-integrations.json");
 let googleOauthState = "";
+
+const securityHeaders = {
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  "X-Frame-Options": "DENY",
+  "Content-Security-Policy":
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'",
+  "Permissions-Policy": "camera=(), geolocation=(), microphone=(self), display-capture=(self)",
+};
 
 const mimeTypes = {
   ".css": "text/css",
@@ -41,17 +51,31 @@ function readDataFile() {
         sessions: [],
         draft: null,
         demoLoaded: false,
+        rosterTemplates: [],
         updatedAt: new Date().toISOString(),
       };
     }
 
-    return JSON.parse(fs.readFileSync(dataFile, "utf8"));
+    const stored = JSON.parse(fs.readFileSync(dataFile, "utf8"));
+    if (stored.encrypted && stored.payload) {
+      if (!safeStorage.isEncryptionAvailable()) {
+        throw new Error("Local ClassLoop data encryption is not available.");
+      }
+      return JSON.parse(safeStorage.decryptString(Buffer.from(stored.payload, "base64")));
+    }
+    if (stored.version && stored.payload && stored.encrypted === false) {
+      return stored.payload;
+    }
+    return stored;
   } catch {
     return {
       accounts: [],
       sessions: [],
       draft: null,
       demoLoaded: false,
+      rosterTemplates: [],
+      privacySettings: undefined,
+      auditLog: [],
       updatedAt: new Date().toISOString(),
     };
   }
@@ -60,29 +84,65 @@ function readDataFile() {
 function readIntegrationFile() {
   try {
     if (!fs.existsSync(integrationsFile)) return {};
-    return JSON.parse(fs.readFileSync(integrationsFile, "utf8"));
+    const stored = JSON.parse(fs.readFileSync(integrationsFile, "utf8"));
+    if (stored.encrypted && stored.payload) {
+      if (!safeStorage.isEncryptionAvailable()) {
+        throw new Error("Local integration token encryption is not available.");
+      }
+      return JSON.parse(safeStorage.decryptString(Buffer.from(stored.payload, "base64")));
+    }
+    return stored;
   } catch {
     return {};
   }
 }
 
 function writeIntegrationFile(payload) {
-  fs.writeFileSync(integrationsFile, `${JSON.stringify(payload, null, 2)}\n`);
+  const stored = safeStorage.isEncryptionAvailable()
+    ? {
+        version: 1,
+        encrypted: true,
+        payload: safeStorage.encryptString(JSON.stringify(payload)).toString("base64"),
+      }
+    : {
+        version: 1,
+        encrypted: false,
+        payload,
+      };
+  fs.writeFileSync(integrationsFile, `${JSON.stringify(stored, null, 2)}\n`, { mode: 0o600 });
   return payload;
 }
 
+function withSecurityHeaders(headers = {}) {
+  return { ...securityHeaders, ...headers };
+}
+
 function sendJson(response, statusCode, payload) {
-  response.writeHead(statusCode, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+  response.writeHead(statusCode, withSecurityHeaders({ "Content-Type": "application/json" }));
   response.end(JSON.stringify(payload));
 }
 
 function sendHtml(response, statusCode, html) {
-  response.writeHead(statusCode, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+  response.writeHead(statusCode, withSecurityHeaders({ "Content-Type": "text/html; charset=utf-8" }));
   response.end(html);
 }
 
 function baseUrlFromRequest(request) {
   return `http://${request.headers.host}`;
+}
+
+function isTrustedLocalOrigin(origin, host) {
+  if (!origin) return true;
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === "http:" && parsed.host === host && ["127.0.0.1", "localhost"].includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isTrustedApiRequest(request) {
+  return isTrustedLocalOrigin(request.headers.origin, request.headers.host);
 }
 
 function writeDataFile(payload) {
@@ -91,9 +151,23 @@ function writeDataFile(payload) {
     sessions: Array.isArray(payload.sessions) ? payload.sessions : [],
     draft: payload.draft ?? null,
     demoLoaded: Boolean(payload.demoLoaded),
+    rosterTemplates: Array.isArray(payload.rosterTemplates) ? payload.rosterTemplates : [],
+    privacySettings: payload.privacySettings,
+    auditLog: Array.isArray(payload.auditLog) ? payload.auditLog : [],
     updatedAt: new Date().toISOString(),
   };
-  fs.writeFileSync(dataFile, `${JSON.stringify(nextState, null, 2)}\n`);
+  const stored = safeStorage.isEncryptionAvailable()
+    ? {
+        version: 1,
+        encrypted: true,
+        payload: safeStorage.encryptString(JSON.stringify(nextState)).toString("base64"),
+      }
+    : {
+        version: 1,
+        encrypted: false,
+        payload: nextState,
+      };
+  fs.writeFileSync(dataFile, `${JSON.stringify(stored, null, 2)}\n`, { mode: 0o600 });
   return nextState;
 }
 
@@ -127,10 +201,13 @@ function skippedStudents(session) {
 
 function emailConfig() {
   if (process.env.CLASSLOOP_SMTP_HOST) {
+    const senderEmail = process.env.CLASSLOOP_NO_REPLY_EMAIL || process.env.CLASSLOOP_SMTP_FROM || process.env.CLASSLOOP_SMTP_USER;
+    const senderName = process.env.CLASSLOOP_NO_REPLY_NAME || "ClassLoop";
     return {
       configured: true,
-      provider: process.env.CLASSLOOP_SMTP_PROVIDER || "SMTP",
-      from: process.env.CLASSLOOP_SMTP_FROM || process.env.CLASSLOOP_SMTP_USER,
+      provider: process.env.CLASSLOOP_SMTP_PROVIDER || (process.env.CLASSLOOP_NO_REPLY_EMAIL ? "No-reply SMTP" : "SMTP"),
+      from: senderName && senderEmail ? `${senderName} <${senderEmail}>` : senderEmail,
+      replyTo: process.env.CLASSLOOP_REPLY_TO || undefined,
       transport: {
         host: process.env.CLASSLOOP_SMTP_HOST,
         port: Number(process.env.CLASSLOOP_SMTP_PORT || 587),
@@ -146,10 +223,13 @@ function emailConfig() {
   }
 
   if (process.env.CLASSLOOP_GMAIL_USER && process.env.CLASSLOOP_GMAIL_APP_PASSWORD) {
+    const senderEmail = process.env.CLASSLOOP_NO_REPLY_EMAIL || process.env.CLASSLOOP_GMAIL_FROM || process.env.CLASSLOOP_GMAIL_USER;
+    const senderName = process.env.CLASSLOOP_NO_REPLY_NAME || "ClassLoop";
     return {
       configured: true,
-      provider: "Gmail SMTP",
-      from: process.env.CLASSLOOP_GMAIL_FROM || process.env.CLASSLOOP_GMAIL_USER,
+      provider: process.env.CLASSLOOP_NO_REPLY_EMAIL ? "No-reply Gmail SMTP" : "Gmail SMTP",
+      from: senderName && senderEmail ? `${senderName} <${senderEmail}>` : senderEmail,
+      replyTo: process.env.CLASSLOOP_REPLY_TO || undefined,
       transport: {
         host: "smtp.gmail.com",
         port: 465,
@@ -219,6 +299,7 @@ async function sendRecapEmails(session) {
     try {
       await transporter.sendMail({
         from: config.from,
+        replyTo: config.replyTo,
         to,
         subject: `ClassLoop recap: ${session.title || "Session follow-up"}`,
         text: textForStudentEmail(session, student),
@@ -360,6 +441,75 @@ async function lmsFetch(pathname, options = {}) {
   return data;
 }
 
+async function transcribeAudio(body) {
+  const audioBase64 = String(body.audioBase64 || "");
+  if (!audioBase64) {
+    const error = new Error("No audio recording was provided for transcription.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (process.env.CLASSLOOP_TRANSCRIBE_URL) {
+    const response = await fetch(process.env.CLASSLOOP_TRANSCRIBE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(process.env.CLASSLOOP_TRANSCRIBE_TOKEN ? { Authorization: `Bearer ${process.env.CLASSLOOP_TRANSCRIBE_TOKEN}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || data.message || "Configured transcription service failed.");
+    return {
+      provider: "Configured speech-to-text service",
+      text: data.text || data.transcript || "",
+    };
+  }
+
+  if (process.env.OPENAI_API_KEY) {
+    const buffer = Buffer.from(audioBase64, "base64");
+    const form = new FormData();
+    form.append("file", new Blob([buffer], { type: body.mimeType || "audio/webm" }), body.fileName || "classloop-recording.webm");
+    form.append("model", process.env.CLASSLOOP_TRANSCRIBE_MODEL || "gpt-4o-mini-transcribe");
+    form.append("response_format", "json");
+    if (body.prompt) form.append("prompt", String(body.prompt));
+
+    const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: form,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error?.message || data.error || "OpenAI transcription failed.");
+    return {
+      provider: "OpenAI speech-to-text",
+      text: data.text || "",
+    };
+  }
+
+  const error = new Error("Automatic transcription is not configured. Set OPENAI_API_KEY or CLASSLOOP_TRANSCRIBE_URL.");
+  error.statusCode = 503;
+  throw error;
+}
+
+async function handleTranscriptionApi(request, response) {
+  if (request.method !== "POST") {
+    sendJson(response, 405, { error: "Method not allowed." });
+    return true;
+  }
+
+  try {
+    const body = JSON.parse((await readRequestBody(request)) || "{}");
+    const result = await transcribeAudio(body);
+    sendJson(response, 200, result);
+  } catch (error) {
+    sendJson(response, error.statusCode || 500, { error: error.message || "Unable to transcribe recording." });
+  }
+  return true;
+}
+
 function sessionDescription(session) {
   const resources = Array.isArray(session.resources) && session.resources.length
     ? `\n\nResources:\n${session.resources.map((resource) => `- ${resource.title || resource.url}: ${resource.url}`).join("\n")}`
@@ -387,7 +537,7 @@ function readRequestBody(request) {
 
 async function handleStateApi(request, response) {
   if (request.method === "GET") {
-    response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    response.writeHead(200, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
     response.end(JSON.stringify(readDataFile()));
     return true;
   }
@@ -396,16 +546,16 @@ async function handleStateApi(request, response) {
     try {
       const body = await readRequestBody(request);
       const state = writeDataFile(JSON.parse(body || "{}"));
-      response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+      response.writeHead(200, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
       response.end(JSON.stringify(state));
     } catch {
-      response.writeHead(400, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+      response.writeHead(400, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
       response.end(JSON.stringify({ error: "Unable to save ClassLoop data." }));
     }
     return true;
   }
 
-  response.writeHead(405, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+  response.writeHead(405, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
   response.end(JSON.stringify({ error: "Method not allowed." }));
   return true;
 }
@@ -416,6 +566,7 @@ async function handleIntegrationStatusApi(request, response) {
       configured: emailConfig().configured,
       provider: emailConfig().provider,
       from: emailConfig().from,
+      replyTo: emailConfig().replyTo,
     },
     googleClassroom: googleStatus(request),
     lms: lmsStatus(),
@@ -650,6 +801,11 @@ async function handleLmsApi(request, response, parsed) {
 function createStaticServer() {
   const server = http.createServer(async (request, response) => {
     const parsed = new URL(request.url || "/", "http://127.0.0.1");
+    if (parsed.pathname.startsWith("/api/") && !isTrustedApiRequest(request)) {
+      sendJson(response, 403, { error: "Blocked untrusted local API origin." });
+      return;
+    }
+
     if (parsed.pathname === "/api/state") {
       await handleStateApi(request, response);
       return;
@@ -660,6 +816,10 @@ function createStaticServer() {
     }
     if (parsed.pathname === "/api/email/send-recaps") {
       await handleEmailApi(request, response);
+      return;
+    }
+    if (parsed.pathname === "/api/transcribe") {
+      await handleTranscriptionApi(request, response);
       return;
     }
     if (parsed.pathname.startsWith("/api/google-classroom/")) {
@@ -680,10 +840,9 @@ function createStaticServer() {
     }
 
     const extension = path.extname(filePath);
-    response.writeHead(200, {
+    response.writeHead(200, withSecurityHeaders({
       "Content-Type": mimeTypes[extension] || "application/octet-stream",
-      "Cache-Control": "no-store",
-    });
+    }));
     fs.createReadStream(filePath).pipe(response);
   });
 
@@ -725,8 +884,27 @@ async function createWindow() {
   window.once("ready-to-show", () => window.show());
 
   window.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    try {
+      const parsed = new URL(url);
+      if (["https:", "http:", "mailto:"].includes(parsed.protocol)) {
+        shell.openExternal(url);
+      }
+    } catch {
+      // Ignore malformed or unsafe external URLs.
+    }
     return { action: "deny" };
+  });
+
+  window.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    const trusted = (() => {
+      try {
+        const parsed = new URL(webContents.getURL());
+        return parsed.protocol === "http:" && ["127.0.0.1", "localhost"].includes(parsed.hostname);
+      } catch {
+        return false;
+      }
+    })();
+    callback(trusted && ["media", "display-capture"].includes(permission));
   });
 
   await window.loadURL(`${staticServer.url}/#/dashboard`);

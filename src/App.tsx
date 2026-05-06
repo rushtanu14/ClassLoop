@@ -57,6 +57,7 @@ import {
 import type {
   ActionItem,
   AttendanceStatus,
+  DeliveryLog,
   ParticipationEvent,
   ParticipationType,
   Resource,
@@ -78,9 +79,11 @@ type RouteKey =
   | "report"
   | "student"
   | "student-session"
+  | "rosters"
   | "analytics"
   | "tutorial"
-  | "appearance";
+  | "appearance"
+  | "privacy";
 
 type NavItem = {
   route: RouteKey;
@@ -106,6 +109,7 @@ type Account = {
   name: string;
   passwordHash: string;
   createdAt: string;
+  theme?: ThemeSettings;
   demo?: boolean;
 };
 
@@ -126,10 +130,39 @@ type SharedState = {
   sessions: Session[];
   draft: Session | null;
   demoLoaded: boolean;
+  rosterTemplates: RosterTemplate[];
+  privacySettings: PrivacySettings;
+  auditLog: AuditLogEntry[];
   updatedAt?: string;
 };
 
 type SyncStatus = "connecting" | "shared" | "local";
+
+type RosterTemplate = {
+  id: string;
+  ownerEmail: string;
+  name: string;
+  sessionType: SessionType;
+  students: Student[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+type PrivacySettings = {
+  retentionDays: number;
+  recordingConsentRequired: boolean;
+  allowStudentExport: boolean;
+  auditLogEnabled: boolean;
+};
+
+type AuditLogEntry = {
+  id: string;
+  actorEmail: string;
+  actorRole: AuthRole;
+  action: string;
+  detail: string;
+  createdAt: string;
+};
 
 type ThemeKey = "abyssal" | "classroom" | "botanical" | "graphite";
 
@@ -172,6 +205,7 @@ type IntegrationStatus = {
     configured: boolean;
     provider: string;
     from?: string;
+    replyTo?: string;
   };
   googleClassroom: {
     configured: boolean;
@@ -201,20 +235,23 @@ type EmailDeliveryResult = {
 const navItems: NavItem[] = [
   { route: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { route: "new-session", label: "New session", icon: PlusCircle },
+  { route: "rosters", label: "Rosters", icon: Users },
   { route: "review", label: "Draft review", icon: Sparkles },
   { route: "report", label: "Session report", icon: ClipboardCheck },
   { route: "student", label: "Student view", icon: GraduationCap },
   { route: "analytics", label: "Analytics", icon: BarChart3 },
   { route: "tutorial", label: "How it works", icon: BookOpen },
   { route: "appearance", label: "Appearance", icon: Palette },
+  { route: "privacy", label: "Privacy", icon: ShieldCheck },
 ];
 
 const studentNavItems: NavItem[] = [
   { route: "student", label: "My portal", icon: GraduationCap },
   { route: "tutorial", label: "How it works", icon: BookOpen },
+  { route: "appearance", label: "Appearance", icon: Palette },
 ];
 
-const studentRoutes = new Set<RouteKey>(["student", "student-session", "tutorial"]);
+const studentRoutes = new Set<RouteKey>(["student", "student-session", "tutorial", "appearance"]);
 const demoTeacherEmail = "teacher@classloop.demo";
 const demoStudentEmail = "maya@classloop.demo";
 const teacherPasswordHash = "92d96446c5fa184300fb96631d4ca0b18e536cfab5c0da5eead1edb535190e84";
@@ -286,6 +323,23 @@ const defaultTheme: ThemeSettings = {
   imageUrl: "",
 };
 
+const defaultPrivacySettings: PrivacySettings = {
+  retentionDays: 365,
+  recordingConsentRequired: true,
+  allowStudentExport: true,
+  auditLogEnabled: true,
+};
+
+const secureLocalKeys = {
+  accounts: "classloop:secure:accounts:v1",
+  sessions: "classloop:secure:sessions:v3",
+  draft: "classloop:secure:draft:v3",
+  demoLoaded: "classloop:secure:demo-loaded:v1",
+  rosterTemplates: "classloop:secure:roster-templates:v1",
+  privacySettings: "classloop:secure:privacy:v1",
+  auditLog: "classloop:secure:audit:v1",
+};
+
 const themePresets: Record<
   ThemeKey,
   {
@@ -332,9 +386,11 @@ const routeLabels: Record<RouteKey, string> = {
   report: "Session report",
   student: "Student dashboard",
   "student-session": "Student session detail",
+  rosters: "Roster manager",
   analytics: "Teacher analytics",
   tutorial: "How it works",
   appearance: "Appearance",
+  privacy: "Privacy controls",
 };
 
 function getRoute(): RouteKey {
@@ -343,7 +399,8 @@ function getRoute(): RouteKey {
   return navItems.some((item) => item.route === route) ||
     route === "processing" ||
     route === "student-session" ||
-    route === "publish-preview"
+    route === "publish-preview" ||
+    route === "privacy"
     ? route
     : "dashboard";
 }
@@ -388,6 +445,18 @@ function appendCapturedText(current: string, text: string) {
   return [current.trim(), clean].filter(Boolean).join("\n");
 }
 
+function blobToBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      resolve(result.includes(",") ? result.split(",")[1] : result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Unable to read recording."));
+    reader.readAsDataURL(blob);
+  });
+}
+
 function studentEmailRecipients(session: Session) {
   return session.students
     .map((student) => normalizeEmail(student.linkedAccountEmail || student.email))
@@ -414,6 +483,45 @@ function markSessionEmailsSent(session: Session, result: EmailDeliveryResult): S
       skipped: result.skipped,
       failed: result.failed,
     },
+    deliveryLogs: [
+      makeDeliveryLog({
+        provider: "email",
+        target: "Student recap email",
+        status: result.failed.length ? "failed" : "sent",
+        message: result.failed.length
+          ? `Sent ${result.recipients.length}; failed ${result.failed.length}.`
+          : `Sent recap emails to ${result.recipients.length} students.`,
+        recipientCount: result.recipients.length,
+        createdAt: result.sentAt,
+      }),
+      ...(session.deliveryLogs ?? []),
+    ],
+  };
+}
+
+function makeDeliveryLog({
+  provider,
+  target,
+  status,
+  message,
+  recipientCount,
+  createdAt = new Date().toISOString(),
+}: {
+  provider: DeliveryLog["provider"];
+  target: string;
+  status: DeliveryLog["status"];
+  message: string;
+  recipientCount?: number;
+  createdAt?: string;
+}): DeliveryLog {
+  return {
+    id: `delivery-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    provider,
+    target,
+    status,
+    message,
+    recipientCount,
+    createdAt,
   };
 }
 
@@ -543,6 +651,15 @@ function makeRosterStudent(name: string, email = "", index = 0, aliases: string[
     avatarColor: rosterAvatarColors[index % rosterAvatarColors.length],
     aliases: uniqueText(aliases),
   };
+}
+
+function formatRosterFromStudents(students: Student[]) {
+  return students
+    .map((student) => {
+      const aliases = uniqueText(student.aliases ?? []).join(", ");
+      return [student.name, student.email, aliases].filter(Boolean).join(", ");
+    })
+    .join("\n");
 }
 
 function blankFollowUpForStudent(student: Student, session: Session): StudentFollowUp {
@@ -736,28 +853,153 @@ function usePersistentState<T>(key: string, initialValue: T) {
   return [value, setValue] as const;
 }
 
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return window.btoa(binary);
+}
+
+function base64ToBytes(value: string) {
+  const binary = window.atob(value);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+async function localStorageCryptoKey() {
+  const keyName = "classloop:local-storage-key:v1";
+  let raw = localStorage.getItem(keyName);
+  if (!raw) {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    raw = bytesToBase64(bytes);
+    localStorage.setItem(keyName, raw);
+  }
+  return crypto.subtle.importKey("raw", base64ToBytes(raw), "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+
+async function encryptLocalJson(value: unknown) {
+  const key = await localStorageCryptoKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(JSON.stringify(value));
+  const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded));
+  return JSON.stringify({
+    version: 1,
+    encrypted: true,
+    iv: bytesToBase64(iv),
+    payload: bytesToBase64(encrypted),
+  });
+}
+
+async function decryptLocalJson<T>(stored: string): Promise<T | null> {
+  try {
+    const parsed = JSON.parse(stored);
+    if (!parsed?.encrypted) return parsed as T;
+    const key = await localStorageCryptoKey();
+    const iv = base64ToBytes(parsed.iv);
+    const payload = base64ToBytes(parsed.payload);
+    const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, payload);
+    return JSON.parse(new TextDecoder().decode(decrypted)) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function readSecureLocalJson<T>(secureKey: string, legacyKey: string, fallback: T) {
+  const secureValue = localStorage.getItem(secureKey);
+  if (secureValue) {
+    const decrypted = await decryptLocalJson<T>(secureValue);
+    if (decrypted !== null) return decrypted;
+  }
+
+  const legacyValue = localStorage.getItem(legacyKey);
+  if (!legacyValue) return fallback;
+  try {
+    const parsed = JSON.parse(legacyValue) as T;
+    localStorage.setItem(secureKey, await encryptLocalJson(parsed));
+    localStorage.removeItem(legacyKey);
+    return parsed;
+  } catch {
+    return fallback;
+  }
+}
+
+async function writeSecureLocalJson(key: string, value: unknown) {
+  localStorage.setItem(key, await encryptLocalJson(value));
+}
+
+async function readLocalStateFallback(): Promise<SharedState> {
+  return normalizeSharedState({
+    accounts: await readSecureLocalJson<Account[]>(secureLocalKeys.accounts, "classloop:accounts:v1", []),
+    sessions: await readSecureLocalJson<Session[]>(secureLocalKeys.sessions, "classloop:sessions:v3", []),
+    draft: await readSecureLocalJson<Session | null>(secureLocalKeys.draft, "classloop:draft:v3", null),
+    demoLoaded: await readSecureLocalJson<boolean>(secureLocalKeys.demoLoaded, "classloop:demo-loaded:v1", false),
+    rosterTemplates: await readSecureLocalJson<RosterTemplate[]>(
+      secureLocalKeys.rosterTemplates,
+      "classloop:roster-templates:v1",
+      [],
+    ),
+    privacySettings: await readSecureLocalJson<PrivacySettings>(
+      secureLocalKeys.privacySettings,
+      "classloop:privacy:v1",
+      defaultPrivacySettings,
+    ),
+    auditLog: await readSecureLocalJson<AuditLogEntry[]>(secureLocalKeys.auditLog, "classloop:audit:v1", []),
+  });
+}
+
+async function writeLocalStateFallback(
+  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "rosterTemplates" | "privacySettings" | "auditLog">,
+) {
+  await Promise.all([
+    writeSecureLocalJson(secureLocalKeys.accounts, state.accounts),
+    writeSecureLocalJson(secureLocalKeys.sessions, state.sessions),
+    writeSecureLocalJson(secureLocalKeys.draft, state.draft),
+    writeSecureLocalJson(secureLocalKeys.demoLoaded, state.demoLoaded),
+    writeSecureLocalJson(secureLocalKeys.rosterTemplates, state.rosterTemplates),
+    writeSecureLocalJson(secureLocalKeys.privacySettings, state.privacySettings),
+    writeSecureLocalJson(secureLocalKeys.auditLog, state.auditLog),
+  ]);
+}
+
 function normalizeSharedState(data: Partial<SharedState>): SharedState {
   return {
     accounts: mergeAccounts(Array.isArray(data.accounts) ? data.accounts : []),
     sessions: Array.isArray(data.sessions) ? data.sessions : [],
     draft: data.draft ?? null,
     demoLoaded: Boolean(data.demoLoaded),
+    rosterTemplates: Array.isArray(data.rosterTemplates) ? data.rosterTemplates : [],
+    privacySettings: { ...defaultPrivacySettings, ...(data.privacySettings ?? {}) },
+    auditLog: Array.isArray(data.auditLog) ? data.auditLog : [],
     updatedAt: data.updatedAt,
   };
 }
 
-function sharedStateJson(state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded">) {
+function sharedStateJson(
+  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "rosterTemplates" | "privacySettings" | "auditLog">,
+) {
   return JSON.stringify({
     accounts: state.accounts,
     sessions: state.sessions,
     draft: state.draft,
     demoLoaded: state.demoLoaded,
+    rosterTemplates: state.rosterTemplates,
+    privacySettings: state.privacySettings,
+    auditLog: state.auditLog,
   });
 }
 
 function safeBackgroundUrl(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "linear-gradient(transparent, transparent)";
+  try {
+    const parsed = new URL(trimmed, window.location.origin);
+    const isLocalHttp = parsed.protocol === "http:" && ["localhost", "127.0.0.1"].includes(parsed.hostname);
+    if (!["https:", "data:", "blob:"].includes(parsed.protocol) && !isLocalHttp) {
+      return "linear-gradient(transparent, transparent)";
+    }
+  } catch {
+    return "linear-gradient(transparent, transparent)";
+  }
   const sanitized = trimmed.replace(/["\\\n\r]/g, "");
   return `url("${sanitized}")`;
 }
@@ -768,9 +1010,13 @@ function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [draft, setDraft] = useState<Session | null>(null);
   const [selectedStudentId, setSelectedStudentId] = usePersistentState<string>("classloop:selected-student", "maya");
-  const [auth, setAuth] = usePersistentState<AuthSession | null>("classloop:auth:v1", null);
-  const [theme, setTheme] = usePersistentState<ThemeSettings>("classloop:theme:main:v1", defaultTheme);
+  const [auth, setAuth] = useState<AuthSession | null>(null);
+  const [theme, setTheme] = useState<ThemeSettings>(defaultTheme);
   const [demoLoaded, setDemoLoaded] = useState(false);
+  const [rosterTemplates, setRosterTemplates] = useState<RosterTemplate[]>([]);
+  const [rosterPromptSession, setRosterPromptSession] = useState<Session | null>(null);
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(defaultPrivacySettings);
+  const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
   const [sharedReady, setSharedReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connecting");
   const [passwordResetCodes, setPasswordResetCodes] = useState<Record<string, PasswordResetRecord>>({});
@@ -778,7 +1024,15 @@ function App() {
   const isSavingRef = useRef(false);
   const writeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSharedJsonRef = useRef(
-    sharedStateJson({ accounts: demoAccounts, sessions: [], draft: null, demoLoaded: false }),
+    sharedStateJson({
+      accounts: demoAccounts,
+      sessions: [],
+      draft: null,
+      demoLoaded: false,
+      rosterTemplates: [],
+      privacySettings: defaultPrivacySettings,
+      auditLog: [],
+    }),
   );
   const lastServerUpdatedAtRef = useRef<string | undefined>(undefined);
 
@@ -806,27 +1060,24 @@ function App() {
         setSessions(state.sessions);
         setDraft(state.draft);
         setDemoLoaded(state.demoLoaded);
+        setRosterTemplates(state.rosterTemplates);
+        setPrivacySettings(state.privacySettings);
+        setAuditLog(state.auditLog);
         lastSharedJsonRef.current = sharedStateJson(state);
         lastServerUpdatedAtRef.current = state.updatedAt;
         serverSyncRef.current = true;
         setSyncStatus("shared");
       })
-      .catch(() => {
+      .catch(async () => {
         if (!active) return;
-        const storedAccounts = localStorage.getItem("classloop:accounts:v1");
-        const storedSessions = localStorage.getItem("classloop:sessions:v3");
-        const storedDraft = localStorage.getItem("classloop:draft:v3");
-        const storedDemo = localStorage.getItem("classloop:demo-loaded:v1");
-        const localState = normalizeSharedState({
-          accounts: storedAccounts ? JSON.parse(storedAccounts) : [],
-          sessions: storedSessions ? JSON.parse(storedSessions) : [],
-          draft: storedDraft ? JSON.parse(storedDraft) : null,
-          demoLoaded: storedDemo ? JSON.parse(storedDemo) : false,
-        });
+        const localState = await readLocalStateFallback();
         setAccounts(localState.accounts);
         setSessions(localState.sessions);
         setDraft(localState.draft);
         setDemoLoaded(localState.demoLoaded);
+        setRosterTemplates(localState.rosterTemplates);
+        setPrivacySettings(localState.privacySettings);
+        setAuditLog(localState.auditLog);
         lastSharedJsonRef.current = sharedStateJson(localState);
         serverSyncRef.current = false;
         setSyncStatus("local");
@@ -843,14 +1094,11 @@ function App() {
   useEffect(() => {
     if (!sharedReady) return;
     if (!serverSyncRef.current) {
-      localStorage.setItem("classloop:accounts:v1", JSON.stringify(accounts));
-      localStorage.setItem("classloop:sessions:v3", JSON.stringify(sessions));
-      localStorage.setItem("classloop:draft:v3", JSON.stringify(draft));
-      localStorage.setItem("classloop:demo-loaded:v1", JSON.stringify(demoLoaded));
+      void writeLocalStateFallback({ accounts, sessions, draft, demoLoaded, rosterTemplates, privacySettings, auditLog });
       return;
     }
 
-    const nextJson = sharedStateJson({ accounts, sessions, draft, demoLoaded });
+    const nextJson = sharedStateJson({ accounts, sessions, draft, demoLoaded, rosterTemplates, privacySettings, auditLog });
     if (nextJson === lastSharedJsonRef.current) return;
 
     if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
@@ -874,7 +1122,7 @@ function App() {
           writeTimerRef.current = null;
         });
     }, 300);
-  }, [accounts, demoLoaded, draft, sessions, sharedReady]);
+  }, [accounts, auditLog, demoLoaded, draft, privacySettings, rosterTemplates, sessions, sharedReady]);
 
   useEffect(() => {
     if (!sharedReady || !serverSyncRef.current) return;
@@ -893,6 +1141,9 @@ function App() {
             setSessions(state.sessions);
             setDraft(state.draft);
             setDemoLoaded(state.demoLoaded);
+            setRosterTemplates(state.rosterTemplates);
+            setPrivacySettings(state.privacySettings);
+            setAuditLog(state.auditLog);
           }
           lastSharedJsonRef.current = nextJson;
           lastServerUpdatedAtRef.current = state.updatedAt;
@@ -926,6 +1177,13 @@ function App() {
     () => (auth?.role === "teacher" ? teacherSessionsFor(sortedSessions, auth.email) : []),
     [auth, sortedSessions],
   );
+  const teacherRosterTemplates = useMemo(
+    () =>
+      auth?.role === "teacher"
+        ? rosterTemplates.filter((template) => normalizeEmail(template.ownerEmail) === normalizeEmail(auth.email))
+        : [],
+    [auth, rosterTemplates],
+  );
   const activeTheme = useMemo(
     () => ({
       ...defaultTheme,
@@ -935,6 +1193,41 @@ function App() {
     }),
     [theme],
   );
+
+  const appendAudit = (action: string, detail: string, actor: AuthSession | null = auth) => {
+    if (!actor || !privacySettings.auditLogEnabled) return;
+    setAuditLog((current) => [
+      {
+        id: `audit-${Date.now().toString(36)}-${current.length}`,
+        actorEmail: actor.email,
+        actorRole: actor.role,
+        action,
+        detail,
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ].slice(0, 250));
+  };
+
+  const handleThemeChange: React.Dispatch<React.SetStateAction<ThemeSettings>> = (value) => {
+    setTheme((current) => {
+      const nextTheme = typeof value === "function" ? value(current) : value;
+      if (auth) {
+        setAccounts((accountsCurrent) =>
+          accountsCurrent.map((account) =>
+            account.id === auth.accountId
+              ? {
+                  ...account,
+                  theme: nextTheme,
+                }
+              : account,
+          ),
+        );
+      }
+      return nextTheme;
+    });
+  };
+
   const studentPortalSessions = useMemo(
     () => (auth?.role === "student" ? studentSessionsFor(sortedSessions, auth.email) : teacherSessions),
     [auth, sortedSessions, teacherSessions],
@@ -960,6 +1253,40 @@ function App() {
     setDraft((current) => (current?.id === sessionId ? updater(current) : current));
   };
 
+  const saveRosterTemplateFromSession = (session: Session, name: string) => {
+    if (!auth || auth.role !== "teacher" || !session.students.length) return;
+    const now = new Date().toISOString();
+    const template: RosterTemplate = {
+      id: `roster-template-${Date.now().toString(36)}`,
+      ownerEmail: auth.email,
+      name: name.trim() || `${session.type} roster`,
+      sessionType: session.type,
+      students: session.students.map((student, index) => ({ ...student, avatarColor: student.avatarColor || makeRosterStudent(student.name, student.email, index).avatarColor })),
+      createdAt: now,
+      updatedAt: now,
+    };
+    setRosterTemplates((current) => [template, ...current]);
+    appendAudit("save_roster_template", `Saved ${template.name} for ${session.type}.`);
+  };
+
+  const updateRosterTemplate = (templateId: string, changes: Partial<RosterTemplate>) => {
+    setRosterTemplates((current) =>
+      current.map((template) =>
+        template.id === templateId
+          ? {
+              ...template,
+              ...changes,
+              updatedAt: new Date().toISOString(),
+            }
+          : template,
+      ),
+    );
+  };
+
+  const deleteRosterTemplate = (templateId: string) => {
+    setRosterTemplates((current) => current.filter((template) => template.id !== templateId));
+  };
+
   const ensureDemoSession = () => {
     const demoSession = createDemoSession();
     setSessions((current) =>
@@ -975,6 +1302,13 @@ function App() {
     const published = { ...source, ownerEmail: auth.email, status: "published" as const };
     updateSession(published);
     setDraft(published);
+    appendAudit("publish_session", `Published ${published.title}.`);
+    if (
+      published.students.length > 0 &&
+      !teacherRosterTemplates.some((template) => template.sessionType === published.type)
+    ) {
+      setRosterPromptSession(published);
+    }
     navigate("report", { session: published.id });
   };
 
@@ -1010,7 +1344,15 @@ function App() {
     const demoSession = account.demo ? ensureDemoSession() : undefined;
 
     if (role === "teacher") {
+      setTheme(account.theme ?? defaultTheme);
       setAuth({
+        accountId: account.id,
+        role: "teacher",
+        email: normalizedEmail,
+        name: account.name,
+        demo: account.demo,
+      });
+      appendAudit("login", "Teacher signed in.", {
         accountId: account.id,
         role: "teacher",
         email: normalizedEmail,
@@ -1025,7 +1367,16 @@ function App() {
     const student = findStudentByEmail(studentSessionsFor(availableSessions, normalizedEmail), normalizedEmail);
 
     if (student) setSelectedStudentId(student.id);
+    setTheme(account.theme ?? defaultTheme);
     setAuth({
+      accountId: account.id,
+      role: "student",
+      email: normalizedEmail,
+      name: student?.name ?? account.name,
+      studentId: student?.id,
+      demo: account.demo,
+    });
+    appendAudit("login", "Student signed in.", {
       accountId: account.id,
       role: "student",
       email: normalizedEmail,
@@ -1061,8 +1412,10 @@ function App() {
       name: trimmedName,
       passwordHash: await hashSecret(password),
       createdAt: new Date().toISOString(),
+      theme: defaultTheme,
     };
     setAccounts((current) => mergeAccounts([...current, account]));
+    setTheme(defaultTheme);
     setAuth({ accountId: account.id, role, email: normalizedEmail, name: trimmedName });
     navigate(role === "teacher" ? "dashboard" : "student");
     return { ok: true };
@@ -1185,7 +1538,9 @@ function App() {
   };
 
   const logout = () => {
+    appendAudit("logout", "Signed out.");
     setAuth(null);
+    setTheme(defaultTheme);
     navigate("dashboard");
   };
 
@@ -1212,11 +1567,25 @@ function App() {
           onUpdateAccount={handleUpdateAccount}
         />
         {effectiveRoute === "dashboard" && <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} />}
+        {effectiveRoute === "rosters" && auth.role === "teacher" && (
+          <RosterTemplatesPage
+            templates={teacherRosterTemplates}
+            ownerEmail={auth.email}
+            onCreate={(template) => {
+              setRosterTemplates((current) => [template, ...current]);
+              appendAudit("create_roster_template", `Created ${template.name}.`);
+            }}
+            onUpdate={updateRosterTemplate}
+            onDelete={deleteRosterTemplate}
+          />
+        )}
         {effectiveRoute === "new-session" && (
           <ImportSession
             ownerEmail={auth.email}
             setDraft={setDraft}
             onUseDemo={() => setDemoLoaded(true)}
+            recordingConsentRequired={privacySettings.recordingConsentRequired}
+            rosterTemplates={teacherRosterTemplates}
           />
         )}
         {effectiveRoute === "processing" && <Processing draft={visibleDraft} />}
@@ -1269,8 +1638,35 @@ function App() {
         )}
         {effectiveRoute === "analytics" && <TeacherAnalytics sessions={teacherSessions} />}
         {effectiveRoute === "tutorial" && <TutorialPage auth={auth} />}
-        {effectiveRoute === "appearance" && <DesignSystemPage theme={activeTheme} setTheme={setTheme} />}
+        {effectiveRoute === "appearance" && <DesignSystemPage theme={activeTheme} setTheme={handleThemeChange} />}
+        {effectiveRoute === "privacy" && auth.role === "teacher" && (
+          <PrivacyControlsPage
+            auth={auth}
+            sessions={teacherSessions}
+            accounts={accounts}
+            privacySettings={privacySettings}
+            setPrivacySettings={setPrivacySettings}
+            auditLog={auditLog}
+            appendAudit={appendAudit}
+            clearClassData={() => {
+              const teacherSessionIds = new Set(teacherSessions.map((session) => session.id));
+              setSessions((current) => current.filter((session) => !teacherSessionIds.has(session.id)));
+              setDraft(null);
+              setDemoLoaded(false);
+            }}
+          />
+        )}
       </main>
+      {rosterPromptSession && auth.role === "teacher" && (
+        <SaveRosterTemplatePrompt
+          session={rosterPromptSession}
+          onSave={(name) => {
+            saveRosterTemplateFromSession(rosterPromptSession, name);
+            setRosterPromptSession(null);
+          }}
+          onSkip={() => setRosterPromptSession(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1850,12 +2246,10 @@ function ProfileMenu({
       </label>
       {message && <p className={message.includes("saved") ? "settings-message success" : "settings-message"}>{message}</p>}
       <div className="profile-actions">
-        {auth.role === "teacher" && (
-          <button type="button" className="ghost-button" onClick={() => navigate("appearance")}>
-            <Palette size={17} />
-            Appearance
-          </button>
-        )}
+        <button type="button" className="ghost-button" onClick={() => navigate("appearance")}>
+          <Palette size={17} />
+          Appearance
+        </button>
         <button className="primary-button" type="submit" disabled={saving}>
           <Save size={17} />
           {saving ? "Saving..." : "Save settings"}
@@ -2201,10 +2595,14 @@ function ImportSession({
   ownerEmail,
   setDraft,
   onUseDemo,
+  recordingConsentRequired,
+  rosterTemplates,
 }: {
   ownerEmail: string;
   setDraft: (session: Session) => void;
   onUseDemo: () => void;
+  recordingConsentRequired: boolean;
+  rosterTemplates: RosterTemplate[];
 }) {
   const [title, setTitle] = useState("");
   const [template, setTemplate] = useState<SessionType>("General classroom");
@@ -2219,6 +2617,8 @@ function ImportSession({
   const [captureMessage, setCaptureMessage] = useState("");
   const [recordedSeconds, setRecordedSeconds] = useState(0);
   const [transcriptionAvailable, setTranscriptionAvailable] = useState(true);
+  const [recordingConsent, setRecordingConsent] = useState(!recordingConsentRequired);
+  const [isTranscribingRecording, setIsTranscribingRecording] = useState(false);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -2226,6 +2626,23 @@ function ImportSession({
   const captureStartedAtRef = useRef<number | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const activeTemplateFields = templateDetailFields[template];
+  const matchingRosterTemplates = useMemo(
+    () => rosterTemplates.filter((templateItem) => templateItem.sessionType === template),
+    [rosterTemplates, template],
+  );
+  const [loadedRosterTemplateId, setLoadedRosterTemplateId] = useState("");
+
+  useEffect(() => {
+    const matchingTemplate = rosterTemplates.find((templateItem) => templateItem.sessionType === template);
+    if (!matchingTemplate) {
+      setLoadedRosterTemplateId("");
+      return;
+    }
+    if (!roster.trim()) {
+      setRoster(formatRosterFromStudents(matchingTemplate.students));
+      setLoadedRosterTemplateId(matchingTemplate.id);
+    }
+  }, [rosterTemplates, template]);
 
   const stopCapture = () => {
     speechRecognitionRef.current?.stop();
@@ -2284,7 +2701,43 @@ function ImportSession({
     setTranscriptionAvailable(true);
   };
 
+  const transcribeRecordedAudio = async (blob: Blob, mode: SessionCaptureMode) => {
+    if (!blob.size) return;
+    setIsTranscribingRecording(true);
+    setCaptureMessage("Transcribing the recording into the transcript field...");
+    try {
+      const audioBase64 = await blobToBase64(blob);
+      const result = await apiJson<{ text: string; provider: string }>("/api/transcribe", {
+        method: "POST",
+        body: JSON.stringify({
+          audioBase64,
+          mimeType: blob.type || "audio/webm",
+          fileName: mode === "live_call" ? "classloop-online-call.webm" : "classloop-audio-recording.webm",
+          prompt: `${title || template} classroom session transcript`,
+        }),
+      });
+      if (result.text.trim()) {
+        setTranscript((current) => appendCapturedText(current, `${captureModeLabels[mode]} transcript: ${result.text}`));
+        setCaptureMessage(`Recording transcribed through ${result.provider}.`);
+      } else {
+        setCaptureMessage("The transcription provider returned no transcript text.");
+      }
+    } catch (error) {
+      setCaptureMessage(
+        error instanceof Error
+          ? error.message
+          : "Recording saved, but automatic transcription is not configured.",
+      );
+    } finally {
+      setIsTranscribingRecording(false);
+    }
+  };
+
   const startCapture = async (mode: SessionCaptureMode) => {
+    if (recordingConsentRequired && !recordingConsent) {
+      setCaptureMessage("Confirm recording permission before starting capture.");
+      return;
+    }
     if (captureStatus === "recording") stopCapture();
     setCaptureMode(mode);
     setCaptureMessage("");
@@ -2309,6 +2762,10 @@ function ImportSession({
         const recorder = new MediaRecorder(stream);
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) audioChunksRef.current.push(event.data);
+        };
+        recorder.onstop = () => {
+          const recordedBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+          void transcribeRecordedAudio(recordedBlob, mode);
         };
         recorder.start();
         mediaRecorderRef.current = recorder;
@@ -2374,6 +2831,7 @@ function ImportSession({
         : [
             `Capture method: ${captureModeLabels[captureMode]}.`,
             recordedSeconds ? `Captured duration: ${recordedSeconds} seconds.` : "",
+            recordingConsent ? "Recording/call capture consent was confirmed before capture." : "",
             transcriptionAvailable ? "Live transcript was added when available." : "No live transcript was available; teacher notes should guide the draft.",
           ]
             .filter(Boolean)
@@ -2406,6 +2864,26 @@ function ImportSession({
     setTemplateDetails((current) => ({ ...current, [id]: value }));
   };
 
+  const useSavedRoster = (templateId: string) => {
+    setLoadedRosterTemplateId(templateId);
+    const selectedTemplate = rosterTemplates.find((templateItem) => templateItem.id === templateId);
+    if (selectedTemplate) {
+      setRoster(formatRosterFromStudents(selectedTemplate.students));
+    }
+  };
+
+  const chooseTemplate = (option: SessionType) => {
+    setTemplate(option);
+    setTemplateDetails({});
+    const savedRoster = rosterTemplates.find((templateItem) => templateItem.sessionType === option);
+    if (savedRoster) {
+      setRoster(formatRosterFromStudents(savedRoster.students));
+      setLoadedRosterTemplateId(savedRoster.id);
+    } else {
+      setLoadedRosterTemplateId("");
+    }
+  };
+
   return (
     <div className="page-stack">
       <section className="import-layout">
@@ -2428,7 +2906,7 @@ function ImportSession({
                   <button
                     key={option}
                     className={template === option ? "template-card selected" : "template-card"}
-                    onClick={() => setTemplate(option)}
+                    onClick={() => chooseTemplate(option)}
                   >
                     <strong>{option}</strong>
                     <small>{templateDescriptions[option]}</small>
@@ -2455,6 +2933,18 @@ function ImportSession({
                   ))}
                 </div>
               </div>
+            )}
+            {matchingRosterTemplates.length > 0 && (
+              <label className="field compact wide">
+                <span>Saved roster</span>
+                <select value={loadedRosterTemplateId} onChange={(event) => useSavedRoster(event.target.value)}>
+                  {matchingRosterTemplates.map((templateItem) => (
+                    <option key={templateItem.id} value={templateItem.id}>
+                      {templateItem.name} · {templateItem.students.length} students
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
             <div className="capture-panel wide">
               <div>
@@ -2496,19 +2986,37 @@ function ImportSession({
               {captureMode !== "transcript" && (
                 <div className="capture-controls">
                   <div>
-                    <strong>{captureStatus === "recording" ? "Recording now" : captureModeLabels[captureMode]}</strong>
+                    <strong>
+                      {isTranscribingRecording
+                        ? "Transcribing recording"
+                        : captureStatus === "recording"
+                          ? "Recording now"
+                          : captureModeLabels[captureMode]}
+                    </strong>
                     <small>
-                      {captureStatus === "recording"
+                      {isTranscribingRecording
+                        ? "The transcript field will update when transcription finishes."
+                        : captureStatus === "recording"
                         ? `${recordedSeconds}s captured`
                         : "Start capture before class, then stop it before generating the draft."}
                     </small>
                   </div>
+                  {recordingConsentRequired && (
+                    <label className="capture-consent">
+                      <input
+                        type="checkbox"
+                        checked={recordingConsent}
+                        onChange={(event) => setRecordingConsent(event.target.checked)}
+                      />
+                      <span>I have permission to record or capture this class session.</span>
+                    </label>
+                  )}
                   <div className="capture-buttons">
                     <button
                       type="button"
                       className="primary-button"
                       onClick={() => startCapture(captureMode)}
-                      disabled={captureStatus === "recording"}
+                      disabled={captureStatus === "recording" || (recordingConsentRequired && !recordingConsent)}
                     >
                       <Mic2 size={17} />
                       Start capture
@@ -2940,6 +3448,8 @@ function RosterManager({
   sessionTitle,
   onStudentsChange,
   onAttendanceChange,
+  showAttendance = true,
+  wrapPanel = true,
 }: {
   students: Student[];
   attendance: Record<string, AttendanceStatus>;
@@ -2947,6 +3457,8 @@ function RosterManager({
   sessionTitle: string;
   onStudentsChange: (students: Student[]) => void;
   onAttendanceChange: (studentId: string, status: AttendanceStatus) => void;
+  showAttendance?: boolean;
+  wrapPanel?: boolean;
 }) {
   const updateStudent = (studentId: string, changes: Partial<Student>) => {
     onStudentsChange(students.map((student) => (student.id === studentId ? { ...student, ...changes } : student)));
@@ -2967,11 +3479,10 @@ function RosterManager({
     updateStudent(student.id, { inviteSentAt: new Date().toISOString() });
   };
 
-  return (
-    <Panel title="Roster manager" icon={Users}>
-      <div className="roster-manager">
+  const content = (
+    <div className="roster-manager">
         {students.map((student, index) => (
-          <article key={student.id} className="roster-row">
+          <article key={student.id} className={showAttendance ? "roster-row" : "roster-row without-attendance"}>
             <Avatar student={student} />
             <label className="field compact roster-name-field">
               <span>Name</span>
@@ -2981,17 +3492,19 @@ function RosterManager({
               <span>Email</span>
               <input value={student.email} onChange={(event) => updateStudent(student.id, { email: event.target.value })} />
             </label>
-            <label className="field compact roster-attendance-field">
-              <span>Attendance</span>
-              <select
-                value={attendance[student.id] ?? "present"}
-                onChange={(event) => onAttendanceChange(student.id, event.target.value as AttendanceStatus)}
-              >
-                <option value="present">Present</option>
-                <option value="late">Late</option>
-                <option value="absent">Absent</option>
-              </select>
-            </label>
+            {showAttendance && (
+              <label className="field compact roster-attendance-field">
+                <span>Attendance</span>
+                <select
+                  value={attendance[student.id] ?? "present"}
+                  onChange={(event) => onAttendanceChange(student.id, event.target.value as AttendanceStatus)}
+                >
+                  <option value="present">Present</option>
+                  <option value="late">Late</option>
+                  <option value="absent">Absent</option>
+                </select>
+              </label>
+            )}
             <label className="field compact roster-aliases-field">
               <span>Zoom names</span>
               <input
@@ -3039,8 +3552,268 @@ function RosterManager({
           Add student
         </button>
       </div>
+  );
+
+  if (!wrapPanel) return content;
+  return (
+    <Panel title="Roster manager" icon={Users}>
+      {content}
     </Panel>
   );
+}
+
+function RosterTemplatesPage({
+  templates,
+  ownerEmail,
+  onCreate,
+  onUpdate,
+  onDelete,
+}: {
+  templates: RosterTemplate[];
+  ownerEmail: string;
+  onCreate: (template: RosterTemplate) => void;
+  onUpdate: (templateId: string, changes: Partial<RosterTemplate>) => void;
+  onDelete: (templateId: string) => void;
+}) {
+  const [activeTemplateId, setActiveTemplateId] = useState(templates[0]?.id ?? "");
+
+  useEffect(() => {
+    if (templates.length && !templates.some((template) => template.id === activeTemplateId)) {
+      setActiveTemplateId(templates[0].id);
+    }
+    if (!templates.length && activeTemplateId) {
+      setActiveTemplateId("");
+    }
+  }, [activeTemplateId, templates]);
+
+  const createTemplate = () => {
+    const now = new Date().toISOString();
+    const template: RosterTemplate = {
+      id: `roster-template-${Date.now().toString(36)}`,
+      ownerEmail,
+      name: "New roster",
+      sessionType: "General classroom",
+      students: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    onCreate(template);
+    setActiveTemplateId(template.id);
+  };
+
+  const activeTemplate = templates.find((template) => template.id === activeTemplateId) ?? templates[0];
+  const activeAttendance =
+    activeTemplate?.students.reduce<Record<string, AttendanceStatus>>((acc, student) => {
+      acc[student.id] = "present";
+      return acc;
+    }, {}) ?? {};
+
+  if (!templates.length) {
+    return (
+      <div className="page-stack roster-template-page">
+        <section className="review-banner">
+          <div>
+            <span className="eyebrow">Roster manager</span>
+            <h2>Save rosters once, reuse them later.</h2>
+            <p>After you publish a session, ClassLoop can save that class roster for future sessions with the same template.</p>
+          </div>
+          <button className="primary-button" type="button" onClick={createTemplate}>
+            <UserPlus size={17} />
+            Create roster
+          </button>
+        </section>
+        <EmptyState
+          icon={Users}
+          title="No saved rosters yet"
+          detail="Publish your first session or create a roster here to reuse students across future lessons."
+          action="Create roster"
+          onAction={createTemplate}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-stack roster-template-page">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Roster manager</span>
+          <h2>Saved class rosters.</h2>
+          <p>Pick a roster here, then ClassLoop will offer it automatically when you create a matching session type.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={createTemplate}>
+          <UserPlus size={17} />
+          New roster
+        </button>
+      </section>
+
+      <section className="content-grid roster-template-layout align-start">
+        <Panel title="Saved rosters" icon={Users}>
+          <div className="roster-template-list">
+            {templates.map((template) => (
+              <button
+                key={template.id}
+                className={template.id === activeTemplate.id ? "roster-template-card selected" : "roster-template-card"}
+                type="button"
+                onClick={() => setActiveTemplateId(template.id)}
+              >
+                <strong>{template.name}</strong>
+                <span>{template.sessionType}</span>
+                <small>{template.students.length} students</small>
+              </button>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Roster details" icon={Settings2}>
+          <div className="roster-template-settings">
+            <label className="field compact">
+              <span>Roster name</span>
+              <input
+                value={activeTemplate.name}
+                onChange={(event) => onUpdate(activeTemplate.id, { name: event.target.value })}
+              />
+            </label>
+            <label className="field compact">
+              <span>Session type</span>
+              <select
+                value={activeTemplate.sessionType}
+                onChange={(event) => onUpdate(activeTemplate.id, { sessionType: event.target.value as SessionType })}
+              >
+                {templateOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="ghost-button danger" type="button" onClick={() => onDelete(activeTemplate.id)}>
+              <Trash2 size={17} />
+              Delete roster
+            </button>
+          </div>
+          <RosterManager
+            students={activeTemplate.students}
+            attendance={activeAttendance}
+            studentAccountEmails={[]}
+            sessionTitle={activeTemplate.name}
+            onStudentsChange={(students) => onUpdate(activeTemplate.id, { students })}
+            onAttendanceChange={() => undefined}
+            showAttendance={false}
+            wrapPanel={false}
+          />
+        </Panel>
+      </section>
+    </div>
+  );
+}
+
+function SaveRosterTemplatePrompt({
+  session,
+  onSave,
+  onSkip,
+}: {
+  session: Session;
+  onSave: (name: string) => void;
+  onSkip: () => void;
+}) {
+  const [name, setName] = useState(`${session.type} roster`);
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="save-roster-title">
+      <form
+        className="password-reset-modal roster-template-modal"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave(name);
+        }}
+      >
+        <div className="modal-header">
+          <div>
+            <h2 id="save-roster-title">Save this roster?</h2>
+            <p>Reuse these {session.students.length} students the next time you create a {session.type.toLowerCase()} session.</p>
+          </div>
+        </div>
+        <label className="field compact">
+          <span>Roster name</span>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Period 4 Geometry"
+            autoFocus
+          />
+        </label>
+        <div className="modal-actions">
+          <button className="ghost-button" type="button" onClick={onSkip}>
+            Not now
+          </button>
+          <button className="primary-button" type="submit">
+            <Save size={17} />
+            Save roster
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function previewDiffForStudent(session: Session, student: Student) {
+  const followUp = session.followUps.find((item) => item.studentId === student.id);
+  const personalEvents = session.participationEvents.filter((event) => event.studentId === student.id && event.approved);
+  const personalActions = session.actionItems.filter((item) => item.ownerId === student.id);
+  const classActions = session.actionItems.filter((item) => !item.ownerId);
+  const attendance = session.attendance[student.id] ?? "present";
+  const reasons: Array<{ label: string; detail: string }> = [];
+
+  if (attendance === "absent") {
+    reasons.push({
+      label: "Missed session",
+      detail: "The preview emphasizes catch-up notes because this student was marked absent.",
+    });
+  } else if (attendance === "late") {
+    reasons.push({
+      label: "Arrived late",
+      detail: "The preview keeps the class recap prominent in case they missed the opening context.",
+    });
+  }
+
+  personalEvents.slice(0, 3).forEach((event) => {
+    reasons.push({
+      label: participationLabel(event.type),
+      detail: event.text,
+    });
+  });
+
+  personalActions.forEach((item) => {
+    reasons.push({
+      label: "Individual action item",
+      detail: item.title,
+    });
+  });
+
+  if (followUp?.reminder) {
+    reasons.push({
+      label: "Personal reminder",
+      detail: followUp.reminder,
+    });
+  }
+
+  const uniqueTaskCount = Math.max(0, (followUp?.tasks.length ?? 0) - classActions.length);
+
+  if (!reasons.length) {
+    reasons.push({
+      label: "Shared class baseline",
+      detail: "No individual attendance or participation differences were detected, so this student gets the shared recap, tasks, and resources.",
+    });
+  }
+
+  return {
+    followUp,
+    personalEvents,
+    reasons,
+    sharedTaskCount: classActions.length,
+    uniqueTaskCount,
+  };
 }
 
 function ParticipantResolutionPanel({
@@ -3153,7 +3926,7 @@ function PublishPreview({
     : draft.students[0]?.id ?? selectedStudentId;
   const student = studentById(activeStudentId, draft.students);
   const followUp = draft.followUps.find((item) => item.studentId === activeStudentId);
-  const personalEvents = draft.participationEvents.filter((event) => event.studentId === activeStudentId && event.approved);
+  const selectedPreviewDiff = previewDiffForStudent(draft, student);
   const delivery = draft.emailDelivery ?? { status: "not_sent" as const, recipients: [], skipped: [] };
   const emailSent = delivery.status === "sent";
   const recipientCount = studentEmailRecipients(draft).length;
@@ -3235,12 +4008,26 @@ function PublishPreview({
         method: "POST",
         body: JSON.stringify({ session: draft, courseId: course.id, courseName: course.name }),
       });
-      updateIntegrations({
-        googleClassroomConnected: true,
-        googleClassroomCourseId: result.courseId,
-        googleClassroomCourseName: result.courseName || course.name,
-        googleClassroomPostedAt: result.postedAt,
-      });
+      updateDraft((current) => ({
+        ...current,
+        integrations: {
+          ...(current.integrations ?? {}),
+          googleClassroomConnected: true,
+          googleClassroomCourseId: result.courseId,
+          googleClassroomCourseName: result.courseName || course.name,
+          googleClassroomPostedAt: result.postedAt,
+        },
+        deliveryLogs: [
+          makeDeliveryLog({
+            provider: "google_classroom",
+            target: result.courseName || course.name,
+            status: "posted",
+            message: "Posted class recap and action items to Google Classroom.",
+            createdAt: result.postedAt,
+          }),
+          ...(current.deliveryLogs ?? []),
+        ],
+      }));
       setIntegrationMessage(`Posted to Google Classroom: ${result.courseName || course.name}.`);
     } catch (error) {
       setIntegrationMessage(error instanceof Error ? error.message : "Unable to post to Google Classroom.");
@@ -3252,7 +4039,7 @@ function PublishPreview({
     const course = lmsCourses.find((item) => item.id === selectedLmsCourseId);
     const fallbackCourse = { id: selectedLmsCourseId, name: draft.integrations?.lmsName || "Linked LMS course" };
     const target = course ?? fallbackCourse;
-    if (!target.id && !integrationStatus?.lms.configured) return;
+    if (!target.id && !integrationStatus?.lms?.configured) return;
     setIsPostingLms(true);
     setIntegrationMessage("");
     try {
@@ -3260,13 +4047,27 @@ function PublishPreview({
         method: "POST",
         body: JSON.stringify({ session: draft, courseId: target.id, courseName: target.name }),
       });
-      updateIntegrations({
-        lmsConnected: true,
-        lmsName: result.provider || draft.integrations?.lmsName || integrationStatus?.lms.provider,
-        lmsCourseId: result.courseId || target.id,
-        lmsCourseName: result.courseName || target.name,
-        lmsPostedAt: result.postedAt,
-      });
+      updateDraft((current) => ({
+        ...current,
+        integrations: {
+          ...(current.integrations ?? {}),
+          lmsConnected: true,
+          lmsName: result.provider || current.integrations?.lmsName || integrationStatus?.lms?.provider,
+          lmsCourseId: result.courseId || target.id,
+          lmsCourseName: result.courseName || target.name,
+          lmsPostedAt: result.postedAt,
+        },
+        deliveryLogs: [
+          makeDeliveryLog({
+            provider: "lms",
+            target: result.courseName || target.name,
+            status: "posted",
+            message: `Posted class recap and action items to ${result.provider || "the LMS"}.`,
+            createdAt: result.postedAt,
+          }),
+          ...(current.deliveryLogs ?? []),
+        ],
+      }));
       setIntegrationMessage(`Posted to ${result.provider || "LMS"}.`);
     } catch (error) {
       setIntegrationMessage(error instanceof Error ? error.message : "Unable to post to the LMS.");
@@ -3312,6 +4113,15 @@ function PublishPreview({
                   ? `Sent to ${delivery.recipients.length} students${delivery.sentAt ? ` on ${formatDate(delivery.sentAt)}` : ""}.`
                   : `${recipientCount} students have deliverable roster or linked account emails.`}
               </p>
+              {!emailSent && integrationStatus?.email?.configured && (
+                <small>
+                  Sender: {integrationStatus.email.from}
+                  {integrationStatus.email.replyTo ? ` · replies go to ${integrationStatus.email.replyTo}` : ""}
+                </small>
+              )}
+              {!emailSent && integrationStatus && !integrationStatus.email?.configured && (
+                <small>Configure a no-reply SMTP or Gmail sender in .env.local before sending.</small>
+              )}
               {delivery.skipped.length > 0 && <small>Skipped: {delivery.skipped.join(", ")}</small>}
               {delivery.failed?.length ? <small>Failed: {delivery.failed.join("; ")}</small> : null}
               {deliveryMessage && <small>{deliveryMessage}</small>}
@@ -3330,20 +4140,20 @@ function PublishPreview({
 
         <Panel title="Classroom and LMS posting" icon={Link2}>
           <div className="integration-grid">
-            <div className={integrationStatus?.googleClassroom.connected ? "integration-card active" : "integration-card"}>
+            <div className={integrationStatus?.googleClassroom?.connected ? "integration-card active" : "integration-card"}>
               <CheckCircle2 size={18} />
               <span>
                 <strong>Google Classroom</strong>
                 <small>
-                  {integrationStatus?.googleClassroom.connected
+                  {integrationStatus?.googleClassroom?.connected
                     ? "Connected"
-                    : integrationStatus?.googleClassroom.configured
+                    : integrationStatus?.googleClassroom?.configured
                       ? "Ready to connect"
                       : "OAuth credentials not configured"}
                 </small>
               </span>
             </div>
-            {integrationStatus?.googleClassroom.connected ? (
+            {integrationStatus?.googleClassroom?.connected ? (
               <>
                 <label className="field compact">
                   <span>Google Classroom course</span>
@@ -3370,7 +4180,7 @@ function PublishPreview({
                 type="button"
                 className="ghost-button full"
                 onClick={connectGoogleClassroom}
-                disabled={!integrationStatus?.googleClassroom.configured}
+                disabled={!integrationStatus?.googleClassroom?.configured}
               >
                 <Link2 size={17} />
                 Connect Google Classroom
@@ -3380,13 +4190,13 @@ function PublishPreview({
               <small className="integration-note">Posted to {draft.integrations.googleClassroomCourseName || "Google Classroom"}.</small>
             )}
 
-            <div className={integrationStatus?.lms.connected ? "integration-card active" : "integration-card"}>
+            <div className={integrationStatus?.lms?.connected ? "integration-card active" : "integration-card"}>
               <LinkIcon size={18} />
               <span>
                 <strong>Learning management system</strong>
                 <small>
-                  {integrationStatus?.lms.connected
-                    ? `${integrationStatus.lms.provider} connected`
+                  {integrationStatus?.lms?.connected
+                    ? `${integrationStatus.lms?.provider} connected`
                     : "Set LMS provider environment variables"}
                 </small>
               </span>
@@ -3407,7 +4217,7 @@ function PublishPreview({
               type="button"
               className="primary-button full"
               onClick={postToLms}
-              disabled={!integrationStatus?.lms.connected || isPostingLms || (lmsCourses.length > 0 && !selectedLmsCourseId)}
+              disabled={!integrationStatus?.lms?.connected || isPostingLms || (lmsCourses.length > 0 && !selectedLmsCourseId)}
             >
               <Send size={17} />
               {isPostingLms ? "Posting..." : "Post to LMS"}
@@ -3421,6 +4231,22 @@ function PublishPreview({
           </div>
         </Panel>
       </section>
+
+      {(draft.deliveryLogs ?? []).length > 0 && (
+        <Panel title="Delivery log" icon={ClipboardCheck}>
+          <div className="delivery-log-list">
+            {(draft.deliveryLogs ?? []).map((log) => (
+              <div key={log.id} className="delivery-log-row">
+                <span>{log.provider.replace("_", " ")}</span>
+                <strong>{log.target}</strong>
+                <small>
+                  {log.message} · {formatDate(log.createdAt)}
+                </small>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
 
       <section className="content-grid two-columns align-start">
         <Panel title="Choose student preview" icon={GraduationCap}>
@@ -3438,6 +4264,32 @@ function PublishPreview({
           </div>
         </Panel>
         <StudentVisibleEditor session={draft} studentId={activeStudentId} updateSession={updatePreviewSession} />
+        <div className="wide">
+          <Panel title="Per-student preview differences" icon={SlidersHorizontal}>
+            <div className="preview-diff-list">
+              {draft.students.map((item) => {
+                const diff = previewDiffForStudent(draft, item);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={item.id === activeStudentId ? "preview-diff-row active" : "preview-diff-row"}
+                    onClick={() => setSelectedStudentId(item.id)}
+                  >
+                    <Avatar student={item} />
+                    <span>
+                      <strong>{item.name}</strong>
+                      <small>
+                        {diff.personalEvents.length} signals · {diff.uniqueTaskCount} personalized tasks · {diff.sharedTaskCount} shared tasks
+                      </small>
+                    </span>
+                    <em>{diff.reasons[0]?.label}</em>
+                  </button>
+                );
+              })}
+            </div>
+          </Panel>
+        </div>
       </section>
 
       <section className="student-preview-frame" aria-label={`Preview for ${student.name}`}>
@@ -3477,10 +4329,12 @@ function PublishPreview({
           </div>
           <div>
             <strong>Why this is assigned</strong>
-            {personalEvents.length ? (
+            {selectedPreviewDiff.reasons.length ? (
               <ul>
-                {personalEvents.slice(0, 3).map((event) => (
-                  <li key={event.id}>{event.text}</li>
+                {selectedPreviewDiff.reasons.slice(0, 4).map((reason) => (
+                  <li key={`${reason.label}-${reason.detail}`}>
+                    <b>{reason.label}:</b> {reason.detail}
+                  </li>
                 ))}
               </ul>
             ) : (
@@ -4192,6 +5046,161 @@ function TeacherAnalytics({ sessions }: { sessions: Session[] }) {
   );
 }
 
+function PrivacyControlsPage({
+  auth,
+  sessions,
+  accounts,
+  privacySettings,
+  setPrivacySettings,
+  auditLog,
+  appendAudit,
+  clearClassData,
+}: {
+  auth: AuthSession;
+  sessions: Session[];
+  accounts: Account[];
+  privacySettings: PrivacySettings;
+  setPrivacySettings: React.Dispatch<React.SetStateAction<PrivacySettings>>;
+  auditLog: AuditLogEntry[];
+  appendAudit: (action: string, detail: string, actor?: AuthSession | null) => void;
+  clearClassData: () => void;
+}) {
+  const exportData = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      teacher: { email: auth.email, name: auth.name },
+      sessions,
+      accounts: accounts.map(({ passwordHash, ...account }) => account),
+      privacySettings,
+      auditLog,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `classloop-export-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    appendAudit("export_data", "Exported teacher workspace data.");
+  };
+
+  const deleteClassData = () => {
+    if (!window.confirm("Delete this teacher workspace's class sessions and drafts? Accounts will remain.")) return;
+    clearClassData();
+    appendAudit("delete_class_data", "Deleted class sessions and current draft from the teacher workspace.");
+  };
+
+  return (
+    <div className="page-stack privacy-page">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Privacy controls</span>
+          <h2>Manage retention, recording consent, exports, and audit history.</h2>
+          <p>Use these controls before running ClassLoop with real student data or school accounts.</p>
+        </div>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title="Data retention" icon={ShieldCheck}>
+          <div className="settings-stack">
+            <label className="field compact">
+              <span>Keep class session data for this many days</span>
+              <input
+                type="number"
+                min={30}
+                max={2555}
+                value={privacySettings.retentionDays}
+                onChange={(event) =>
+                  setPrivacySettings((current) => ({
+                    ...current,
+                    retentionDays: Number(event.target.value) || current.retentionDays,
+                  }))
+                }
+              />
+            </label>
+            <button
+              className="ghost-button full"
+              type="button"
+              onClick={() => appendAudit("retention_review", `Reviewed ${sessions.length} sessions against retention settings.`)}
+            >
+              <Search size={17} />
+              Review retention
+            </button>
+          </div>
+        </Panel>
+
+        <Panel title="Recording consent" icon={Mic2}>
+          <div className="settings-stack">
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.recordingConsentRequired}
+                onChange={(event) =>
+                  setPrivacySettings((current) => ({ ...current, recordingConsentRequired: event.target.checked }))
+                }
+              />
+              <span>Require confirmation before audio or call capture starts.</span>
+            </label>
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.allowStudentExport}
+                onChange={(event) =>
+                  setPrivacySettings((current) => ({ ...current, allowStudentExport: event.target.checked }))
+                }
+              />
+              <span>Allow student-specific data exports from the workspace.</span>
+            </label>
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.auditLogEnabled}
+                onChange={(event) =>
+                  setPrivacySettings((current) => ({ ...current, auditLogEnabled: event.target.checked }))
+                }
+              />
+              <span>Keep audit history for sign-ins, publishing, exports, and data changes.</span>
+            </label>
+          </div>
+        </Panel>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title="Export or delete" icon={UploadCloud}>
+          <div className="settings-stack">
+            <button className="primary-button full" type="button" onClick={exportData}>
+              <UploadCloud size={17} />
+              Export workspace data
+            </button>
+            <button className="ghost-button full danger-soft" type="button" onClick={deleteClassData}>
+              <Trash2 size={17} />
+              Delete class data
+            </button>
+          </div>
+        </Panel>
+
+        <Panel title="Audit log" icon={ClipboardCheck}>
+          <div className="audit-list">
+            {auditLog.length ? (
+              auditLog.slice(0, 12).map((entry) => (
+                <div key={entry.id} className="audit-row">
+                  <strong>{entry.action.replace(/_/g, " ")}</strong>
+                  <span>{entry.detail}</span>
+                  <small>
+                    {entry.actorEmail} · {formatDate(entry.createdAt)}
+                  </small>
+                </div>
+              ))
+            ) : (
+              <p className="readable">No audit entries yet.</p>
+            )}
+          </div>
+        </Panel>
+      </section>
+    </div>
+  );
+}
+
 function TutorialPage({ auth }: { auth: AuthSession }) {
   const isTeacher = auth.role === "teacher";
   const homeRoute: RouteKey = isTeacher ? "dashboard" : "student";
@@ -4441,6 +5450,13 @@ function DesignSystemPage({
     const preset = themePresets[key];
     setTheme((current) => ({ ...current, key, accent: preset.accent }));
   };
+  const customPreviewStyle = theme.imageUrl.trim()
+    ? {
+        backgroundImage: `linear-gradient(135deg, rgba(8, 18, 32, 0.34), rgba(8, 18, 32, 0.78)), ${safeBackgroundUrl(theme.imageUrl)}`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }
+    : undefined;
 
   return (
     <div className="page-stack appearance-page">
@@ -4453,7 +5469,7 @@ function DesignSystemPage({
             for your teaching style while staying easy to scan during a busy school day.
           </p>
         </div>
-        <div className={`live-theme-preview ${themePresets[theme.key].previewClass}`}>
+        <div className={`live-theme-preview ${themePresets[theme.key].previewClass}`} style={customPreviewStyle}>
           <span className="preview-glow" />
           <div className="preview-nav" />
           <div className="preview-card large">

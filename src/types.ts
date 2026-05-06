@@ -86,6 +86,16 @@ export type SessionEmailDelivery = {
   lastError?: string;
 };
 
+export type DeliveryLog = {
+  id: string;
+  provider: "email" | "google_classroom" | "lms";
+  target: string;
+  status: "sent" | "posted" | "failed" | "skipped";
+  message: string;
+  createdAt: string;
+  recipientCount?: number;
+};
+
 export type SessionIntegrations = {
   googleClassroomConnected?: boolean;
   googleClassroomCourseId?: string;
@@ -127,5 +137,6 @@ export type Session = {
   unmatchedParticipants?: UnmatchedParticipant[];
   transcriptAliases?: Record<string, string>;
   emailDelivery?: SessionEmailDelivery;
+  deliveryLogs?: DeliveryLog[];
   integrations?: SessionIntegrations;
 };

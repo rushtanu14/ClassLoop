@@ -1589,6 +1589,28 @@ button:disabled:hover {
   align-items: center;
 }
 
+.capture-consent,
+.switch-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.capture-consent {
+  grid-column: 1 / -1;
+}
+
+.capture-consent input,
+.switch-row input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: var(--primary);
+}
+
 .capture-controls strong,
 .capture-controls small,
 .delivery-card strong,
@@ -1628,6 +1650,36 @@ button:disabled:hover {
   display: block;
   color: var(--muted);
   line-height: 1.45;
+}
+
+.delivery-log-list,
+.audit-list,
+.settings-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.delivery-log-row,
+.audit-row {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffefa;
+}
+
+.delivery-log-row span,
+.audit-row span,
+.delivery-log-row small,
+.audit-row small {
+  color: var(--muted);
+}
+
+.danger-soft {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff5f5;
 }
 
 .upload-zone {
@@ -3013,6 +3065,11 @@ th {
   background: #fffefa;
 }
 
+.roster-row.without-attendance {
+  grid-template-columns: auto minmax(170px, 1.2fr) minmax(220px, 1.4fr) minmax(180px, 1.2fr) minmax(190px, 1.1fr) auto;
+  grid-template-areas: "avatar name email aliases access remove";
+}
+
 .roster-row > .avatar {
   grid-area: avatar;
   align-self: center;
@@ -3069,6 +3126,62 @@ th {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.roster-template-layout {
+  grid-template-columns: minmax(240px, 0.45fr) minmax(0, 1fr);
+}
+
+.roster-template-list,
+.roster-template-settings {
+  display: grid;
+  gap: 12px;
+}
+
+.roster-template-card {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink);
+  background: #fffefa;
+  text-align: left;
+}
+
+.roster-template-card.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.roster-template-card strong,
+.roster-template-card span,
+.roster-template-card small {
+  display: block;
+}
+
+.roster-template-card span,
+.roster-template-card small {
+  color: var(--muted);
+}
+
+.roster-template-settings {
+  grid-template-columns: minmax(180px, 1.2fr) minmax(170px, 0.8fr) auto;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.ghost-button.danger {
+  color: #b42318;
+  border-color: #f3d4ce;
+  background: #fff7f4;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .participant-card {
@@ -3138,6 +3251,56 @@ th {
 
 .publish-preview-page .preview-picker {
   min-width: 0;
+}
+
+.preview-diff-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.preview-diff-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink);
+  background: #fffefa;
+  text-align: left;
+}
+
+.preview-diff-row.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.preview-diff-row span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.preview-diff-row strong,
+.preview-diff-row small,
+.preview-diff-row em {
+  overflow-wrap: anywhere;
+}
+
+.preview-diff-row small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.preview-diff-row em {
+  grid-column: 1 / -1;
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .student-preview-frame {
@@ -3485,6 +3648,7 @@ th {
   .inline-empty,
   .icon-button,
   .roster-row,
+  .roster-template-card,
   .participant-card,
   .link-student-control select,
   .editable-line input,
@@ -3493,6 +3657,7 @@ th {
   .student-preview-top,
   .student-preview-card,
   .student-preview-columns,
+  .preview-diff-row,
   .walkthrough-hero,
   .walkthrough-checklist li,
   .walkthrough-map-item,
@@ -3505,6 +3670,7 @@ th {
   .inline-empty,
   .icon-button,
   .roster-row,
+  .roster-template-card,
   .participant-card,
   .link-student-control select,
   .editable-line input,
@@ -3513,6 +3679,7 @@ th {
   .student-preview-top,
   .student-preview-card,
   .student-preview-columns,
+  .preview-diff-row,
   .walkthrough-hero,
   .walkthrough-checklist li,
   .walkthrough-map-item,
@@ -3540,10 +3707,13 @@ th {
   .inline-empty p,
   .participant-card p,
   .student-access-cell small,
+  .roster-template-card span,
+  .roster-template-card small,
   .student-preview-top p,
   .student-preview-card p,
   .student-preview-columns p,
   .student-preview-columns li,
+  .preview-diff-row small,
   .walkthrough-hero p,
   .walkthrough-step-main p,
   .walkthrough-map-item small,
@@ -3556,10 +3726,13 @@ th {
   .inline-empty p,
   .participant-card p,
   .student-access-cell small,
+  .roster-template-card span,
+  .roster-template-card small,
   .student-preview-top p,
   .student-preview-card p,
   .student-preview-columns p,
   .student-preview-columns li,
+  .preview-diff-row small,
   .walkthrough-hero p,
   .walkthrough-step-main p,
   .walkthrough-map-item small,
@@ -3600,6 +3773,18 @@ th {
   background: #bae6fd;
 }
 
+:root[data-theme="abyssal"] :is(.delivery-log-row, .audit-row, .capture-mode-card, .integration-card),
+:root[data-theme="graphite"] :is(.delivery-log-row, .audit-row, .capture-mode-card, .integration-card) {
+  color: var(--readable-ink);
+  border-color: var(--readable-line);
+  background: var(--readable-surface);
+}
+
+:root[data-theme="abyssal"] :is(.delivery-log-row span, .audit-row span, .delivery-log-row small, .audit-row small, .capture-consent, .switch-row),
+:root[data-theme="graphite"] :is(.delivery-log-row span, .audit-row span, .delivery-log-row small, .audit-row small, .capture-consent, .switch-row) {
+  color: var(--readable-muted);
+}
+
 @media (max-width: 1180px) {
   .metric-grid,
   .followup-grid {
@@ -3634,6 +3819,18 @@ th {
       "avatar name email remove"
       "avatar attendance aliases remove"
       ". access access .";
+  }
+
+  .roster-row.without-attendance {
+    grid-template-areas:
+      "avatar name email remove"
+      "avatar aliases aliases remove"
+      ". access access .";
+  }
+
+  .roster-template-layout,
+  .roster-template-settings {
+    grid-template-columns: 1fr;
   }
 
   .roster-row .icon-button {
@@ -3766,6 +3963,14 @@ th {
       "avatar name remove"
       "email email email"
       "attendance attendance attendance"
+      "aliases aliases aliases"
+      "access access access";
+  }
+
+  .roster-row.without-attendance {
+    grid-template-areas:
+      "avatar name remove"
+      "email email email"
       "aliases aliases aliases"
       "access access access";
   }

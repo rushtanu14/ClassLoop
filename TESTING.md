@@ -3,8 +3,10 @@
 ## Test Structure
 
 **File**: `tests/import-flow.test.ts`
-**Framework**: Vitest (TypeScript)
-**Run Command**: `npm run test:import`
+**Frameworks**: TypeScript import regression runner + Playwright browser tests
+**Run Commands**:
+- `npm run test:import`
+- `npm run test:browser`
 
 ## Test Categories
 
@@ -17,8 +19,21 @@
 
 ### Regression Tests
 - **Format Variations**: Comma-sep, pipe-sep, tabular rosters
-- **Naming Inconsistencies**: Aliases, case variations
+- **Google Classroom CSV**: First name, last name, email exports
+- **Transcript Variations**: Zoom `.vtt`, Microsoft Teams transcript blocks, Google Meet captions
+- **Naming Inconsistencies**: Aliases, case variations, first-name/last-initial nicknames
 - **Edge Cases**: Missing roster, malformed transcript
+
+### Browser Access Tests
+- **Login**: Teacher and student sample accounts can sign in.
+- **Import Flow**: Teacher can load the geometry sample and generate a draft.
+- **Publish Preview**: Teacher can open the preview and publish student follow-ups.
+- **Per-Student Preview Diffs**: Publish preview explains why each student receives different follow-up content.
+- **Roster Manager**: Publishing prompts the teacher to save the roster; saved rosters appear in the Rosters tab and auto-load for matching session templates.
+- **Student View**: Published sessions appear in the student-facing portal.
+- **Analytics Hiding**: Student navigation does not expose teacher analytics.
+- **Appearance**: Students can change appearance while signed in; logout returns the login screen to the default theme; sign-in restores the saved account theme.
+- **Responsive Layout**: Core controls remain visible at phone-sized width without horizontal overflow.
 
 ## Test Data Sources
 
@@ -60,12 +75,35 @@
 **Run Tests**: `node --experimental-specifier-resolution=node .test-build/tests/import-flow.test.js`
 **Expected**: All assertions pass, no errors
 
+## Browser Test Setup
+
+Playwright is installed in the repo through `@playwright/test`.
+
+**Install browsers**: `npx playwright install chromium`
+**Automated install**: `npm install` runs `playwright install chromium` through `postinstall`.
+**Run browser tests**: `npm run test:browser`
+
+Playwright starts the Vite dev server on `127.0.0.1:5173` and runs Chromium checks across desktop and mobile-sized projects.
+
+## Testing Script Response
+
+When the user says "use the testing script," run the saved ClassLoop QA sequence and report:
+- pass/fail by command
+- browser workflow result
+- anything not verifiable without external credentials
+- whether optional integrations are staying free-first, meaning Gmail uses a user-owned mailbox, Classroom uses an existing teacher account, LMS uses existing/self-hosted access, and OpenAI transcription is not required
+- concise feedback on how the run went
+- what could be improved
+- feature ideas that would improve user experience
+
 ## Test Maintenance
 
 **When Adding Features**:
 1. Add test case to `import-flow.test.ts` first
-2. Update parser logic in `src/data.ts`
-3. Verify tests pass
+2. Add browser coverage in `tests/browser/classloop.spec.ts` when the feature changes access, routing, or user workflow
+3. Update parser logic in `src/data.ts` or UI logic in `src/App.tsx`
+4. Verify tests pass
+5. Update the feature QA prompt in `codexsecondbrain-sync-2026-04-30.md` so future browser QA includes the new workflow and obvious formatting checks
 
 **When Fixing Bugs**:
 1. Add failing test case reproducing the bug

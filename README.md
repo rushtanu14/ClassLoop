@@ -39,8 +39,25 @@ The launcher installs missing dependencies when needed, then opens ClassLoop in 
 - Teacher and student sign-in screens.
 - Teacher-side session dashboard, import flow, AI review draft, session report, and analytics.
 - Student-side dashboard and session detail views.
+- Student and teacher appearance customization, saved only to the signed-in account.
+- Audio recording and online-call capture with consent confirmation and optional backend speech-to-text.
+- Publish preview with one-click recap email delivery plus Google Classroom/LMS posting hooks.
+- Per-student preview differences that explain why each student receives different follow-ups.
+- Saved roster manager that reuses class rosters by session template after the first published session.
+- Privacy controls for retention settings, workspace export/delete, and audit history.
 - Explicit sample accounts and sample session data for demonstrations.
 - Checked-in app build under `dist/`, wrapped by the desktop launcher.
+
+## Free-First Integrations
+
+ClassLoop should work without paid services. Transcript paste/upload, local accounts, review, publishing, student preview, analytics, and roster management are local-first.
+
+Optional external integrations should use free or already-owned accounts:
+
+- Email: use a Gmail account you own, such as `classloop.noreply@gmail.com`, with an app password. ClassLoop cannot generate Gmail accounts or send from addresses you do not own.
+- Google Classroom: connect an existing teacher Classroom account. Do not require a paid Workspace upgrade for the prototype.
+- LMS: connect only to school-provided Canvas/Schoology/Moodle access, or a self-hosted Moodle/school middleware endpoint.
+- Speech-to-text: prefer browser speech recognition or a local/self-hosted transcription endpoint. OpenAI transcription remains supported as an optional paid provider, not the default path.
 
 ## Sample Accounts
 
@@ -66,6 +83,16 @@ classloop-student
 4. Open the student view to show personalized recaps, tasks, resources, and completion check-ins.
 5. Use analytics to explain how ClassLoop tracks participation and follow-through.
 
+## Testing
+
+```bash
+npm run build
+npm run test:import
+npm run test:browser
+```
+
+`npm install` installs the Chromium browser used by Playwright through the project `postinstall` script.
+
 ## PRD Alignment
 
 ClassLoop is designed for teachers, tutors, instructors, club leaders, and students who need clean follow-up after a class or learning session.
@@ -84,7 +111,7 @@ Core MVP promise:
 2. Add teacher edit affordances directly to student follow-up cards so judges immediately see that the teacher stays in control before publishing.
 3. Add a lightweight “publish preview” step showing exactly what each student will see.
 4. Add completion check-in states that feel real: “not started,” “working,” “submitted,” and “teacher reviewed.”
-5. Add a simple class roster manager so the product feels reusable across multiple sessions, not just one import.
+5. Add roster import/export actions for Google Classroom, CSV, and LMS roster sync.
 6. Add a privacy/explanation panel written for schools: private teacher signals, no public ranking, student-specific sharing only.
 7. Add export/share actions for reports, because teachers and tutors will expect PDF, email, or LMS-friendly output later.
 

@@ -16,6 +16,7 @@ ClassLoop is a desktop classroom follow-up platform (Electron + React) that tran
 | **Dev server** | `npm run dev` |
 | **Build** | `npm run build` |
 | **Test import flow** | `npm run test:import` |
+| **Browser tests** | `npm run test:browser` |
 | **Lint/type check** | `tsc` |
 
 **Demo Accounts**:
@@ -37,6 +38,9 @@ ClassLoop
 ├── public/                  # Static assets
 ├── tests/
 │   └── import-flow.test.ts  # End-to-end parsing tests
+├── tests/browser/
+│   └── classloop.spec.ts    # Playwright workflow/access tests
+├── playwright.config.ts     # Browser test config; starts Vite on 127.0.0.1:5173
 ├── vite.config.ts           # Build config (fingerprinting for prod)
 └── tsconfig*.json           # TypeScript configs (main + test)
 ```
@@ -115,6 +119,15 @@ Core domain models:
 - Responsive grid layout (sidebar for navigation, main content area)
 - Real-time parsing feedback (unmatched participants flagged)
 - Teacher-facing controls: edit, approve, publish workflow
+
+### Integration Policy
+
+Keep integrations free-first and optional:
+
+- Email should work with a Gmail account the user owns, including a no-reply-like account such as `classloop.noreply@gmail.com`. Do not imply ClassLoop can generate Gmail accounts or send from unauthenticated domains.
+- Google Classroom should connect to an existing teacher Classroom account. Avoid adding requirements that force paid Google Workspace upgrades for the prototype.
+- LMS posting should target an LMS the school already provides or a self-hosted/free option such as Moodle. Paid LMS access should not be required for the app to be useful.
+- Speech-to-text should prefer browser speech recognition or local/self-hosted transcription. OpenAI speech-to-text is optional and paid, so keep transcript paste/upload fully usable.
 
 ## Real Session Example
 
@@ -254,13 +267,16 @@ Tests validate:
 4. **String formatting**: Date strings are ISO 8601 (YYYY-MM-DD). Names are lowercase-slugified for IDs.
 5. **Error handling**: Parser is defensive (unmatched names flagged but don't break import). UI shows warnings clearly.
 6. **Accessibility**: Icons from lucide-react (semantic naming). Enough contrast for education-friendly green theme.
+7. **Browser QA**: Keep Playwright installed. `npm install` runs `playwright install chromium`; run `npm run test:browser` for login/import/publish/student/analytics/access/responsive coverage.
+8. **Local storage security**: Desktop state is encrypted with Electron `safeStorage` when available. Browser fallback uses encrypted `classloop:secure:*` localStorage keys. True multi-device access still requires a backend.
+9. **Testing prompt upkeep**: When adding user-facing features, update the feature QA prompt in `codexsecondbrain-sync-2026-04-30.md` and Playwright coverage so future agents test the new workflow plus layout/readability issues.
 
 ## High-Value Next Work
 
 1. **Teacher edit UI**: Add inline edits to recap, questions, action items before publish (not just form views).
 2. **Publish preview**: Show each student exactly what they'll see before distributing.
 3. **Completion check-ins**: Real task states: not started → working → submitted → reviewed. Hook up student submissions.
-4. **Roster manager**: Reuse rosters across multiple sessions without re-pasting.
+4. **Roster sync**: Add CSV, Google Classroom, Canvas, and Schoology roster import/export around the saved roster manager.
 5. **LMS integration**: Export/sync to Google Classroom, Canvas, Schoology.
 6. **Privacy dashboard**: Explain to schools how student data is handled (no rankings, teacher-only signals, student-specific sharing).
 

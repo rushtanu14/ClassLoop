@@ -88,6 +88,10 @@ function normalizeSpeakerName(value: string) {
     .trim();
 }
 
+function compactSpeakerName(value: string) {
+  return normalizeSpeakerName(value).replace(/\s+/g, "");
+}
+
 const genericSpeakerLabelPattern = /^(student|learner|participant|attendee|speaker|user|guest)\b/i;
 
 function stripGenericSpeakerLabel(value: string) {
@@ -132,6 +136,15 @@ type SpeakerLine = {
 
 function parseSpeakerLine(line: string): SpeakerLine | null {
   const trimmed = line.trim();
+  const vttVoice = trimmed.match(/^(?:<v\s+([^>]+)>|<v\.([^>]+)>)(.*?)$/i);
+  if (vttVoice) {
+    const speaker = (vttVoice[1] || vttVoice[2] || "").replace(/\s+/g, " ").trim();
+    const text = vttVoice[3].replace(/<\/v>$/i, "").trim();
+    if (speaker && text && !isTranscriptMetadataSpeaker(speaker) && !isTeacherLikeSpeaker(speaker)) {
+      return { speaker, text, line: trimmed };
+    }
+  }
+
   const match = trimmed.match(
     /^(?:\[[^\]]+\]\s*)?(?:(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?\s+)?([^:\n]{2,80}):\s*(.+)$/i,
   );
@@ -150,12 +163,48 @@ function parseSpeakerLine(line: string): SpeakerLine | null {
   return { speaker, text: match[2].trim(), line: trimmed };
 }
 
+function isTimestampLine(line: string) {
+  return /^(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?(?:\s*-->\s*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?)?$/.test(
+    line.trim(),
+  ) || /^\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}/.test(line.trim());
+}
+
+function isLikelySpeakerNameLine(line: string) {
+  const trimmed = stripGenericSpeakerLabel(line.trim());
+  const normalized = normalizeSpeakerName(trimmed);
+  return Boolean(
+    trimmed &&
+      !/^webvtt$/i.test(trimmed) &&
+      normalized.split(" ").length <= 5 &&
+      /^[a-z][a-z .'-]+$/i.test(trimmed) &&
+      !isTranscriptMetadataSpeaker(trimmed) &&
+      !isTeacherLikeSpeaker(trimmed),
+  );
+}
+
 export function extractTranscriptSpeakers(text: string) {
-  return text
-    .split(/\n+/)
-    .map(parseSpeakerLine)
-    .filter((line): line is SpeakerLine => Boolean(line))
-    .filter((line) => !isTranscriptMetadataSpeaker(line.speaker));
+  const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const parsedLines: SpeakerLine[] = [];
+
+  lines.forEach((line, index) => {
+    const parsed = parseSpeakerLine(line);
+    if (parsed) {
+      parsedLines.push(parsed);
+      return;
+    }
+
+    const next = lines[index + 1] ?? "";
+    const afterNext = lines[index + 2] ?? "";
+    if (isLikelySpeakerNameLine(line) && isTimestampLine(next) && afterNext && !isTimestampLine(afterNext)) {
+      parsedLines.push({
+        speaker: stripGenericSpeakerLabel(line),
+        text: afterNext,
+        line: `${line}: ${afterNext}`,
+      });
+    }
+  });
+
+  return parsedLines.filter((line) => !isTranscriptMetadataSpeaker(line.speaker));
 }
 
 function toDateInput(date: Date) {
@@ -198,10 +247,39 @@ function cleanRosterNameChunk(value: string) {
   return candidate
     .replace(/^\s*#?\s*(?:student\s*)?\d+[\s.)-]*/i, "")
     .replace(/^\s*(?:student|learner)\s+/i, "")
-    .replace(/\b(?:name|email)\b/gi, " ")
+    .replace(/\b(?:first|last|student|name|email)\b/gi, " ")
     .replace(/[#()[\]{}]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function parseDelimitedRosterRows(roster: string) {
+  const entries: Array<{ name: string; email: string }> = [];
+  roster
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      const emails = line.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,24}/gi) ?? [];
+      if (emails.length !== 1 || isRosterMetadataText(line)) return;
+      const email = emails[0].toLowerCase();
+      const beforeEmail = line.slice(0, line.toLowerCase().indexOf(email));
+      const parts = beforeEmail
+        .split(/[,\t|;]+/)
+        .map((part) => cleanRosterNameChunk(part))
+        .filter(Boolean)
+        .filter((part) => !/^\d+$/.test(part))
+        .filter((part) => !isRosterMetadataText(part));
+      const name = parts.join(" ").replace(/\s+/g, " ").trim() || cleanRosterNameChunk(beforeEmail);
+      if (isPlausibleRosterName(name)) entries.push({ name, email });
+    });
+
+  const seenEmails = new Set<string>();
+  return entries.filter((entry) => {
+    if (seenEmails.has(entry.email)) return false;
+    seenEmails.add(entry.email);
+    return true;
+  });
 }
 
 function isPlausibleRosterName(name: string) {
@@ -288,6 +366,11 @@ function parseEmailRosterEntries(roster: string) {
 }
 
 function parseRoster(roster: string, transcript: string): Student[] {
+  const delimitedEntries = parseDelimitedRosterRows(roster);
+  if (delimitedEntries.length) {
+    return delimitedEntries.map((entry, index) => studentFromRosterEntry(entry.name, entry.email, index));
+  }
+
   const emailEntries = parseEmailRosterEntries(roster);
   if (emailEntries.length) {
     return emailEntries.map((entry, index) => studentFromRosterEntry(entry.name, entry.email, index));
@@ -502,11 +585,25 @@ function parseResources(resourcesText: string, sessionText: string, relatedTopic
 
 function speakerMatchesStudent(speaker: string, student: Student) {
   const first = student.name.split(" ")[0];
+  const tokens = normalizeSpeakerName(student.name).split(" ").filter(Boolean);
+  const last = tokens[tokens.length - 1] ?? "";
+  const firstInitial = tokens[0]?.charAt(0) ?? "";
+  const lastInitial = last.charAt(0);
   const aliases = student.aliases ?? [];
   const normalizedSpeakers = normalizedSpeakerCandidates(speaker);
-  const normalizedStudentCandidates = [student.name, first, ...aliases].flatMap(normalizedSpeakerCandidates);
+  const normalizedStudentCandidates = [
+    student.name,
+    first,
+    last && `${first} ${lastInitial}`,
+    last && `${firstInitial} ${last}`,
+    ...aliases,
+  ].flatMap(normalizedSpeakerCandidates);
   return normalizedSpeakers.some((speakerCandidate) =>
-    normalizedStudentCandidates.some((studentCandidate) => speakerCandidate === studentCandidate),
+    normalizedStudentCandidates.some(
+      (studentCandidate) =>
+        speakerCandidate === studentCandidate ||
+        compactSpeakerName(speakerCandidate) === compactSpeakerName(studentCandidate),
+    ),
   );
 }
 
@@ -577,7 +674,10 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
   const participationEvents: ParticipationEvent[] = roster.flatMap((student) => {
     const first = student.name.split(" ")[0];
     const lower = sessionText.toLowerCase();
-    const spoken = lineForStudent(lines, student);
+    const parsedSpoken = speakerLines
+      .filter((line) => speakerMatchesStudent(line.speaker, student))
+      .map((line) => line.line);
+    const spoken = unique([...parsedSpoken, ...lineForStudent(lines, student)]);
     const events: ParticipationEvent[] = spoken.slice(0, 2).map((line, index) => {
       const clean = cleanLine(line);
       const type = eventTypeFromText(clean);
