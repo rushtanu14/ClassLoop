@@ -1502,7 +1502,7 @@ function LoginPage({
             <ShieldCheck size={22} />
           </span>
           <strong>Private by default</strong>
-          <p>Class notes, participation signals, and follow-ups stay in the teacher workspace until they are published.</p>
+          <p>Class notes, participation signals, and follow-ups stay in your workspace until you publish them.</p>
         </div>
         <div className="security-card">
           <span>
@@ -1760,7 +1760,7 @@ function TeacherDashboard({ sessions, draft }: { sessions: Session[]; draft: Ses
           <span className="eyebrow">Live class follow-up loop</span>
           <h2>Turn messy class records into edited recaps, personal tasks, and completion check-ins.</h2>
           <p>
-            The teacher stays in control while ClassLoop extracts what happened, who needs support, and what should happen
+            You stay in control while ClassLoop extracts what happened, who needs support, and what should happen
             next.
           </p>
           <div className="hero-actions">
@@ -2146,7 +2146,7 @@ function ImportSession({
           <div className="section-heading">
             <span className="eyebrow">New class record</span>
             <h2>Import a transcript, notes, or both.</h2>
-            <p>ClassLoop will draft the teacher review page, then wait for approval before students see anything.</p>
+            <p>ClassLoop will draft your review page, then wait for your approval before students see anything.</p>
           </div>
 
           <div className="form-grid">
@@ -2318,7 +2318,7 @@ function ReviewDraft({
       <EmptyState
         icon={Sparkles}
         title="No draft yet"
-        detail="Import the sample geometry transcript to generate a teacher review page."
+        detail="Import the sample geometry transcript to generate your review page."
         action="Create new session"
         onAction={() => navigate("new-session")}
       />
@@ -2326,6 +2326,7 @@ function ReviewDraft({
   }
 
   const update = (changes: Partial<Session>) => setDraft({ ...draft, ...changes });
+  const [activeReviewTab, setActiveReviewTab] = useState<"roster" | "recap" | "followup">("roster");
 
   const updateAction = (id: string, changes: Partial<ActionItem>) => {
     update({ actionItems: draft.actionItems.map((item) => (item.id === id ? { ...item, ...changes } : item)) });
@@ -2372,7 +2373,7 @@ function ReviewDraft({
           <span className="eyebrow">Teacher control center</span>
           <h2>Edit the draft before publishing.</h2>
           <p>
-            Student dashboards stay private until the teacher approves the recap, assignments, resources, and participation
+            Student dashboards stay private until you approve the recap, assignments, resources, and participation
             labels.
           </p>
         </div>
@@ -2388,170 +2389,208 @@ function ReviewDraft({
         </div>
       </section>
 
-      <section className="content-grid two-columns align-start">
-        <RosterManager
-          students={draft.students}
-          attendance={draft.attendance}
-          studentAccountEmails={studentAccountEmails}
-          sessionTitle={draft.title}
-          onStudentsChange={updateRoster}
-          onAttendanceChange={updateAttendance}
-        />
-        <ParticipantResolutionPanel
-          participants={draft.unmatchedParticipants ?? []}
-          students={draft.students}
-          onResolve={resolveUnmatchedParticipant}
-        />
-      </section>
-
-      <section className="content-grid two-columns align-start">
-        <Panel title="Class recap" icon={FileText}>
-          <label className="field compact">
-            <span>Approved recap</span>
-            <textarea value={draft.recap} onChange={(event) => update({ recap: event.target.value })} />
-          </label>
-          <div className="question-list">
-            {draft.essentialQuestions.map((question, index) => (
-              <label key={question} className="field compact">
-                <span>Essential question {index + 1}</span>
-                <input
-                  value={question}
-                  onChange={(event) => {
-                    const next = [...draft.essentialQuestions];
-                    next[index] = event.target.value;
-                    update({ essentialQuestions: next });
-                  }}
-                />
-              </label>
-            ))}
-          </div>
-        </Panel>
-
-        <Panel title="Action items" icon={ListChecks}>
-          <div className="editable-stack">
-            {draft.actionItems.map((item) => (
-              <div key={item.id} className="editable-item">
-                <input value={item.title} onChange={(event) => updateAction(item.id, { title: event.target.value })} />
-                <textarea
-                  value={item.description}
-                  onChange={(event) => updateAction(item.id, { description: event.target.value })}
-                />
-                <div className="inline-fields">
-                  <input
-                    type="date"
-                    value={item.dueDate}
-                    onChange={(event) => updateAction(item.id, { dueDate: event.target.value })}
-                  />
-                  <select
-                    value={item.status}
-                    onChange={(event) => updateAction(item.id, { status: event.target.value as TaskStatus })}
-                  >
-                    <option value="todo">To do</option>
-                    <option value="in_progress">In progress</option>
-                    <option value="complete">Complete</option>
-                    <option value="overdue">Overdue</option>
-                  </select>
-                </div>
-                <small>{item.source}</small>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      </section>
-
-      <Panel title="Student-specific follow-ups" icon={Users}>
-        <div className="followup-grid">
-          {draft.followUps.map((followUp) => {
-            const student = studentById(followUp.studentId, draft.students);
-            return (
-              <article key={followUp.studentId} className="followup-card">
-                <div className="student-line">
-                  <Avatar student={student} />
-                  <div>
-                    <strong>{student.name}</strong>
-                    <small>{attendanceLabel(draft.attendance[student.id] ?? "present")}</small>
-                  </div>
-                  <StatusPill status={followUp.status} />
-                </div>
-                <label className="field compact">
-                  <span>Personal reminder</span>
-                  <textarea
-                    value={followUp.reminder}
-                    onChange={(event) => updateFollowUp(followUp.studentId, { reminder: event.target.value })}
-                  />
-                </label>
-                <label className="field compact">
-                  <span>Catch-up note</span>
-                  <textarea
-                    value={followUp.catchUp}
-                    onChange={(event) => updateFollowUp(followUp.studentId, { catchUp: event.target.value })}
-                  />
-                </label>
-                <div className="inline-fields">
-                  <input
-                    type="date"
-                    value={followUp.dueDate}
-                    onChange={(event) => updateFollowUp(followUp.studentId, { dueDate: event.target.value })}
-                  />
-                  <select
-                    value={followUp.status}
-                    onChange={(event) => updateFollowUp(followUp.studentId, { status: event.target.value as TaskStatus })}
-                  >
-                    <option value="todo">To do</option>
-                    <option value="in_progress">In progress</option>
-                    <option value="complete">Complete</option>
-                    <option value="overdue">Overdue</option>
-                  </select>
-                </div>
-              </article>
-            );
-          })}
+      <Panel title="Teacher review" icon={FileText}>
+        <div className="review-tabs" role="tablist" aria-label="Review sections">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeReviewTab === "roster"}
+            className={activeReviewTab === "roster" ? "ghost-button active" : "ghost-button"}
+            onClick={() => setActiveReviewTab("roster")}
+          >
+            Roster & matching
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeReviewTab === "recap"}
+            className={activeReviewTab === "recap" ? "ghost-button active" : "ghost-button"}
+            onClick={() => setActiveReviewTab("recap")}
+          >
+            Class recap
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeReviewTab === "followup"}
+            className={activeReviewTab === "followup" ? "ghost-button active" : "ghost-button"}
+            onClick={() => setActiveReviewTab("followup")}
+          >
+            Follow-up
+          </button>
         </div>
       </Panel>
 
-      <section className="content-grid two-columns align-start">
-        <Panel title="Resources" icon={LinkIcon}>
-          <div className="editable-stack">
-            {draft.resources.map((resource) => (
-              <div key={resource.id} className="editable-item">
-                <input
-                  value={resource.title}
-                  onChange={(event) => updateResource(resource.id, { title: event.target.value })}
-                />
-                <input value={resource.url} onChange={(event) => updateResource(resource.id, { url: event.target.value })} />
-                <input
-                  value={resource.relatedTopic}
-                  onChange={(event) => updateResource(resource.id, { relatedTopic: event.target.value })}
-                />
-              </div>
-            ))}
-          </div>
-        </Panel>
+      {activeReviewTab === "roster" && (
+        <section className="content-grid align-start">
+          <ParticipantResolutionPanel
+            participants={draft.unmatchedParticipants ?? []}
+            students={draft.students}
+            onResolve={resolveUnmatchedParticipant}
+          />
+          <RosterManager
+            students={draft.students}
+            attendance={draft.attendance}
+            studentAccountEmails={studentAccountEmails}
+            sessionTitle={draft.title}
+            onStudentsChange={updateRoster}
+            onAttendanceChange={updateAttendance}
+          />
+        </section>
+      )}
 
-        <Panel title="Participation signals" icon={SlidersHorizontal}>
-          <div className="signal-list">
-            {draft.participationEvents.map((event) => (
-              <div key={event.id} className="signal-row">
-                <label className="switch">
+      {activeReviewTab === "recap" && (
+        <section className="content-grid align-start">
+          <Panel title="Class recap" icon={FileText}>
+            <label className="field compact">
+              <span>Approved recap</span>
+              <textarea value={draft.recap} onChange={(event) => update({ recap: event.target.value })} />
+            </label>
+            <div className="question-list">
+              {draft.essentialQuestions.map((question, index) => (
+                <label key={question} className="field compact">
+                  <span>Essential question {index + 1}</span>
                   <input
-                    type="checkbox"
-                    checked={event.approved}
-                    onChange={(inputEvent) => updateParticipation(event.id, { approved: inputEvent.target.checked })}
+                    value={question}
+                    onChange={(event) => {
+                      const next = [...draft.essentialQuestions];
+                      next[index] = event.target.value;
+                      update({ essentialQuestions: next });
+                    }}
                   />
-                  <span />
                 </label>
-                <div>
-                  <strong>
-                    {studentById(event.studentId, draft.students).name} · {participationLabel(event.type)}
-                  </strong>
-                  <input value={event.text} onChange={(inputEvent) => updateParticipation(event.id, { text: inputEvent.target.value })} />
-                  <small>{Math.round(event.confidence * 100)}% confidence</small>
+              ))}
+            </div>
+          </Panel>
+        </section>
+      )}
+
+      {activeReviewTab === "followup" && (
+        <section className="content-grid align-start">
+          <Panel title="Action items" icon={ListChecks}>
+            <div className="editable-stack">
+              {draft.actionItems.map((item) => (
+                <div key={item.id} className="editable-item">
+                  <input value={item.title} onChange={(event) => updateAction(item.id, { title: event.target.value })} />
+                  <textarea
+                    value={item.description}
+                    onChange={(event) => updateAction(item.id, { description: event.target.value })}
+                  />
+                  <div className="inline-fields">
+                    <input
+                      type="date"
+                      value={item.dueDate}
+                      onChange={(event) => updateAction(item.id, { dueDate: event.target.value })}
+                    />
+                    <select
+                      value={item.status}
+                      onChange={(event) => updateAction(item.id, { status: event.target.value as TaskStatus })}
+                    >
+                      <option value="todo">To do</option>
+                      <option value="in_progress">In progress</option>
+                      <option value="complete">Complete</option>
+                      <option value="overdue">Overdue</option>
+                    </select>
+                  </div>
+                  <small>{item.source}</small>
                 </div>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      </section>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="Resources" icon={LinkIcon}>
+            <div className="editable-stack">
+              {draft.resources.map((resource) => (
+                <div key={resource.id} className="editable-item">
+                  <input
+                    value={resource.title}
+                    onChange={(event) => updateResource(resource.id, { title: event.target.value })}
+                  />
+                  <input value={resource.url} onChange={(event) => updateResource(resource.id, { url: event.target.value })} />
+                  <input
+                    value={resource.relatedTopic}
+                    onChange={(event) => updateResource(resource.id, { relatedTopic: event.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="Student-specific follow-ups" icon={Users}>
+            <div className="followup-grid">
+              {draft.followUps.map((followUp) => {
+                const student = studentById(followUp.studentId, draft.students);
+                return (
+                  <article key={followUp.studentId} className="followup-card">
+                    <div className="student-line">
+                      <Avatar student={student} />
+                      <div>
+                        <strong>{student.name}</strong>
+                        <small>{attendanceLabel(draft.attendance[student.id] ?? "present")}</small>
+                      </div>
+                      <StatusPill status={followUp.status} />
+                    </div>
+                    <label className="field compact">
+                      <span>Personal reminder</span>
+                      <textarea
+                        value={followUp.reminder}
+                        onChange={(event) => updateFollowUp(followUp.studentId, { reminder: event.target.value })}
+                      />
+                    </label>
+                    <label className="field compact">
+                      <span>Catch-up note</span>
+                      <textarea
+                        value={followUp.catchUp}
+                        onChange={(event) => updateFollowUp(followUp.studentId, { catchUp: event.target.value })}
+                      />
+                    </label>
+                    <div className="inline-fields">
+                      <input
+                        type="date"
+                        value={followUp.dueDate}
+                        onChange={(event) => updateFollowUp(followUp.studentId, { dueDate: event.target.value })}
+                      />
+                      <select
+                        value={followUp.status}
+                        onChange={(event) => updateFollowUp(followUp.studentId, { status: event.target.value as TaskStatus })}
+                      >
+                        <option value="todo">To do</option>
+                        <option value="in_progress">In progress</option>
+                        <option value="complete">Complete</option>
+                        <option value="overdue">Overdue</option>
+                      </select>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </Panel>
+
+          <Panel title="Participation signals" icon={SlidersHorizontal}>
+            <div className="signal-list">
+              {draft.participationEvents.map((event) => (
+                <div key={event.id} className="signal-row">
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={event.approved}
+                      onChange={(inputEvent) => updateParticipation(event.id, { approved: inputEvent.target.checked })}
+                    />
+                    <span />
+                  </label>
+                  <div>
+                    <strong>
+                      {studentById(event.studentId, draft.students).name} · {participationLabel(event.type)}
+                    </strong>
+                    <input value={event.text} onChange={(inputEvent) => updateParticipation(event.id, { text: inputEvent.target.value })} />
+                    <small>{Math.round(event.confidence * 100)}% confidence</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </section>
+      )}
     </div>
   );
 }
@@ -3492,7 +3531,7 @@ function TeacherAnalytics({ sessions }: { sessions: Session[] }) {
           <span className="eyebrow">Participation and follow-through</span>
           <h2>See who spoke, who needs support, and who completed the loop.</h2>
           <p>
-            These analytics are private to the teacher and focused on support, not public ranking.
+            These analytics stay private to you and focused on support, not public ranking.
           </p>
         </div>
         <button className="ghost-button" onClick={() => navigate("new-session")}>

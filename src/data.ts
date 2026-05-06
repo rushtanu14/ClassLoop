@@ -359,6 +359,79 @@ function extractAssignment(text: string) {
   return line || "Review the session recap and complete the assigned follow-up check.";
 }
 
+function extractRecapSummary(text: string, template: SessionType, topics: string[], assignment: string, resourcesCount: number) {
+  const lower = text.toLowerCase();
+  const hasActivity = /peanut butter and jelly|pb&j|sandwich.*robot|robot.*sandwich/i.test(lower);
+  const hasPrecision = /precision problem|precision in programming|ambiguous .* instruction|precise enough|exact instruction/i.test(lower);
+  const hasDecomposition = /decompose|decomposition|smaller parts|function/i.test(lower);
+  const hasPython = /python/i.test(lower);
+  const hasPoll = /nearpod poll|poll launched|78% of you said|best example of an algorithm|map is data/i.test(lower);
+  const lessonGoals = topics.filter((topic) => !/(main lesson ideas|student questions|next steps|meeting|review topics|core math concepts)/i.test(topic)).slice(0, 3);
+  const topicPhrase = lessonGoals.length ? lessonGoals.join(", ") : "the class topic";
+  const recapLines = [`This ${template.toLowerCase()} session focused on ${topicPhrase}.`];
+
+  if (hasActivity) {
+    recapLines.push(
+      "Students practiced writing exact, step-by-step instructions by programming a peanut butter and jelly sandwich for a robot.",
+    );
+  }
+
+  if (hasPrecision) {
+    recapLines.push(
+      "The class explored the precision problem, where vague instructions can cause a program to fail.",
+    );
+  }
+
+  if (hasDecomposition) {
+    recapLines.push(
+      "We connected that work to problem decomposition by breaking the task into smaller steps that can become functions.",
+    );
+  }
+
+  if (hasPoll) {
+    recapLines.push("A quick Nearpod poll checked whether students understood algorithms versus data.");
+  }
+
+  if (hasPython) {
+    recapLines.push("The teacher announced a transition to Python next week so students can apply these ideas in code.");
+  }
+
+  if (assignment && !/review the session recap/i.test(assignment)) {
+    recapLines.push(`Homework: ${assignment}`);
+  }
+
+  if (resourcesCount) {
+    recapLines.push(`Shared ${resourcesCount} video resource${resourcesCount === 1 ? "" : "s"} in chat for extra review.`);
+  }
+
+  return recapLines.join(" ");
+}
+
+function generateEssentialQuestions(text: string, topics: string[], dueDate: string) {
+  const lower = text.toLowerCase();
+  const questions: string[] = [];
+
+  if (/(precision problem|precise enough|vague .* instruction|ambiguous .* instruction)/i.test(lower)) {
+    questions.push("What makes an instruction precise enough for an algorithm or robot?");
+  } else {
+    questions.push(`What were the most important takeaways about ${topics[0] ?? "today's lesson"}?`);
+  }
+
+  if (/(decompose|decomposition|smaller parts|function)/i.test(lower)) {
+    questions.push("How can you break a complex task into smaller, more manageable steps?");
+  } else {
+    questions.push("Which students need support or catch-up before the next session?");
+  }
+
+  if (/(nearpod poll|poll launched|78% of you said|best example of an algorithm|map is data)/i.test(lower)) {
+    questions.push("Why is a sequence of directions an algorithm while a map is just a representation of data?");
+  } else {
+    questions.push(`What follow-up work should be completed by ${dueDate}?`);
+  }
+
+  return questions;
+}
+
 function eventTypeFromText(text: string) {
   if (text.includes("?")) return "asked_question" as const;
   if (/(because|so|should|equals|answer|i think|we can|it is|therefore|the fix|the reason)/i.test(text)) {
@@ -478,6 +551,8 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
   const dueDate = nextFriday();
   const lines = sessionText.split(/\n+/).map((line) => line.trim()).filter(Boolean);
   const resources = parseResources(input.resources, sessionText, topics[0] ?? input.template);
+  const recap = extractRecapSummary(sessionText, input.template, topics, assignment, resources.length);
+  const essentialQuestions = generateEssentialQuestions(sessionText, topics, dueDate);
   const speakerLines = extractTranscriptSpeakers(sessionText);
 
   const attendance = roster.reduce<Record<string, "present" | "absent" | "late">>((acc, student) => {
@@ -599,7 +674,7 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
       description: `Class-level follow-up generated from the imported ${input.template.toLowerCase()} record.`,
       dueDate,
       status: "todo",
-      source: "Detected from transcript, notes, or teacher-entered session details.",
+      source: "Detected from transcript, notes, or your session details.",
     },
     ...followUps
       .filter((followUp) => attendance[followUp.studentId] === "absent" || followUp.score < 55)
@@ -623,14 +698,8 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     students: roster,
     transcript: input.transcript,
     notes: input.notes,
-    recap: sessionText
-      ? `This ${input.template.toLowerCase()} focused on ${topics.slice(0, 3).join(", ")}. Students leave with a shared recap, class-wide follow-up work, and personal review steps based on attendance, questions, and participation from the session.`
-      : `ClassLoop created a blank ${input.template.toLowerCase()} draft. Add transcript details or teacher notes to make the recap more specific.`,
-    essentialQuestions: [
-      `What were the most important takeaways about ${topics[0]}?`,
-      "Which students need support or catch-up before the next session?",
-      `What follow-up work should be completed by ${dueDate}?`,
-    ],
+    recap,
+    essentialQuestions,
     attendance,
     resources,
     actionItems,

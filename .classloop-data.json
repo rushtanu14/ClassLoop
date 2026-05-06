@@ -25,9 +25,1641 @@
       "name": "Rushil Agrawal",
       "passwordHash": "937e8d5fbb48bd4949536cd65b8d35c426b80d2f830c5c308e2cdec422ae2244",
       "createdAt": "2026-05-02T01:28:24.193Z"
+    },
+    {
+      "id": "student-497d7819-4af8-483d-b3b8-794bd3507866",
+      "role": "student",
+      "email": "student-jalen-thompson@classloop.local",
+      "name": "Jalen Thompson",
+      "passwordHash": "937e8d5fbb48bd4949536cd65b8d35c426b80d2f830c5c308e2cdec422ae2244",
+      "createdAt": "2026-05-02T21:37:50.180Z"
+    },
+    {
+      "id": "teacher-6ec24bec-a7fa-4883-99f2-197e0d5b3f30",
+      "role": "teacher",
+      "email": "test@gmail.com",
+      "name": "Rushil Agrawal",
+      "passwordHash": "937e8d5fbb48bd4949536cd65b8d35c426b80d2f830c5c308e2cdec422ae2244",
+      "createdAt": "2026-05-03T16:52:33.719Z"
+    },
+    {
+      "id": "teacher-13dc3d96-e9f5-4a65-8446-ee56dc0382bf",
+      "role": "teacher",
+      "email": "test1@gmail.com",
+      "name": "test",
+      "passwordHash": "937e8d5fbb48bd4949536cd65b8d35c426b80d2f830c5c308e2cdec422ae2244",
+      "createdAt": "2026-05-03T17:02:49.145Z"
+    },
+    {
+      "id": "student-70ffd27b-1e75-4686-b857-065deb370d6c",
+      "role": "student",
+      "email": "rushil@gmail.com",
+      "name": "Rushil",
+      "passwordHash": "937e8d5fbb48bd4949536cd65b8d35c426b80d2f830c5c308e2cdec422ae2244",
+      "createdAt": "2026-05-03T17:05:25.228Z"
+    },
+    {
+      "id": "teacher-a94da108-224f-4f83-8660-92cb33b3c724",
+      "role": "teacher",
+      "email": "test3@gmail.com",
+      "name": "test",
+      "passwordHash": "937e8d5fbb48bd4949536cd65b8d35c426b80d2f830c5c308e2cdec422ae2244",
+      "createdAt": "2026-05-03T17:07:04.436Z"
+    },
+    {
+      "id": "teacher-f4e27965-4bf6-4679-a87f-f104514ef6cb",
+      "role": "teacher",
+      "email": "rushil1@gmail.com",
+      "name": "rushil",
+      "passwordHash": "937e8d5fbb48bd4949536cd65b8d35c426b80d2f830c5c308e2cdec422ae2244",
+      "createdAt": "2026-05-03T17:35:19.044Z"
+    },
+    {
+      "id": "student-27307734-5dc4-4693-92ec-efd95c446a2f",
+      "role": "student",
+      "email": "student-priya-mehta@classloop.local",
+      "name": "priya",
+      "passwordHash": "937e8d5fbb48bd4949536cd65b8d35c426b80d2f830c5c308e2cdec422ae2244",
+      "createdAt": "2026-05-03T17:36:51.866Z"
     }
   ],
   "sessions": [
+    {
+      "id": "session-generated-moq1xd1f",
+      "title": "CS4ALL",
+      "type": "General classroom",
+      "date": "2026-05-03",
+      "status": "published",
+      "students": [
+        {
+          "id": "student-jalen-thompson",
+          "name": "Student (Jalen Thompson)",
+          "email": "student-jalen-thompson@classloop.local",
+          "avatarColor": "#f59e0b"
+        },
+        {
+          "id": "student-priya-mehta",
+          "name": "Student (Priya Mehta)",
+          "email": "student-priya-mehta@classloop.local",
+          "avatarColor": "#0ea5e9"
+        },
+        {
+          "id": "student-marcus-williams",
+          "name": "Student (Marcus Williams)",
+          "email": "student-marcus-williams@classloop.local",
+          "avatarColor": "#8b5cf6"
+        },
+        {
+          "id": "student-aaliyah-carter",
+          "name": "Student (Aaliyah Carter)",
+          "email": "student-aaliyah-carter@classloop.local",
+          "avatarColor": "#10b981"
+        },
+        {
+          "id": "student-danny-reyes",
+          "name": "Student (Danny Reyes)",
+          "email": "student-danny-reyes@classloop.local",
+          "avatarColor": "#ef4444"
+        },
+        {
+          "id": "student-keisha-brown",
+          "name": "Student (Keisha Brown)",
+          "email": "student-keisha-brown@classloop.local",
+          "avatarColor": "#14b8a6"
+        },
+        {
+          "id": "student-leo-fernandez",
+          "name": "Student (Leo Fernandez)",
+          "email": "student-leo-fernandez@classloop.local",
+          "avatarColor": "#6366f1"
+        }
+      ],
+      "transcript": "CLASS ROSTER — CS4All Demo Session\nMs. Rivera | Period 4 | Spring 2026\n#Student NameEmail1Aaliyah Carteracarter@cs4all.nyc2Danny Reyesdreyes@cs4all.nyc3Jalen Thompsonjthompson@cs4all.nyc4Keisha Brownkbrown@cs4all.nyc5Leo Fernandezlfernandez@cs4all.nyc6Marcus Williamsmwilliams@cs4all.nyc7Priya Mehtapmehta@cs4all.nyc8Brianna Owensbowens@cs4all.nyc9Caleb Nguyencnguyen@cs4all.nyc10Destiny Lewisdlewis@cs4all.nyc11Elijah Sandersesanders@cs4all.nyc12Fatima Hassanfhassan@cs4all.nyc13Gabriel Torresgtorres@cs4all.nyc14Hannah Kimhkim@cs4all.nyc15Isaiah Mooreimoore@cs4all.nyc16Jasmine Pateljpatel@cs4all.nyc17Kevin Diazkdiaz@cs4all.nyc18Lena Wulwu@cs4all.nyc\n\nCS4ALL Zoom Demo — Full Transcript\nMeeting Title: CS4All Intro to Computational Thinking — Demo Session\nDate: April 28, 2026\nDuration: 47 minutes\nParticipants: Ms. Rivera (Teacher), 18 Students\n\n[00:00:03] Ms. Rivera: Alright everyone, I'm going to start the recording now. Can everyone give me a thumbs up in the reactions if you can hear me okay?\n[00:00:11] Student (Jalen Thompson): I can hear you!\n[00:00:13] Student (Priya Mehta): Yes, audio is good.\n[00:00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?\n[00:00:28] Student (Marcus Williams): I forgot 😭\n[00:00:31] Ms. Rivera: Marcus, come see me after. Okay, so let's get into it. I'm going to share my screen. Can everyone see the slides?\n[00:00:41] Student (Aaliyah Carter): Yes!\n[00:00:42] Student (Danny Reyes): Yep.\n[00:00:44] Ms. Rivera: Great. So — who can tell me, in their own words, what an algorithm is? Don't look it up, just think about it. Anyone?\n[00:00:57] Student (Priya Mehta): Is it like... a set of steps to solve a problem?\n[00:01:02] Ms. Rivera: Yes! Exactly. A sequence of instructions. Now here's what I want you to think about — where do you encounter algorithms in your daily life? Drop it in the chat.\n[00:01:14] Student (Jalen Thompson): [Chat] TikTok algorithm lol\n[00:01:15] Student (Keisha Brown): [Chat] GPS directions\n[00:01:16] Student (Danny Reyes): [Chat] recipes\n[00:01:17] Student (Marcus Williams): [Chat] alarm clock??\n[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well → https://www.youtube.com/watch?v=6hfOvs8pY1k\n[00:01:20] Ms. Rivera: Love these. Danny — recipes, yes! That's a great one. An alarm clock is actually a really interesting case, Marcus — why do you think that might be algorithmic?\n[00:01:33] Student (Marcus Williams): Uh... because it like, checks the time and then does something based on a condition?\n[00:01:40] Ms. Rivera: Boom. Conditional logic. That's exactly it. Okay, let's move to the activity. I'm going to put you all into breakout rooms — groups of three. Your task is to write out the steps to make a peanut butter and jelly sandwich as if you were programming a robot. Be super literal. The robot has no common sense.\n[00:02:01] Student (Aaliyah Carter): Wait do we write it in a doc?\n[00:02:04] Ms. Rivera: Yes, I'm dropping a Docs link in the chat right now. You have 8 minutes. Go!\n[00:02:09] [Breakout rooms opened — 6 groups]\n\n[00:10:17] [Breakout rooms closed — all participants returned]\n[00:10:22] Ms. Rivera: Okay welcome back! Let's hear from a few groups. Group 2, Keisha — can you share what your group came up with?\n[00:10:31] Student (Keisha Brown): Okay so we wrote: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...\n[00:10:45] Ms. Rivera: Already I'm stopping you — \"flat surface.\" What if the robot doesn't know what flat means? Or what surface to use?\n[00:10:53] Student (Keisha Brown): Oh... we'd have to define that.\n[00:10:55] Ms. Rivera: Exactly! This is what we call the precision problem in programming. Computers do exactly what you tell them — nothing more, nothing less. This is why debugging is so hard. Your logic might be right but your instructions are ambiguous. Okay Group 5, let's hear from you.\n[00:11:14] Student (Leo Fernandez): We kind of went overboard — we wrote like 34 steps.\n[00:11:18] [Laughter from several students]\n[00:11:20] Ms. Rivera: That's not overboard, that's thorough! Can you read a few?\n[00:11:24] Student (Leo Fernandez): Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...\n[00:11:34] [More laughter]\n[00:11:36] Ms. Rivera: I love it, Leo. This is actually really close to pseudocode. You're thinking like a programmer. Alright — let's talk decomposition. When a problem is complex, what do we do?\n[00:11:48] Student (Priya Mehta): Break it into smaller parts?\n[00:11:51] Ms. Rivera: Yes. We decompose it. The sandwich is actually three sub-problems: bread setup, spread application, and assembly. Each of those can be its own function. This maps directly to how we'll write Python functions next week.\n[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly https://www.youtube.com/watch?v=QXjU9qTsYCc\n[00:12:02] Student (Aaliyah Carter): [Chat] omg we watched that in 8th grade lol\n[00:12:04] Ms. Rivera: Leo drop the distractions 😄 but yes that's actually a solid resource, I'll add it to Classroom.\n[00:12:09] Student (Danny Reyes): Wait are we actually gonna code a sandwich?\n[00:12:13] Ms. Rivera: laughs Not quite. But we'll use this mental model. Okay — I want to do a quick Nearpod poll before we wrap up. Checking your understanding. One second while I launch it.\n[00:12:28] [Poll launched]\nQuestion: Which of the following is the BEST example of an algorithm?\n\nA) A list of your favorite songs\nB) Directions from your house to school\nC) A photo of a map\nD) The name of a city\n\n[00:12:55] Ms. Rivera: Okay I'm seeing responses come in... 78% of you said B — directions from your house to school. That is correct! Directions are a sequence of steps with a clear start, end, and decision points. A list of songs has no sequence logic. Good job.\n[00:13:14] Student (Marcus Williams): What about C though? A map kind of shows steps?\n[00:13:19] Ms. Rivera: Great question. A map is a representation of space — it's data. But it's not an algorithm until you apply a process to it — like, GPS takes the map data and runs an algorithm to find the shortest path. Does that distinction make sense?\n[00:13:32] Student (Marcus Williams): Yeah okay yeah.\n[00:13:35] Ms. Rivera: Alright, we have about 5 minutes left. Homework for Thursday: complete the algorithm design worksheet on Google Classroom — it's the one titled \"Everyday Algorithms.\" Also, for those of you who haven't submitted your Unit 2 reflection, that's now past due and affecting your grade.\n[00:13:53] Student (Jalen Thompson): Ms. Rivera is the worksheet the one with the flowcharts?\n[00:13:57] Ms. Rivera: Yes, the one with the flowcharts. There are three problems. You pick two of the three. Any other questions?\n[00:14:06] Student (Aaliyah Carter): Are we going to keep using Scratch or switch to Python?\n[00:14:10] Ms. Rivera: We're transitioning to Python starting next Thursday. We'll use replit — make sure your accounts are set up. I'll send a reminder on Classroom.\n[00:14:19] Ms. Rivera: Okay everyone — great work today. I'll see you Thursday. Jalen, Marcus — stay on for a second.\n[00:14:26] [Students begin leaving the meeting]\n[00:14:31] Student (Jalen Thompson): Yes Ms. Rivera?\n[00:14:33] Ms. Rivera: Jalen, you've been really engaged today, I just want to make sure you're keeping up with the written work too. Your participation is great but I need those docs submitted.\n[00:14:42] Student (Jalen Thompson): Yeah I'll do it tonight I promise.\n[00:14:44] Ms. Rivera: I'm going to hold you to that. Okay, have a good afternoon both of you.\n[00:14:49] [Recording ended]",
+      "notes": "",
+      "recap": "This general classroom session focused on CS4ALL, This is why debugging is so hard. Students practiced writing exact, step-by-step instructions by programming a peanut butter and jelly sandwich for a robot. The class explored the precision problem, where vague instructions can cause a program to fail. We connected that work to problem decomposition by breaking the task into smaller steps that can become functions. A quick Nearpod poll checked whether students understood algorithms versus data. The teacher announced a transition to Python next week so students can apply these ideas in code. Homework: 00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday? Shared 2 video resources in chat for extra review.",
+      "essentialQuestions": [
+        "What makes an instruction precise enough for an algorithm or robot?",
+        "How can you break a complex task into smaller, more manageable steps?",
+        "Why is a sequence of directions an algorithm while a map is just a representation of data?"
+      ],
+      "attendance": {
+        "student-jalen-thompson": "present",
+        "student-priya-mehta": "present",
+        "student-marcus-williams": "present",
+        "student-aaliyah-carter": "present",
+        "student-danny-reyes": "present",
+        "student-keisha-brown": "present",
+        "student-leo-fernandez": "present"
+      },
+      "resources": [
+        {
+          "id": "res-1",
+          "title": "[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well →",
+          "url": "https://www.youtube.com/watch?v=6hfOvs8pY1k",
+          "type": "video",
+          "relatedTopic": "CS4ALL"
+        },
+        {
+          "id": "res-2",
+          "title": "[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly",
+          "url": "https://www.youtube.com/watch?v=QXjU9qTsYCc",
+          "type": "video",
+          "relatedTopic": "CS4ALL"
+        }
+      ],
+      "actionItems": [
+        {
+          "id": "task-class-moq1xd1f",
+          "title": "Complete assigned follow-up work",
+          "description": "Class-level follow-up generated from the imported general classroom record.",
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "source": "Detected from transcript, notes, or teacher-entered session details."
+        },
+        {
+          "id": "task-student-0-moq1xd1f",
+          "title": "Student (Marcus Williams) support check",
+          "description": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
+          "ownerId": "student-marcus-williams",
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "source": "Generated from attendance and participation signals."
+        }
+      ],
+      "participationEvents": [
+        {
+          "id": "p-student-jalen-thompson-0-moq1xd1f",
+          "studentId": "student-jalen-thompson",
+          "type": "chat",
+          "text": "Shared: I can hear you!",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-jalen-thompson-1-moq1xd1f",
+          "studentId": "student-jalen-thompson",
+          "type": "chat",
+          "text": "Shared: [Chat] TikTok algorithm lol",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-priya-mehta-0-moq1xd1f",
+          "studentId": "student-priya-mehta",
+          "type": "chat",
+          "text": "Shared: Yes, audio is good.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-priya-mehta-1-moq1xd1f",
+          "studentId": "student-priya-mehta",
+          "type": "asked_question",
+          "text": "Asked: Is it like... a set of steps to solve a problem?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-marcus-williams-0-moq1xd1f",
+          "studentId": "student-marcus-williams",
+          "type": "chat",
+          "text": "Shared: I forgot 😭",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-marcus-williams-1-moq1xd1f",
+          "studentId": "student-marcus-williams",
+          "type": "asked_question",
+          "text": "Asked: [Chat] alarm clock??",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-aaliyah-carter-0-moq1xd1f",
+          "studentId": "student-aaliyah-carter",
+          "type": "chat",
+          "text": "Shared: Yes!",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-aaliyah-carter-1-moq1xd1f",
+          "studentId": "student-aaliyah-carter",
+          "type": "asked_question",
+          "text": "Asked: Wait do we write it in a doc?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-danny-reyes-0-moq1xd1f",
+          "studentId": "student-danny-reyes",
+          "type": "chat",
+          "text": "Shared: Yep.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-danny-reyes-1-moq1xd1f",
+          "studentId": "student-danny-reyes",
+          "type": "chat",
+          "text": "Shared: [Chat] recipes",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-keisha-brown-0-moq1xd1f",
+          "studentId": "student-keisha-brown",
+          "type": "chat",
+          "text": "Shared: [Chat] GPS directions",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-keisha-brown-1-moq1xd1f",
+          "studentId": "student-keisha-brown",
+          "type": "chat",
+          "text": "Shared: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-leo-fernandez-0-moq1xd1f",
+          "studentId": "student-leo-fernandez",
+          "type": "chat",
+          "text": "Shared: We kind of went overboard — we wrote like 34 steps.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-leo-fernandez-1-moq1xd1f",
+          "studentId": "student-leo-fernandez",
+          "type": "chat",
+          "text": "Shared: Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...",
+          "confidence": 0.86,
+          "approved": true
+        }
+      ],
+      "followUps": [
+        {
+          "studentId": "student-jalen-thompson",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-priya-mehta",
+          "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: Is it like... a set of steps to solve a problem?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 65
+        },
+        {
+          "studentId": "student-marcus-williams",
+          "reminder": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus extra review for the part that seemed confusing during class.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: [Chat] alarm clock??",
+            "Redo the step connected to: I forgot 😭"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 49
+        },
+        {
+          "studentId": "student-aaliyah-carter",
+          "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: Wait do we write it in a doc?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 65
+        },
+        {
+          "studentId": "student-danny-reyes",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-keisha-brown",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-leo-fernandez",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        }
+      ],
+      "unmatchedParticipants": [],
+      "transcriptAliases": {},
+      "ownerEmail": "rushil1@gmail.com"
+    },
+    {
+      "id": "session-generated-moq0xezl",
+      "title": "CS4ALL",
+      "type": "General classroom",
+      "date": "2026-05-03",
+      "status": "published",
+      "students": [
+        {
+          "id": "student-jalen-thompson",
+          "name": "Student (Jalen Thompson)",
+          "email": "student-jalen-thompson@classloop.local",
+          "avatarColor": "#f59e0b"
+        },
+        {
+          "id": "student-priya-mehta",
+          "name": "Student (Priya Mehta)",
+          "email": "student-priya-mehta@classloop.local",
+          "avatarColor": "#0ea5e9"
+        },
+        {
+          "id": "student-marcus-williams",
+          "name": "Student (Marcus Williams)",
+          "email": "student-marcus-williams@classloop.local",
+          "avatarColor": "#8b5cf6"
+        },
+        {
+          "id": "student-aaliyah-carter",
+          "name": "Student (Aaliyah Carter)",
+          "email": "student-aaliyah-carter@classloop.local",
+          "avatarColor": "#10b981"
+        },
+        {
+          "id": "student-danny-reyes",
+          "name": "Student (Danny Reyes)",
+          "email": "student-danny-reyes@classloop.local",
+          "avatarColor": "#ef4444"
+        },
+        {
+          "id": "student-keisha-brown",
+          "name": "Student (Keisha Brown)",
+          "email": "student-keisha-brown@classloop.local",
+          "avatarColor": "#14b8a6"
+        },
+        {
+          "id": "student-leo-fernandez",
+          "name": "Student (Leo Fernandez)",
+          "email": "student-leo-fernandez@classloop.local",
+          "avatarColor": "#6366f1"
+        }
+      ],
+      "transcript": "CLASS ROSTER — CS4All Demo Session\nMs. Rivera | Period 4 | Spring 2026\n#Student NameEmail1Aaliyah Carteracarter@cs4all.nyc2Danny Reyesdreyes@cs4all.nyc3Jalen Thompsonjthompson@cs4all.nyc4Keisha Brownkbrown@cs4all.nyc5Leo Fernandezlfernandez@cs4all.nyc6Marcus Williamsmwilliams@cs4all.nyc7Priya Mehtapmehta@cs4all.nyc8Brianna Owensbowens@cs4all.nyc9Caleb Nguyencnguyen@cs4all.nyc10Destiny Lewisdlewis@cs4all.nyc11Elijah Sandersesanders@cs4all.nyc12Fatima Hassanfhassan@cs4all.nyc13Gabriel Torresgtorres@cs4all.nyc14Hannah Kimhkim@cs4all.nyc15Isaiah Mooreimoore@cs4all.nyc16Jasmine Pateljpatel@cs4all.nyc17Kevin Diazkdiaz@cs4all.nyc18Lena Wulwu@cs4all.nyc\n\nCS4ALL Zoom Demo — Full Transcript\nMeeting Title: CS4All Intro to Computational Thinking — Demo Session\nDate: April 28, 2026\nDuration: 47 minutes\nParticipants: Ms. Rivera (Teacher), 18 Students\n\n[00:00:03] Ms. Rivera: Alright everyone, I'm going to start the recording now. Can everyone give me a thumbs up in the reactions if you can hear me okay?\n[00:00:11] Student (Jalen Thompson): I can hear you!\n[00:00:13] Student (Priya Mehta): Yes, audio is good.\n[00:00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?\n[00:00:28] Student (Marcus Williams): I forgot 😭\n[00:00:31] Ms. Rivera: Marcus, come see me after. Okay, so let's get into it. I'm going to share my screen. Can everyone see the slides?\n[00:00:41] Student (Aaliyah Carter): Yes!\n[00:00:42] Student (Danny Reyes): Yep.\n[00:00:44] Ms. Rivera: Great. So — who can tell me, in their own words, what an algorithm is? Don't look it up, just think about it. Anyone?\n[00:00:57] Student (Priya Mehta): Is it like... a set of steps to solve a problem?\n[00:01:02] Ms. Rivera: Yes! Exactly. A sequence of instructions. Now here's what I want you to think about — where do you encounter algorithms in your daily life? Drop it in the chat.\n[00:01:14] Student (Jalen Thompson): [Chat] TikTok algorithm lol\n[00:01:15] Student (Keisha Brown): [Chat] GPS directions\n[00:01:16] Student (Danny Reyes): [Chat] recipes\n[00:01:17] Student (Marcus Williams): [Chat] alarm clock??\n[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well → https://www.youtube.com/watch?v=6hfOvs8pY1k\n[00:01:20] Ms. Rivera: Love these. Danny — recipes, yes! That's a great one. An alarm clock is actually a really interesting case, Marcus — why do you think that might be algorithmic?\n[00:01:33] Student (Marcus Williams): Uh... because it like, checks the time and then does something based on a condition?\n[00:01:40] Ms. Rivera: Boom. Conditional logic. That's exactly it. Okay, let's move to the activity. I'm going to put you all into breakout rooms — groups of three. Your task is to write out the steps to make a peanut butter and jelly sandwich as if you were programming a robot. Be super literal. The robot has no common sense.\n[00:02:01] Student (Aaliyah Carter): Wait do we write it in a doc?\n[00:02:04] Ms. Rivera: Yes, I'm dropping a Docs link in the chat right now. You have 8 minutes. Go!\n[00:02:09] [Breakout rooms opened — 6 groups]\n\n[00:10:17] [Breakout rooms closed — all participants returned]\n[00:10:22] Ms. Rivera: Okay welcome back! Let's hear from a few groups. Group 2, Keisha — can you share what your group came up with?\n[00:10:31] Student (Keisha Brown): Okay so we wrote: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...\n[00:10:45] Ms. Rivera: Already I'm stopping you — \"flat surface.\" What if the robot doesn't know what flat means? Or what surface to use?\n[00:10:53] Student (Keisha Brown): Oh... we'd have to define that.\n[00:10:55] Ms. Rivera: Exactly! This is what we call the precision problem in programming. Computers do exactly what you tell them — nothing more, nothing less. This is why debugging is so hard. Your logic might be right but your instructions are ambiguous. Okay Group 5, let's hear from you.\n[00:11:14] Student (Leo Fernandez): We kind of went overboard — we wrote like 34 steps.\n[00:11:18] [Laughter from several students]\n[00:11:20] Ms. Rivera: That's not overboard, that's thorough! Can you read a few?\n[00:11:24] Student (Leo Fernandez): Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...\n[00:11:34] [More laughter]\n[00:11:36] Ms. Rivera: I love it, Leo. This is actually really close to pseudocode. You're thinking like a programmer. Alright — let's talk decomposition. When a problem is complex, what do we do?\n[00:11:48] Student (Priya Mehta): Break it into smaller parts?\n[00:11:51] Ms. Rivera: Yes. We decompose it. The sandwich is actually three sub-problems: bread setup, spread application, and assembly. Each of those can be its own function. This maps directly to how we'll write Python functions next week.\n[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly https://www.youtube.com/watch?v=QXjU9qTsYCc\n[00:12:02] Student (Aaliyah Carter): [Chat] omg we watched that in 8th grade lol\n[00:12:04] Ms. Rivera: Leo drop the distractions 😄 but yes that's actually a solid resource, I'll add it to Classroom.\n[00:12:09] Student (Danny Reyes): Wait are we actually gonna code a sandwich?\n[00:12:13] Ms. Rivera: laughs Not quite. But we'll use this mental model. Okay — I want to do a quick Nearpod poll before we wrap up. Checking your understanding. One second while I launch it.\n[00:12:28] [Poll launched]\nQuestion: Which of the following is the BEST example of an algorithm?\n\nA) A list of your favorite songs\nB) Directions from your house to school\nC) A photo of a map\nD) The name of a city\n\n[00:12:55] Ms. Rivera: Okay I'm seeing responses come in... 78% of you said B — directions from your house to school. That is correct! Directions are a sequence of steps with a clear start, end, and decision points. A list of songs has no sequence logic. Good job.\n[00:13:14] Student (Marcus Williams): What about C though? A map kind of shows steps?\n[00:13:19] Ms. Rivera: Great question. A map is a representation of space — it's data. But it's not an algorithm until you apply a process to it — like, GPS takes the map data and runs an algorithm to find the shortest path. Does that distinction make sense?\n[00:13:32] Student (Marcus Williams): Yeah okay yeah.\n[00:13:35] Ms. Rivera: Alright, we have about 5 minutes left. Homework for Thursday: complete the algorithm design worksheet on Google Classroom — it's the one titled \"Everyday Algorithms.\" Also, for those of you who haven't submitted your Unit 2 reflection, that's now past due and affecting your grade.\n[00:13:53] Student (Jalen Thompson): Ms. Rivera is the worksheet the one with the flowcharts?\n[00:13:57] Ms. Rivera: Yes, the one with the flowcharts. There are three problems. You pick two of the three. Any other questions?\n[00:14:06] Student (Aaliyah Carter): Are we going to keep using Scratch or switch to Python?\n[00:14:10] Ms. Rivera: We're transitioning to Python starting next Thursday. We'll use replit — make sure your accounts are set up. I'll send a reminder on Classroom.\n[00:14:19] Ms. Rivera: Okay everyone — great work today. I'll see you Thursday. Jalen, Marcus — stay on for a second.\n[00:14:26] [Students begin leaving the meeting]\n[00:14:31] Student (Jalen Thompson): Yes Ms. Rivera?\n[00:14:33] Ms. Rivera: Jalen, you've been really engaged today, I just want to make sure you're keeping up with the written work too. Your participation is great but I need those docs submitted.\n[00:14:42] Student (Jalen Thompson): Yeah I'll do it tonight I promise.\n[00:14:44] Ms. Rivera: I'm going to hold you to that. Okay, have a good afternoon both of you.\n[00:14:49] [Recording ended]",
+      "notes": "",
+      "recap": "This general classroom session focused on CS4ALL, This is why debugging is so hard. Students practiced writing exact, step-by-step instructions by programming a peanut butter and jelly sandwich for a robot. The class explored the precision problem, where vague instructions can cause a program to fail. We connected that work to problem decomposition by breaking the task into smaller steps that can become functions. A quick Nearpod poll checked whether students understood algorithms versus data. The teacher announced a transition to Python next week so students can apply these ideas in code. Homework: 00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday? Shared 2 video resources in chat for extra review.",
+      "essentialQuestions": [
+        "What makes an instruction precise enough for an algorithm or robot?",
+        "How can you break a complex task into smaller, more manageable steps?",
+        "Why is a sequence of directions an algorithm while a map is just a representation of data?"
+      ],
+      "attendance": {
+        "student-jalen-thompson": "present",
+        "student-priya-mehta": "present",
+        "student-marcus-williams": "present",
+        "student-aaliyah-carter": "present",
+        "student-danny-reyes": "present",
+        "student-keisha-brown": "present",
+        "student-leo-fernandez": "present"
+      },
+      "resources": [
+        {
+          "id": "res-1",
+          "title": "[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well →",
+          "url": "https://www.youtube.com/watch?v=6hfOvs8pY1k",
+          "type": "video",
+          "relatedTopic": "CS4ALL"
+        },
+        {
+          "id": "res-2",
+          "title": "[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly",
+          "url": "https://www.youtube.com/watch?v=QXjU9qTsYCc",
+          "type": "video",
+          "relatedTopic": "CS4ALL"
+        }
+      ],
+      "actionItems": [
+        {
+          "id": "task-class-moq0xezl",
+          "title": "Complete assigned follow-up work",
+          "description": "Class-level follow-up generated from the imported general classroom record.",
+          "dueDate": "2026-05-08",
+          "status": "complete",
+          "source": "Detected from transcript, notes, or teacher-entered session details."
+        },
+        {
+          "id": "task-student-0-moq0xezl",
+          "title": "Student (Marcus Williams) support check",
+          "description": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
+          "ownerId": "student-marcus-williams",
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "source": "Generated from attendance and participation signals."
+        }
+      ],
+      "participationEvents": [
+        {
+          "id": "p-student-jalen-thompson-0-moq0xezl",
+          "studentId": "student-jalen-thompson",
+          "type": "chat",
+          "text": "Shared: I can hear you!",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-jalen-thompson-1-moq0xezl",
+          "studentId": "student-jalen-thompson",
+          "type": "chat",
+          "text": "Shared: [Chat] TikTok algorithm lol",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-priya-mehta-0-moq0xezl",
+          "studentId": "student-priya-mehta",
+          "type": "chat",
+          "text": "Shared: Yes, audio is good.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-priya-mehta-1-moq0xezl",
+          "studentId": "student-priya-mehta",
+          "type": "asked_question",
+          "text": "Asked: Is it like... a set of steps to solve a problem?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-marcus-williams-0-moq0xezl",
+          "studentId": "student-marcus-williams",
+          "type": "chat",
+          "text": "Shared: I forgot 😭",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-marcus-williams-1-moq0xezl",
+          "studentId": "student-marcus-williams",
+          "type": "asked_question",
+          "text": "Asked: [Chat] alarm clock??",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-aaliyah-carter-0-moq0xezl",
+          "studentId": "student-aaliyah-carter",
+          "type": "chat",
+          "text": "Shared: Yes!",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-aaliyah-carter-1-moq0xezl",
+          "studentId": "student-aaliyah-carter",
+          "type": "asked_question",
+          "text": "Asked: Wait do we write it in a doc?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-danny-reyes-0-moq0xezl",
+          "studentId": "student-danny-reyes",
+          "type": "chat",
+          "text": "Shared: Yep.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-danny-reyes-1-moq0xezl",
+          "studentId": "student-danny-reyes",
+          "type": "chat",
+          "text": "Shared: [Chat] recipes",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-keisha-brown-0-moq0xezl",
+          "studentId": "student-keisha-brown",
+          "type": "chat",
+          "text": "Shared: [Chat] GPS directions",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-keisha-brown-1-moq0xezl",
+          "studentId": "student-keisha-brown",
+          "type": "chat",
+          "text": "Shared: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-leo-fernandez-0-moq0xezl",
+          "studentId": "student-leo-fernandez",
+          "type": "chat",
+          "text": "Shared: We kind of went overboard — we wrote like 34 steps.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-leo-fernandez-1-moq0xezl",
+          "studentId": "student-leo-fernandez",
+          "type": "chat",
+          "text": "Shared: Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...",
+          "confidence": 0.86,
+          "approved": true
+        }
+      ],
+      "followUps": [
+        {
+          "studentId": "student-jalen-thompson",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "complete",
+          "score": 100
+        },
+        {
+          "studentId": "student-priya-mehta",
+          "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: Is it like... a set of steps to solve a problem?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 65
+        },
+        {
+          "studentId": "student-marcus-williams",
+          "reminder": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus extra review for the part that seemed confusing during class.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: [Chat] alarm clock??",
+            "Redo the step connected to: I forgot 😭"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 49
+        },
+        {
+          "studentId": "student-aaliyah-carter",
+          "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: Wait do we write it in a doc?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 65
+        },
+        {
+          "studentId": "student-danny-reyes",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-keisha-brown",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-leo-fernandez",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        }
+      ],
+      "unmatchedParticipants": [],
+      "transcriptAliases": {},
+      "ownerEmail": "test3@gmail.com"
+    },
+    {
+      "id": "session-generated-moq0rm8u",
+      "title": "CS4ALL",
+      "type": "General classroom",
+      "date": "2026-05-03",
+      "status": "published",
+      "students": [
+        {
+          "id": "student-jalen-thompson",
+          "name": "Student (Jalen Thompson)",
+          "email": "student-jalen-thompson@classloop.local",
+          "avatarColor": "#f59e0b",
+          "aliases": []
+        },
+        {
+          "id": "student-priya-mehta",
+          "name": "Student (Priya Mehta)",
+          "email": "student-priya-mehta@classloop.local",
+          "avatarColor": "#0ea5e9",
+          "aliases": []
+        },
+        {
+          "id": "student-marcus-williams",
+          "name": "Student (Marcus Williams)",
+          "email": "student-marcus-williams@classloop.local",
+          "avatarColor": "#8b5cf6",
+          "aliases": []
+        },
+        {
+          "id": "student-aaliyah-carter",
+          "name": "Student (Aaliyah Carter)",
+          "email": "student-aaliyah-carter@classloop.local",
+          "avatarColor": "#10b981",
+          "aliases": []
+        },
+        {
+          "id": "student-danny-reyes",
+          "name": "Student (Danny Reyes)",
+          "email": "student-danny-reyes@classloop.local",
+          "avatarColor": "#ef4444",
+          "aliases": []
+        },
+        {
+          "id": "student-keisha-brown",
+          "name": "Student (Keisha Brown)",
+          "email": "student-keisha-brown@classloop.local",
+          "avatarColor": "#14b8a6",
+          "aliases": []
+        },
+        {
+          "id": "student-leo-fernandez",
+          "name": "Student (Leo Fernandez)",
+          "email": "student-leo-fernandez@classloop.local",
+          "avatarColor": "#6366f1",
+          "aliases": []
+        },
+        {
+          "id": "student-8-moq0rte8",
+          "name": "Rushil",
+          "email": "rushil@gmail.com",
+          "avatarColor": "#d946ef",
+          "aliases": []
+        }
+      ],
+      "transcript": "CLASS ROSTER — CS4All Demo Session\nMs. Rivera | Period 4 | Spring 2026\n#Student NameEmail1Aaliyah Carteracarter@cs4all.nyc2Danny Reyesdreyes@cs4all.nyc3Jalen Thompsonjthompson@cs4all.nyc4Keisha Brownkbrown@cs4all.nyc5Leo Fernandezlfernandez@cs4all.nyc6Marcus Williamsmwilliams@cs4all.nyc7Priya Mehtapmehta@cs4all.nyc8Brianna Owensbowens@cs4all.nyc9Caleb Nguyencnguyen@cs4all.nyc10Destiny Lewisdlewis@cs4all.nyc11Elijah Sandersesanders@cs4all.nyc12Fatima Hassanfhassan@cs4all.nyc13Gabriel Torresgtorres@cs4all.nyc14Hannah Kimhkim@cs4all.nyc15Isaiah Mooreimoore@cs4all.nyc16Jasmine Pateljpatel@cs4all.nyc17Kevin Diazkdiaz@cs4all.nyc18Lena Wulwu@cs4all.nyc\n\nCS4ALL Zoom Demo — Full Transcript\nMeeting Title: CS4All Intro to Computational Thinking — Demo Session\nDate: April 28, 2026\nDuration: 47 minutes\nParticipants: Ms. Rivera (Teacher), 18 Students\n\n[00:00:03] Ms. Rivera: Alright everyone, I'm going to start the recording now. Can everyone give me a thumbs up in the reactions if you can hear me okay?\n[00:00:11] Student (Jalen Thompson): I can hear you!\n[00:00:13] Student (Priya Mehta): Yes, audio is good.\n[00:00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?\n[00:00:28] Student (Marcus Williams): I forgot 😭\n[00:00:31] Ms. Rivera: Marcus, come see me after. Okay, so let's get into it. I'm going to share my screen. Can everyone see the slides?\n[00:00:41] Student (Aaliyah Carter): Yes!\n[00:00:42] Student (Danny Reyes): Yep.\n[00:00:44] Ms. Rivera: Great. So — who can tell me, in their own words, what an algorithm is? Don't look it up, just think about it. Anyone?\n[00:00:57] Student (Priya Mehta): Is it like... a set of steps to solve a problem?\n[00:01:02] Ms. Rivera: Yes! Exactly. A sequence of instructions. Now here's what I want you to think about — where do you encounter algorithms in your daily life? Drop it in the chat.\n[00:01:14] Student (Jalen Thompson): [Chat] TikTok algorithm lol\n[00:01:15] Student (Keisha Brown): [Chat] GPS directions\n[00:01:16] Student (Danny Reyes): [Chat] recipes\n[00:01:17] Student (Marcus Williams): [Chat] alarm clock??\n[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well → https://www.youtube.com/watch?v=6hfOvs8pY1k\n[00:01:20] Ms. Rivera: Love these. Danny — recipes, yes! That's a great one. An alarm clock is actually a really interesting case, Marcus — why do you think that might be algorithmic?\n[00:01:33] Student (Marcus Williams): Uh... because it like, checks the time and then does something based on a condition?\n[00:01:40] Ms. Rivera: Boom. Conditional logic. That's exactly it. Okay, let's move to the activity. I'm going to put you all into breakout rooms — groups of three. Your task is to write out the steps to make a peanut butter and jelly sandwich as if you were programming a robot. Be super literal. The robot has no common sense.\n[00:02:01] Student (Aaliyah Carter): Wait do we write it in a doc?\n[00:02:04] Ms. Rivera: Yes, I'm dropping a Docs link in the chat right now. You have 8 minutes. Go!\n[00:02:09] [Breakout rooms opened — 6 groups]\n\n[00:10:17] [Breakout rooms closed — all participants returned]\n[00:10:22] Ms. Rivera: Okay welcome back! Let's hear from a few groups. Group 2, Keisha — can you share what your group came up with?\n[00:10:31] Student (Keisha Brown): Okay so we wrote: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...\n[00:10:45] Ms. Rivera: Already I'm stopping you — \"flat surface.\" What if the robot doesn't know what flat means? Or what surface to use?\n[00:10:53] Student (Keisha Brown): Oh... we'd have to define that.\n[00:10:55] Ms. Rivera: Exactly! This is what we call the precision problem in programming. Computers do exactly what you tell them — nothing more, nothing less. This is why debugging is so hard. Your logic might be right but your instructions are ambiguous. Okay Group 5, let's hear from you.\n[00:11:14] Student (Leo Fernandez): We kind of went overboard — we wrote like 34 steps.\n[00:11:18] [Laughter from several students]\n[00:11:20] Ms. Rivera: That's not overboard, that's thorough! Can you read a few?\n[00:11:24] Student (Leo Fernandez): Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...\n[00:11:34] [More laughter]\n[00:11:36] Ms. Rivera: I love it, Leo. This is actually really close to pseudocode. You're thinking like a programmer. Alright — let's talk decomposition. When a problem is complex, what do we do?\n[00:11:48] Student (Priya Mehta): Break it into smaller parts?\n[00:11:51] Ms. Rivera: Yes. We decompose it. The sandwich is actually three sub-problems: bread setup, spread application, and assembly. Each of those can be its own function. This maps directly to how we'll write Python functions next week.\n[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly https://www.youtube.com/watch?v=QXjU9qTsYCc\n[00:12:02] Student (Aaliyah Carter): [Chat] omg we watched that in 8th grade lol\n[00:12:04] Ms. Rivera: Leo drop the distractions 😄 but yes that's actually a solid resource, I'll add it to Classroom.\n[00:12:09] Student (Danny Reyes): Wait are we actually gonna code a sandwich?\n[00:12:13] Ms. Rivera: laughs Not quite. But we'll use this mental model. Okay — I want to do a quick Nearpod poll before we wrap up. Checking your understanding. One second while I launch it.\n[00:12:28] [Poll launched]\nQuestion: Which of the following is the BEST example of an algorithm?\n\nA) A list of your favorite songs\nB) Directions from your house to school\nC) A photo of a map\nD) The name of a city\n\n[00:12:55] Ms. Rivera: Okay I'm seeing responses come in... 78% of you said B — directions from your house to school. That is correct! Directions are a sequence of steps with a clear start, end, and decision points. A list of songs has no sequence logic. Good job.\n[00:13:14] Student (Marcus Williams): What about C though? A map kind of shows steps?\n[00:13:19] Ms. Rivera: Great question. A map is a representation of space — it's data. But it's not an algorithm until you apply a process to it — like, GPS takes the map data and runs an algorithm to find the shortest path. Does that distinction make sense?\n[00:13:32] Student (Marcus Williams): Yeah okay yeah.\n[00:13:35] Ms. Rivera: Alright, we have about 5 minutes left. Homework for Thursday: complete the algorithm design worksheet on Google Classroom — it's the one titled \"Everyday Algorithms.\" Also, for those of you who haven't submitted your Unit 2 reflection, that's now past due and affecting your grade.\n[00:13:53] Student (Jalen Thompson): Ms. Rivera is the worksheet the one with the flowcharts?\n[00:13:57] Ms. Rivera: Yes, the one with the flowcharts. There are three problems. You pick two of the three. Any other questions?\n[00:14:06] Student (Aaliyah Carter): Are we going to keep using Scratch or switch to Python?\n[00:14:10] Ms. Rivera: We're transitioning to Python starting next Thursday. We'll use replit — make sure your accounts are set up. I'll send a reminder on Classroom.\n[00:14:19] Ms. Rivera: Okay everyone — great work today. I'll see you Thursday. Jalen, Marcus — stay on for a second.\n[00:14:26] [Students begin leaving the meeting]\n[00:14:31] Student (Jalen Thompson): Yes Ms. Rivera?\n[00:14:33] Ms. Rivera: Jalen, you've been really engaged today, I just want to make sure you're keeping up with the written work too. Your participation is great but I need those docs submitted.\n[00:14:42] Student (Jalen Thompson): Yeah I'll do it tonight I promise.\n[00:14:44] Ms. Rivera: I'm going to hold you to that. Okay, have a good afternoon both of you.\n[00:14:49] [Recording ended]",
+      "notes": "",
+      "recap": "This general classroom session focused on CS4ALL, This is why debugging is so hard. Students practiced writing exact, step-by-step instructions by programming a peanut butter and jelly sandwich for a robot. The class explored the precision problem, where vague instructions can cause a program to fail. We connected that work to problem decomposition by breaking the task into smaller steps that can become functions. A quick Nearpod poll checked whether students understood algorithms versus data. The teacher announced a transition to Python next week so students can apply these ideas in code. Homework: 00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday? Shared 2 video resources in chat for extra review.",
+      "essentialQuestions": [
+        "What makes an instruction precise enough for an algorithm or robot?",
+        "How can you break a complex task into smaller, more manageable steps?",
+        "Why is a sequence of directions an algorithm while a map is just a representation of data?"
+      ],
+      "attendance": {
+        "student-jalen-thompson": "present",
+        "student-priya-mehta": "present",
+        "student-marcus-williams": "present",
+        "student-aaliyah-carter": "present",
+        "student-danny-reyes": "present",
+        "student-keisha-brown": "present",
+        "student-leo-fernandez": "present",
+        "student-8-moq0rte8": "absent"
+      },
+      "resources": [
+        {
+          "id": "res-1",
+          "title": "[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well →",
+          "url": "https://www.youtube.com/watch?v=6hfOvs8pY1k",
+          "type": "video",
+          "relatedTopic": "CS4ALL"
+        },
+        {
+          "id": "res-2",
+          "title": "[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly",
+          "url": "https://www.youtube.com/watch?v=QXjU9qTsYCc",
+          "type": "video",
+          "relatedTopic": "CS4ALL"
+        }
+      ],
+      "actionItems": [
+        {
+          "id": "task-class-moq0rm8u",
+          "title": "Complete assigned follow-up work",
+          "description": "Class-level follow-up generated from the imported general classroom record.",
+          "dueDate": "2026-05-08",
+          "status": "complete",
+          "source": "Detected from transcript, notes, or teacher-entered session details."
+        },
+        {
+          "id": "task-student-0-moq0rm8u",
+          "title": "Student (Marcus Williams) support check",
+          "description": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
+          "ownerId": "student-marcus-williams",
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "source": "Generated from attendance and participation signals."
+        }
+      ],
+      "participationEvents": [
+        {
+          "id": "p-student-jalen-thompson-0-moq0rm8u",
+          "studentId": "student-jalen-thompson",
+          "type": "chat",
+          "text": "Shared: I can hear you!",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-jalen-thompson-1-moq0rm8u",
+          "studentId": "student-jalen-thompson",
+          "type": "chat",
+          "text": "Shared: [Chat] TikTok algorithm lol",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-priya-mehta-0-moq0rm8u",
+          "studentId": "student-priya-mehta",
+          "type": "chat",
+          "text": "Shared: Yes, audio is good.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-priya-mehta-1-moq0rm8u",
+          "studentId": "student-priya-mehta",
+          "type": "asked_question",
+          "text": "Asked: Is it like... a set of steps to solve a problem?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-marcus-williams-0-moq0rm8u",
+          "studentId": "student-marcus-williams",
+          "type": "chat",
+          "text": "Shared: I forgot 😭",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-marcus-williams-1-moq0rm8u",
+          "studentId": "student-marcus-williams",
+          "type": "asked_question",
+          "text": "Asked: [Chat] alarm clock??",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-aaliyah-carter-0-moq0rm8u",
+          "studentId": "student-aaliyah-carter",
+          "type": "chat",
+          "text": "Shared: Yes!",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-aaliyah-carter-1-moq0rm8u",
+          "studentId": "student-aaliyah-carter",
+          "type": "asked_question",
+          "text": "Asked: Wait do we write it in a doc?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-danny-reyes-0-moq0rm8u",
+          "studentId": "student-danny-reyes",
+          "type": "chat",
+          "text": "Shared: Yep.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-danny-reyes-1-moq0rm8u",
+          "studentId": "student-danny-reyes",
+          "type": "chat",
+          "text": "Shared: [Chat] recipes",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-keisha-brown-0-moq0rm8u",
+          "studentId": "student-keisha-brown",
+          "type": "chat",
+          "text": "Shared: [Chat] GPS directions",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-keisha-brown-1-moq0rm8u",
+          "studentId": "student-keisha-brown",
+          "type": "chat",
+          "text": "Shared: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-leo-fernandez-0-moq0rm8u",
+          "studentId": "student-leo-fernandez",
+          "type": "chat",
+          "text": "Shared: We kind of went overboard — we wrote like 34 steps.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-leo-fernandez-1-moq0rm8u",
+          "studentId": "student-leo-fernandez",
+          "type": "chat",
+          "text": "Shared: Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...",
+          "confidence": 0.86,
+          "approved": true
+        }
+      ],
+      "followUps": [
+        {
+          "studentId": "student-jalen-thompson",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-priya-mehta",
+          "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: Is it like... a set of steps to solve a problem?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 65
+        },
+        {
+          "studentId": "student-marcus-williams",
+          "reminder": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus extra review for the part that seemed confusing during class.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: [Chat] alarm clock??",
+            "Redo the step connected to: I forgot 😭"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 49
+        },
+        {
+          "studentId": "student-aaliyah-carter",
+          "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: Wait do we write it in a doc?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 65
+        },
+        {
+          "studentId": "student-danny-reyes",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-keisha-brown",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-leo-fernandez",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-8-moq0rte8",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "You were added to this session roster. Use the recap, resources, and tasks to stay current.",
+          "tasks": [
+            "Complete assigned follow-up work"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "complete",
+          "score": 100
+        }
+      ],
+      "unmatchedParticipants": [],
+      "transcriptAliases": {},
+      "ownerEmail": "test1@gmail.com"
+    },
+    {
+      "id": "session-generated-moq0ep94",
+      "title": "CS4ALL",
+      "type": "General classroom",
+      "date": "2026-05-03",
+      "status": "published",
+      "students": [
+        {
+          "id": "student-jalen-thompson",
+          "name": "Student (Jalen Thompson)",
+          "email": "student-jalen-thompson@classloop.local",
+          "avatarColor": "#f59e0b",
+          "aliases": []
+        },
+        {
+          "id": "student-priya-mehta",
+          "name": "Student (Priya Mehta)",
+          "email": "student-priya-mehta@classloop.local",
+          "avatarColor": "#0ea5e9",
+          "aliases": []
+        },
+        {
+          "id": "student-marcus-williams",
+          "name": "Student (Marcus Williams)",
+          "email": "student-marcus-williams@classloop.local",
+          "avatarColor": "#8b5cf6",
+          "aliases": []
+        },
+        {
+          "id": "student-aaliyah-carter",
+          "name": "Student (Aaliyah Carter)",
+          "email": "student-aaliyah-carter@classloop.local",
+          "avatarColor": "#10b981",
+          "aliases": []
+        },
+        {
+          "id": "student-danny-reyes",
+          "name": "Student (Danny Reyes)",
+          "email": "student-danny-reyes@classloop.local",
+          "avatarColor": "#ef4444",
+          "aliases": []
+        },
+        {
+          "id": "student-keisha-brown",
+          "name": "Student (Keisha Brown)",
+          "email": "student-keisha-brown@classloop.local",
+          "avatarColor": "#14b8a6",
+          "aliases": []
+        },
+        {
+          "id": "student-leo-fernandez",
+          "name": "Student (Leo Fernandez)",
+          "email": "student-leo-fernandez@classloop.local",
+          "avatarColor": "#6366f1",
+          "aliases": []
+        },
+        {
+          "id": "student-8-moq0f1f2",
+          "name": "rushil",
+          "email": "test123@gmail.com",
+          "avatarColor": "#d946ef",
+          "aliases": []
+        }
+      ],
+      "transcript": "CLASS ROSTER — CS4All Demo Session\nMs. Rivera | Period 4 | Spring 2026\n#Student NameEmail1Aaliyah Carteracarter@cs4all.nyc2Danny Reyesdreyes@cs4all.nyc3Jalen Thompsonjthompson@cs4all.nyc4Keisha Brownkbrown@cs4all.nyc5Leo Fernandezlfernandez@cs4all.nyc6Marcus Williamsmwilliams@cs4all.nyc7Priya Mehtapmehta@cs4all.nyc8Brianna Owensbowens@cs4all.nyc9Caleb Nguyencnguyen@cs4all.nyc10Destiny Lewisdlewis@cs4all.nyc11Elijah Sandersesanders@cs4all.nyc12Fatima Hassanfhassan@cs4all.nyc13Gabriel Torresgtorres@cs4all.nyc14Hannah Kimhkim@cs4all.nyc15Isaiah Mooreimoore@cs4all.nyc16Jasmine Pateljpatel@cs4all.nyc17Kevin Diazkdiaz@cs4all.nyc18Lena Wulwu@cs4all.nyc\n\nCS4ALL Zoom Demo — Full Transcript\nMeeting Title: CS4All Intro to Computational Thinking — Demo Session\nDate: April 28, 2026\nDuration: 47 minutes\nParticipants: Ms. Rivera (Teacher), 18 Students\n\n[00:00:03] Ms. Rivera: Alright everyone, I'm going to start the recording now. Can everyone give me a thumbs up in the reactions if you can hear me okay?\n[00:00:11] Student (Jalen Thompson): I can hear you!\n[00:00:13] Student (Priya Mehta): Yes, audio is good.\n[00:00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?\n[00:00:28] Student (Marcus Williams): I forgot 😭\n[00:00:31] Ms. Rivera: Marcus, come see me after. Okay, so let's get into it. I'm going to share my screen. Can everyone see the slides?\n[00:00:41] Student (Aaliyah Carter): Yes!\n[00:00:42] Student (Danny Reyes): Yep.\n[00:00:44] Ms. Rivera: Great. So — who can tell me, in their own words, what an algorithm is? Don't look it up, just think about it. Anyone?\n[00:00:57] Student (Priya Mehta): Is it like... a set of steps to solve a problem?\n[00:01:02] Ms. Rivera: Yes! Exactly. A sequence of instructions. Now here's what I want you to think about — where do you encounter algorithms in your daily life? Drop it in the chat.\n[00:01:14] Student (Jalen Thompson): [Chat] TikTok algorithm lol\n[00:01:15] Student (Keisha Brown): [Chat] GPS directions\n[00:01:16] Student (Danny Reyes): [Chat] recipes\n[00:01:17] Student (Marcus Williams): [Chat] alarm clock??\n[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well → https://www.youtube.com/watch?v=6hfOvs8pY1k\n[00:01:20] Ms. Rivera: Love these. Danny — recipes, yes! That's a great one. An alarm clock is actually a really interesting case, Marcus — why do you think that might be algorithmic?\n[00:01:33] Student (Marcus Williams): Uh... because it like, checks the time and then does something based on a condition?\n[00:01:40] Ms. Rivera: Boom. Conditional logic. That's exactly it. Okay, let's move to the activity. I'm going to put you all into breakout rooms — groups of three. Your task is to write out the steps to make a peanut butter and jelly sandwich as if you were programming a robot. Be super literal. The robot has no common sense.\n[00:02:01] Student (Aaliyah Carter): Wait do we write it in a doc?\n[00:02:04] Ms. Rivera: Yes, I'm dropping a Docs link in the chat right now. You have 8 minutes. Go!\n[00:02:09] [Breakout rooms opened — 6 groups]\n\n[00:10:17] [Breakout rooms closed — all participants returned]\n[00:10:22] Ms. Rivera: Okay welcome back! Let's hear from a few groups. Group 2, Keisha — can you share what your group came up with?\n[00:10:31] Student (Keisha Brown): Okay so we wrote: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...\n[00:10:45] Ms. Rivera: Already I'm stopping you — \"flat surface.\" What if the robot doesn't know what flat means? Or what surface to use?\n[00:10:53] Student (Keisha Brown): Oh... we'd have to define that.\n[00:10:55] Ms. Rivera: Exactly! This is what we call the precision problem in programming. Computers do exactly what you tell them — nothing more, nothing less. This is why debugging is so hard. Your logic might be right but your instructions are ambiguous. Okay Group 5, let's hear from you.\n[00:11:14] Student (Leo Fernandez): We kind of went overboard — we wrote like 34 steps.\n[00:11:18] [Laughter from several students]\n[00:11:20] Ms. Rivera: That's not overboard, that's thorough! Can you read a few?\n[00:11:24] Student (Leo Fernandez): Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...\n[00:11:34] [More laughter]\n[00:11:36] Ms. Rivera: I love it, Leo. This is actually really close to pseudocode. You're thinking like a programmer. Alright — let's talk decomposition. When a problem is complex, what do we do?\n[00:11:48] Student (Priya Mehta): Break it into smaller parts?\n[00:11:51] Ms. Rivera: Yes. We decompose it. The sandwich is actually three sub-problems: bread setup, spread application, and assembly. Each of those can be its own function. This maps directly to how we'll write Python functions next week.\n[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly https://www.youtube.com/watch?v=QXjU9qTsYCc\n[00:12:02] Student (Aaliyah Carter): [Chat] omg we watched that in 8th grade lol\n[00:12:04] Ms. Rivera: Leo drop the distractions 😄 but yes that's actually a solid resource, I'll add it to Classroom.\n[00:12:09] Student (Danny Reyes): Wait are we actually gonna code a sandwich?\n[00:12:13] Ms. Rivera: laughs Not quite. But we'll use this mental model. Okay — I want to do a quick Nearpod poll before we wrap up. Checking your understanding. One second while I launch it.\n[00:12:28] [Poll launched]\nQuestion: Which of the following is the BEST example of an algorithm?\n\nA) A list of your favorite songs\nB) Directions from your house to school\nC) A photo of a map\nD) The name of a city\n\n[00:12:55] Ms. Rivera: Okay I'm seeing responses come in... 78% of you said B — directions from your house to school. That is correct! Directions are a sequence of steps with a clear start, end, and decision points. A list of songs has no sequence logic. Good job.\n[00:13:14] Student (Marcus Williams): What about C though? A map kind of shows steps?\n[00:13:19] Ms. Rivera: Great question. A map is a representation of space — it's data. But it's not an algorithm until you apply a process to it — like, GPS takes the map data and runs an algorithm to find the shortest path. Does that distinction make sense?\n[00:13:32] Student (Marcus Williams): Yeah okay yeah.\n[00:13:35] Ms. Rivera: Alright, we have about 5 minutes left. Homework for Thursday: complete the algorithm design worksheet on Google Classroom — it's the one titled \"Everyday Algorithms.\" Also, for those of you who haven't submitted your Unit 2 reflection, that's now past due and affecting your grade.\n[00:13:53] Student (Jalen Thompson): Ms. Rivera is the worksheet the one with the flowcharts?\n[00:13:57] Ms. Rivera: Yes, the one with the flowcharts. There are three problems. You pick two of the three. Any other questions?\n[00:14:06] Student (Aaliyah Carter): Are we going to keep using Scratch or switch to Python?\n[00:14:10] Ms. Rivera: We're transitioning to Python starting next Thursday. We'll use replit — make sure your accounts are set up. I'll send a reminder on Classroom.\n[00:14:19] Ms. Rivera: Okay everyone — great work today. I'll see you Thursday. Jalen, Marcus — stay on for a second.\n[00:14:26] [Students begin leaving the meeting]\n[00:14:31] Student (Jalen Thompson): Yes Ms. Rivera?\n[00:14:33] Ms. Rivera: Jalen, you've been really engaged today, I just want to make sure you're keeping up with the written work too. Your participation is great but I need those docs submitted.\n[00:14:42] Student (Jalen Thompson): Yeah I'll do it tonight I promise.\n[00:14:44] Ms. Rivera: I'm going to hold you to that. Okay, have a good afternoon both of you.\n[00:14:49] [Recording ended]",
+      "notes": "",
+      "recap": "This general classroom session focused on CS4ALL, This is why debugging is so hard. Students practiced writing exact, step-by-step instructions by programming a peanut butter and jelly sandwich for a robot. The class explored the precision problem, where vague instructions can cause a program to fail. We connected that work to problem decomposition by breaking the task into smaller steps that can become functions. A quick Nearpod poll checked whether students understood algorithms versus data. The teacher announced a transition to Python next week so students can apply these ideas in code. Homework: 00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday? Shared 2 video resources in chat for extra review.",
+      "essentialQuestions": [
+        "What makes an instruction precise enough for an algorithm or robot?",
+        "How can you break a complex task into smaller, more manageable steps?",
+        "Why is a sequence of directions an algorithm while a map is just a representation of data?"
+      ],
+      "attendance": {
+        "student-jalen-thompson": "present",
+        "student-priya-mehta": "present",
+        "student-marcus-williams": "present",
+        "student-aaliyah-carter": "present",
+        "student-danny-reyes": "present",
+        "student-keisha-brown": "present",
+        "student-leo-fernandez": "present",
+        "student-8-moq0f1f2": "absent"
+      },
+      "resources": [
+        {
+          "id": "res-1",
+          "title": "[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well →",
+          "url": "https://www.youtube.com/watch?v=6hfOvs8pY1k",
+          "type": "video",
+          "relatedTopic": "CS4ALL"
+        },
+        {
+          "id": "res-2",
+          "title": "[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly",
+          "url": "https://www.youtube.com/watch?v=QXjU9qTsYCc",
+          "type": "video",
+          "relatedTopic": "CS4ALL"
+        }
+      ],
+      "actionItems": [
+        {
+          "id": "task-class-moq0ep94",
+          "title": "Complete assigned follow-up work",
+          "description": "Class-level follow-up generated from the imported general classroom record.",
+          "dueDate": "2026-05-08",
+          "status": "complete",
+          "source": "Detected from transcript, notes, or teacher-entered session details."
+        },
+        {
+          "id": "task-student-0-moq0ep94",
+          "title": "Student (Marcus Williams) support check",
+          "description": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
+          "ownerId": "student-marcus-williams",
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "source": "Generated from attendance and participation signals."
+        }
+      ],
+      "participationEvents": [
+        {
+          "id": "p-student-jalen-thompson-0-moq0ep94",
+          "studentId": "student-jalen-thompson",
+          "type": "chat",
+          "text": "Shared: I can hear you!",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-jalen-thompson-1-moq0ep94",
+          "studentId": "student-jalen-thompson",
+          "type": "chat",
+          "text": "Shared: [Chat] TikTok algorithm lol",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-priya-mehta-0-moq0ep94",
+          "studentId": "student-priya-mehta",
+          "type": "chat",
+          "text": "Shared: Yes, audio is good.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-priya-mehta-1-moq0ep94",
+          "studentId": "student-priya-mehta",
+          "type": "asked_question",
+          "text": "Asked: Is it like... a set of steps to solve a problem?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-marcus-williams-0-moq0ep94",
+          "studentId": "student-marcus-williams",
+          "type": "chat",
+          "text": "Shared: I forgot 😭",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-marcus-williams-1-moq0ep94",
+          "studentId": "student-marcus-williams",
+          "type": "asked_question",
+          "text": "Asked: [Chat] alarm clock??",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-aaliyah-carter-0-moq0ep94",
+          "studentId": "student-aaliyah-carter",
+          "type": "chat",
+          "text": "Shared: Yes!",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-aaliyah-carter-1-moq0ep94",
+          "studentId": "student-aaliyah-carter",
+          "type": "asked_question",
+          "text": "Asked: Wait do we write it in a doc?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-danny-reyes-0-moq0ep94",
+          "studentId": "student-danny-reyes",
+          "type": "chat",
+          "text": "Shared: Yep.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-danny-reyes-1-moq0ep94",
+          "studentId": "student-danny-reyes",
+          "type": "chat",
+          "text": "Shared: [Chat] recipes",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-keisha-brown-0-moq0ep94",
+          "studentId": "student-keisha-brown",
+          "type": "chat",
+          "text": "Shared: [Chat] GPS directions",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-keisha-brown-1-moq0ep94",
+          "studentId": "student-keisha-brown",
+          "type": "chat",
+          "text": "Shared: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-leo-fernandez-0-moq0ep94",
+          "studentId": "student-leo-fernandez",
+          "type": "chat",
+          "text": "Shared: We kind of went overboard — we wrote like 34 steps.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-leo-fernandez-1-moq0ep94",
+          "studentId": "student-leo-fernandez",
+          "type": "chat",
+          "text": "Shared: Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...",
+          "confidence": 0.86,
+          "approved": true
+        }
+      ],
+      "followUps": [
+        {
+          "studentId": "student-jalen-thompson",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "complete",
+          "score": 100
+        },
+        {
+          "studentId": "student-priya-mehta",
+          "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: Is it like... a set of steps to solve a problem?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 65
+        },
+        {
+          "studentId": "student-marcus-williams",
+          "reminder": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus extra review for the part that seemed confusing during class.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: [Chat] alarm clock??",
+            "Redo the step connected to: I forgot 😭"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 49
+        },
+        {
+          "studentId": "student-aaliyah-carter",
+          "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: Wait do we write it in a doc?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 65
+        },
+        {
+          "studentId": "student-danny-reyes",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-keisha-brown",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-leo-fernandez",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-8-moq0f1f2",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "You were added to this session roster. Use the recap, resources, and tasks to stay current.",
+          "tasks": [
+            "Complete assigned follow-up work"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 60
+        }
+      ],
+      "unmatchedParticipants": [],
+      "transcriptAliases": {},
+      "ownerEmail": "test@gmail.com"
+    },
+    {
+      "id": "session-generated-moouw4ht",
+      "title": "CS4ALL",
+      "type": "General classroom",
+      "date": "2026-05-02",
+      "status": "published",
+      "students": [
+        {
+          "id": "student-jalen-thompson",
+          "name": "Student (Jalen Thompson)",
+          "email": "student-jalen-thompson@classloop.local",
+          "avatarColor": "#f59e0b",
+          "aliases": [
+            "Jalen"
+          ]
+        },
+        {
+          "id": "student-priya-mehta",
+          "name": "Student (Priya Mehta)",
+          "email": "student-priya-mehta@classloop.local",
+          "avatarColor": "#0ea5e9",
+          "aliases": []
+        },
+        {
+          "id": "student-marcus-williams",
+          "name": "Student (Marcus Williams)",
+          "email": "student-marcus-williams@classloop.local",
+          "avatarColor": "#8b5cf6",
+          "aliases": []
+        },
+        {
+          "id": "student-aaliyah-carter",
+          "name": "Student (Aaliyah Carter)",
+          "email": "student-aaliyah-carter@classloop.local",
+          "avatarColor": "#10b981",
+          "aliases": []
+        },
+        {
+          "id": "student-danny-reyes",
+          "name": "Student (Danny Reyes)",
+          "email": "student-danny-reyes@classloop.local",
+          "avatarColor": "#ef4444",
+          "aliases": []
+        },
+        {
+          "id": "student-keisha-brown",
+          "name": "Student (Keisha Brown)",
+          "email": "student-keisha-brown@classloop.local",
+          "avatarColor": "#14b8a6",
+          "aliases": []
+        },
+        {
+          "id": "student-leo-fernandez",
+          "name": "Student (Leo Fernandez)",
+          "email": "student-leo-fernandez@classloop.local",
+          "avatarColor": "#6366f1",
+          "aliases": []
+        }
+      ],
+      "transcript": "CLASS ROSTER — CS4All Demo Session\nMs. Rivera | Period 4 | Spring 2026\n#Student NameEmail1Aaliyah Carteracarter@cs4all.nyc2Danny Reyesdreyes@cs4all.nyc3Jalen Thompsonjthompson@cs4all.nyc4Keisha Brownkbrown@cs4all.nyc5Leo Fernandezlfernandez@cs4all.nyc6Marcus Williamsmwilliams@cs4all.nyc7Priya Mehtapmehta@cs4all.nyc8Brianna Owensbowens@cs4all.nyc9Caleb Nguyencnguyen@cs4all.nyc10Destiny Lewisdlewis@cs4all.nyc11Elijah Sandersesanders@cs4all.nyc12Fatima Hassanfhassan@cs4all.nyc13Gabriel Torresgtorres@cs4all.nyc14Hannah Kimhkim@cs4all.nyc15Isaiah Mooreimoore@cs4all.nyc16Jasmine Pateljpatel@cs4all.nyc17Kevin Diazkdiaz@cs4all.nyc18Lena Wulwu@cs4all.nyc\n\nCS4ALL Zoom Demo — Full Transcript\nMeeting Title: CS4All Intro to Computational Thinking — Demo Session\nDate: April 28, 2026\nDuration: 47 minutes\nParticipants: Ms. Rivera (Teacher), 18 Students\n\n[00:00:03] Ms. Rivera: Alright everyone, I'm going to start the recording now. Can everyone give me a thumbs up in the reactions if you can hear me okay?\n[00:00:11] Student (Jalen Thompson): I can hear you!\n[00:00:13] Student (Priya Mehta): Yes, audio is good.\n[00:00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?\n[00:00:28] Student (Marcus Williams): I forgot 😭\n[00:00:31] Ms. Rivera: Marcus, come see me after. Okay, so let's get into it. I'm going to share my screen. Can everyone see the slides?\n[00:00:41] Student (Aaliyah Carter): Yes!\n[00:00:42] Student (Danny Reyes): Yep.\n[00:00:44] Ms. Rivera: Great. So — who can tell me, in their own words, what an algorithm is? Don't look it up, just think about it. Anyone?\n[00:00:57] Student (Priya Mehta): Is it like... a set of steps to solve a problem?\n[00:01:02] Ms. Rivera: Yes! Exactly. A sequence of instructions. Now here's what I want you to think about — where do you encounter algorithms in your daily life? Drop it in the chat.\n[00:01:14] Student (Jalen Thompson): [Chat] TikTok algorithm lol\n[00:01:15] Student (Keisha Brown): [Chat] GPS directions\n[00:01:16] Student (Danny Reyes): [Chat] recipes\n[00:01:17] Student (Marcus Williams): [Chat] alarm clock??\n[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well → https://www.youtube.com/watch?v=6hfOvs8pY1k\n[00:01:20] Ms. Rivera: Love these. Danny — recipes, yes! That's a great one. An alarm clock is actually a really interesting case, Marcus — why do you think that might be algorithmic?\n[00:01:33] Student (Marcus Williams): Uh... because it like, checks the time and then does something based on a condition?\n[00:01:40] Ms. Rivera: Boom. Conditional logic. That's exactly it. Okay, let's move to the activity. I'm going to put you all into breakout rooms — groups of three. Your task is to write out the steps to make a peanut butter and jelly sandwich as if you were programming a robot. Be super literal. The robot has no common sense.\n[00:02:01] Student (Aaliyah Carter): Wait do we write it in a doc?\n[00:02:04] Ms. Rivera: Yes, I'm dropping a Docs link in the chat right now. You have 8 minutes. Go!\n[00:02:09] [Breakout rooms opened — 6 groups]\n\n[00:10:17] [Breakout rooms closed — all participants returned]\n[00:10:22] Ms. Rivera: Okay welcome back! Let's hear from a few groups. Group 2, Keisha — can you share what your group came up with?\n[00:10:31] Student (Keisha Brown): Okay so we wrote: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...\n[00:10:45] Ms. Rivera: Already I'm stopping you — \"flat surface.\" What if the robot doesn't know what flat means? Or what surface to use?\n[00:10:53] Student (Keisha Brown): Oh... we'd have to define that.\n[00:10:55] Ms. Rivera: Exactly! This is what we call the precision problem in programming. Computers do exactly what you tell them — nothing more, nothing less. This is why debugging is so hard. Your logic might be right but your instructions are ambiguous. Okay Group 5, let's hear from you.\n[00:11:14] Student (Leo Fernandez): We kind of went overboard — we wrote like 34 steps.\n[00:11:18] [Laughter from several students]\n[00:11:20] Ms. Rivera: That's not overboard, that's thorough! Can you read a few?\n[00:11:24] Student (Leo Fernandez): Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...\n[00:11:34] [More laughter]\n[00:11:36] Ms. Rivera: I love it, Leo. This is actually really close to pseudocode. You're thinking like a programmer. Alright — let's talk decomposition. When a problem is complex, what do we do?\n[00:11:48] Student (Priya Mehta): Break it into smaller parts?\n[00:11:51] Ms. Rivera: Yes. We decompose it. The sandwich is actually three sub-problems: bread setup, spread application, and assembly. Each of those can be its own function. This maps directly to how we'll write Python functions next week.\n[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly https://www.youtube.com/watch?v=QXjU9qTsYCc\n[00:12:02] Student (Aaliyah Carter): [Chat] omg we watched that in 8th grade lol\n[00:12:04] Ms. Rivera: Leo drop the distractions 😄 but yes that's actually a solid resource, I'll add it to Classroom.\n[00:12:09] Student (Danny Reyes): Wait are we actually gonna code a sandwich?\n[00:12:13] Ms. Rivera: laughs Not quite. But we'll use this mental model. Okay — I want to do a quick Nearpod poll before we wrap up. Checking your understanding. One second while I launch it.\n[00:12:28] [Poll launched]\nQuestion: Which of the following is the BEST example of an algorithm?\n\nA) A list of your favorite songs\nB) Directions from your house to school\nC) A photo of a map\nD) The name of a city\n\n[00:12:55] Ms. Rivera: Okay I'm seeing responses come in... 78% of you said B — directions from your house to school. That is correct! Directions are a sequence of steps with a clear start, end, and decision points. A list of songs has no sequence logic. Good job.\n[00:13:14] Student (Marcus Williams): What about C though? A map kind of shows steps?\n[00:13:19] Ms. Rivera: Great question. A map is a representation of space — it's data. But it's not an algorithm until you apply a process to it — like, GPS takes the map data and runs an algorithm to find the shortest path. Does that distinction make sense?\n[00:13:32] Student (Marcus Williams): Yeah okay yeah.\n[00:13:35] Ms. Rivera: Alright, we have about 5 minutes left. Homework for Thursday: complete the algorithm design worksheet on Google Classroom — it's the one titled \"Everyday Algorithms.\" Also, for those of you who haven't submitted your Unit 2 reflection, that's now past due and affecting your grade.\n[00:13:53] Student (Jalen Thompson): Ms. Rivera is the worksheet the one with the flowcharts?\n[00:13:57] Ms. Rivera: Yes, the one with the flowcharts. There are three problems. You pick two of the three. Any other questions?\n[00:14:06] Student (Aaliyah Carter): Are we going to keep using Scratch or switch to Python?\n[00:14:10] Ms. Rivera: We're transitioning to Python starting next Thursday. We'll use replit — make sure your accounts are set up. I'll send a reminder on Classroom.\n[00:14:19] Ms. Rivera: Okay everyone — great work today. I'll see you Thursday. Jalen, Marcus — stay on for a second.\n[00:14:26] [Students begin leaving the meeting]\n[00:14:31] Student (Jalen Thompson): Yes Ms. Rivera?\n[00:14:33] Ms. Rivera: Jalen, you've been really engaged today, I just want to make sure you're keeping up with the written work too. Your participation is great but I need those docs submitted.\n[00:14:42] Student (Jalen Thompson): Yeah I'll do it tonight I promise.\n[00:14:44] Ms. Rivera: I'm going to hold you to that. Okay, have a good afternoon both of you.\n[00:14:49] [Recording ended]",
+      "notes": "",
+      "recap": "This general classroom session focused on CS4ALL. This is why debugging is so hard: Students practiced writing exact, step-by-step instructions by programming a peanut butter and jelly sandwich for a robot. The class explored the precision problem, where vague instructions can cause a program to fail. We connected that work to problem decomposition by breaking the task into smaller steps that can become functions. A quick Nearpod poll checked whether students understood algorithms versus data. The teacher announced a transition to Python next week so students can apply these ideas in code. Homework: 00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday? Shared 2 video resources in chat for extra review.",
+      "essentialQuestions": [
+        "What makes an instruction precise enough for an algorithm or robot?",
+        "How can you break a complex task into smaller, more manageable steps?",
+        "Why is a sequence of directions an algorithm while a map is just a representation of data?"
+      ],
+      "attendance": {
+        "student-jalen-thompson": "present",
+        "student-priya-mehta": "present",
+        "student-marcus-williams": "present",
+        "student-aaliyah-carter": "present",
+        "student-danny-reyes": "present",
+        "student-keisha-brown": "present",
+        "student-leo-fernandez": "present"
+      },
+      "resources": [
+        {
+          "id": "res-1",
+          "title": "[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well →",
+          "url": "https://www.youtube.com/watch?v=6hfOvs8pY1k",
+          "type": "video",
+          "relatedTopic": "CS4ALL"
+        },
+        {
+          "id": "res-2",
+          "title": "[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly",
+          "url": "https://www.youtube.com/watch?v=QXjU9qTsYCc",
+          "type": "video",
+          "relatedTopic": "CS4ALL"
+        }
+      ],
+      "actionItems": [
+        {
+          "id": "task-class-moouw4ht",
+          "title": "Complete assigned follow-up work",
+          "description": "Class-level follow-up generated from the imported general classroom record.",
+          "dueDate": "2026-05-08",
+          "status": "complete",
+          "source": "Detected from transcript, notes, or teacher-entered session details."
+        },
+        {
+          "id": "task-student-0-moouw4ht",
+          "title": "Student (Marcus Williams) support check",
+          "description": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
+          "ownerId": "student-marcus-williams",
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "source": "Generated from attendance and participation signals."
+        }
+      ],
+      "participationEvents": [
+        {
+          "id": "p-student-jalen-thompson-0-moouw4ht",
+          "studentId": "student-jalen-thompson",
+          "type": "chat",
+          "text": "Shared: I can hear you!",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-jalen-thompson-1-moouw4ht",
+          "studentId": "student-jalen-thompson",
+          "type": "chat",
+          "text": "Shared: [Chat] TikTok algorithm lol",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-priya-mehta-0-moouw4ht",
+          "studentId": "student-priya-mehta",
+          "type": "chat",
+          "text": "Shared: Yes, audio is good.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-priya-mehta-1-moouw4ht",
+          "studentId": "student-priya-mehta",
+          "type": "asked_question",
+          "text": "Asked: Is it like... a set of steps to solve a problem?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-marcus-williams-0-moouw4ht",
+          "studentId": "student-marcus-williams",
+          "type": "chat",
+          "text": "Shared: I forgot 😭",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-marcus-williams-1-moouw4ht",
+          "studentId": "student-marcus-williams",
+          "type": "asked_question",
+          "text": "Asked: [Chat] alarm clock??",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-aaliyah-carter-0-moouw4ht",
+          "studentId": "student-aaliyah-carter",
+          "type": "chat",
+          "text": "Shared: Yes!",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-aaliyah-carter-1-moouw4ht",
+          "studentId": "student-aaliyah-carter",
+          "type": "asked_question",
+          "text": "Asked: Wait do we write it in a doc?",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-danny-reyes-0-moouw4ht",
+          "studentId": "student-danny-reyes",
+          "type": "chat",
+          "text": "Shared: Yep.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-danny-reyes-1-moouw4ht",
+          "studentId": "student-danny-reyes",
+          "type": "chat",
+          "text": "Shared: [Chat] recipes",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-keisha-brown-0-moouw4ht",
+          "studentId": "student-keisha-brown",
+          "type": "chat",
+          "text": "Shared: [Chat] GPS directions",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-keisha-brown-1-moouw4ht",
+          "studentId": "student-keisha-brown",
+          "type": "chat",
+          "text": "Shared: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-leo-fernandez-0-moouw4ht",
+          "studentId": "student-leo-fernandez",
+          "type": "chat",
+          "text": "Shared: We kind of went overboard — we wrote like 34 steps.",
+          "confidence": 0.86,
+          "approved": true
+        },
+        {
+          "id": "p-student-leo-fernandez-1-moouw4ht",
+          "studentId": "student-leo-fernandez",
+          "type": "chat",
+          "text": "Shared: Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...",
+          "confidence": 0.86,
+          "approved": true
+        }
+      ],
+      "followUps": [
+        {
+          "studentId": "student-jalen-thompson",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "complete",
+          "score": 100
+        },
+        {
+          "studentId": "student-priya-mehta",
+          "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: Is it like... a set of steps to solve a problem?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 65
+        },
+        {
+          "studentId": "student-marcus-williams",
+          "reminder": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus extra review for the part that seemed confusing during class.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: [Chat] alarm clock??",
+            "Redo the step connected to: I forgot 😭"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 49
+        },
+        {
+          "studentId": "student-aaliyah-carter",
+          "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
+          "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+            "Review the answer to your question: Wait do we write it in a doc?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 65
+        },
+        {
+          "studentId": "student-danny-reyes",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "complete",
+          "score": 100
+        },
+        {
+          "studentId": "student-keisha-brown",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        },
+        {
+          "studentId": "student-leo-fernandez",
+          "reminder": "Review CS4ALL and complete the assigned follow-up.",
+          "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+          "tasks": [
+            "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          ],
+          "dueDate": "2026-05-08",
+          "status": "todo",
+          "score": 58
+        }
+      ],
+      "unmatchedParticipants": [],
+      "transcriptAliases": {},
+      "ownerEmail": "rushilcpm02@gmail.com"
+    },
     {
       "id": "demo-geometry-review",
       "title": "Geometry Review: Similar Triangles + Algebra",
@@ -242,148 +1874,71 @@
     }
   ],
   "draft": {
-    "id": "session-generated-mookdbta",
-    "title": "CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026",
+    "id": "session-generated-moq1xd1f",
+    "title": "CS4ALL",
     "type": "General classroom",
-    "date": "2026-05-02",
-    "status": "draft",
+    "date": "2026-05-03",
+    "status": "published",
     "students": [
       {
-        "id": "aaliyah-carter",
-        "name": "Aaliyah Carter",
-        "email": "acarter@cs4all.nyc",
+        "id": "student-jalen-thompson",
+        "name": "Student (Jalen Thompson)",
+        "email": "student-jalen-thompson@classloop.local",
         "avatarColor": "#f59e0b"
       },
       {
-        "id": "danny-reyes",
-        "name": "Danny Reyes",
-        "email": "dreyes@cs4all.nyc",
+        "id": "student-priya-mehta",
+        "name": "Student (Priya Mehta)",
+        "email": "student-priya-mehta@classloop.local",
         "avatarColor": "#0ea5e9"
       },
       {
-        "id": "jalen-thompson",
-        "name": "Jalen Thompson",
-        "email": "jthompson@cs4all.nyc",
+        "id": "student-marcus-williams",
+        "name": "Student (Marcus Williams)",
+        "email": "student-marcus-williams@classloop.local",
         "avatarColor": "#8b5cf6"
       },
       {
-        "id": "keisha-brown",
-        "name": "Keisha Brown",
-        "email": "kbrown@cs4all.nyc",
+        "id": "student-aaliyah-carter",
+        "name": "Student (Aaliyah Carter)",
+        "email": "student-aaliyah-carter@classloop.local",
         "avatarColor": "#10b981"
       },
       {
-        "id": "leo-fernandez",
-        "name": "Leo Fernandez",
-        "email": "lfernandez@cs4all.nyc",
+        "id": "student-danny-reyes",
+        "name": "Student (Danny Reyes)",
+        "email": "student-danny-reyes@classloop.local",
         "avatarColor": "#ef4444"
       },
       {
-        "id": "marcus-williams",
-        "name": "Marcus Williams",
-        "email": "mwilliams@cs4all.nyc",
+        "id": "student-keisha-brown",
+        "name": "Student (Keisha Brown)",
+        "email": "student-keisha-brown@classloop.local",
         "avatarColor": "#14b8a6"
       },
       {
-        "id": "priya-mehta",
-        "name": "Priya Mehta",
-        "email": "pmehta@cs4all.nyc",
+        "id": "student-leo-fernandez",
+        "name": "Student (Leo Fernandez)",
+        "email": "student-leo-fernandez@classloop.local",
         "avatarColor": "#6366f1"
-      },
-      {
-        "id": "brianna-owens",
-        "name": "Brianna Owens",
-        "email": "bowens@cs4all.nyc",
-        "avatarColor": "#d946ef"
-      },
-      {
-        "id": "caleb-nguyen",
-        "name": "Caleb Nguyen",
-        "email": "cnguyen@cs4all.nyc",
-        "avatarColor": "#f59e0b"
-      },
-      {
-        "id": "destiny-lewis",
-        "name": "Destiny Lewis",
-        "email": "dlewis@cs4all.nyc",
-        "avatarColor": "#0ea5e9"
-      },
-      {
-        "id": "elijah-sanders",
-        "name": "Elijah Sanders",
-        "email": "esanders@cs4all.nyc",
-        "avatarColor": "#8b5cf6"
-      },
-      {
-        "id": "fatima-hassan",
-        "name": "Fatima Hassan",
-        "email": "fhassan@cs4all.nyc",
-        "avatarColor": "#10b981"
-      },
-      {
-        "id": "gabriel-torres",
-        "name": "Gabriel Torres",
-        "email": "gtorres@cs4all.nyc",
-        "avatarColor": "#ef4444"
-      },
-      {
-        "id": "hannah-kim",
-        "name": "Hannah Kim",
-        "email": "hkim@cs4all.nyc",
-        "avatarColor": "#14b8a6"
-      },
-      {
-        "id": "isaiah-moore",
-        "name": "Isaiah Moore",
-        "email": "imoore@cs4all.nyc",
-        "avatarColor": "#6366f1"
-      },
-      {
-        "id": "jasmine-patel",
-        "name": "Jasmine Patel",
-        "email": "jpatel@cs4all.nyc",
-        "avatarColor": "#d946ef"
-      },
-      {
-        "id": "kevin-diaz",
-        "name": "Kevin Diaz",
-        "email": "kdiaz@cs4all.nyc",
-        "avatarColor": "#f59e0b"
-      },
-      {
-        "id": "lena-wu",
-        "name": "Lena Wu",
-        "email": "lwu@cs4all.nyc",
-        "avatarColor": "#0ea5e9"
       }
     ],
-    "transcript": "[00:00:03] Mr. Agrawal: Alright everyone, I'm going to start the recording now. Can everyone give me a thumbs up in the reactions if you can hear me okay?\n[00:00:11] Student (Jalen Thompson): I can hear you!\n[00:00:13] Student (Priya Mehta): Yes, audio is good.\n[00:00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?\n[00:00:28] Student (Marcus Williams): I forgot 😭\n[00:00:31] Mr. Agrawal: Marcus, come see me after. Okay, so let's get into it. I'm going to share my screen. Can everyone see the slides?\n[00:00:41] Student (Aaliyah Carter): Yes!\n[00:00:42] Student (Danny Reyes): Yep.\n[00:00:44] Mr. Agrawal: Great. So — who can tell me, in their own words, what an algorithm is? Don't look it up, just think about it. Anyone?\n[00:00:57] Student (Priya Mehta): Is it like... a set of steps to solve a problem?\n[00:01:02] Mr. Agrawal: Yes! Exactly. A sequence of instructions. Now here's what I want you to think about — where do you encounter algorithms in your daily life? Drop it in the chat.\n[00:01:14] Student (Jalen Thompson): [Chat] TikTok algorithm lol\n[00:01:15] Student (Keisha Brown): [Chat] GPS directions\n[00:01:16] Student (Danny Reyes): [Chat] recipes\n[00:01:17] Student (Marcus Williams): [Chat] alarm clock??\n[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well → https://www.youtube.com/watch?v=6hfOvs8pY1k\n[00:01:20] Mr. Agrawal: Love these. Danny — recipes, yes! That's a great one. An alarm clock is actually a really interesting case, Marcus — why do you think that might be algorithmic?\n[00:01:33] Student (Marcus Williams): Uh... because it like, checks the time and then does something based on a condition?\n[00:01:40] Mr. Agrawal: Boom. Conditional logic. That's exactly it. Okay, let's move to the activity. I'm going to put you all into breakout rooms — groups of three. Your task is to write out the steps to make a peanut butter and jelly sandwich as if you were programming a robot. Be super literal. The robot has no common sense.\n[00:02:01] Student (Aaliyah Carter): Wait do we write it in a doc?\n[00:02:04] Mr. Agrawal: Yes, I'm dropping a Docs link in the chat right now. You have 8 minutes. Go!\n[00:02:09] [Breakout rooms opened — 6 groups]\n[00:10:17] [Breakout rooms closed — all participants returned]\n[00:10:22] Mr. Agrawal: Okay welcome back! Let's hear from a few groups. Group 2, Keisha — can you share what your group came up with?\n[00:10:31] Student (Keisha Brown): Okay so we wrote: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...\n[00:10:45] Mr. Agrawal: Already I'm stopping you — \"flat surface.\" What if the robot doesn't know what flat means? Or what surface to use?\n[00:10:53] Student (Keisha Brown): Oh... we'd have to define that.\n[00:10:55] Mr. Agrawal: Exactly! This is what we call the precision problem in programming. Computers do exactly what you tell them — nothing more, nothing less. This is why debugging is so hard. Your logic might be right but your instructions are ambiguous. Okay Group 5, let's hear from you.\n[00:11:14] Student (Leo Fernandez): We kind of went overboard — we wrote like 34 steps.\n[00:11:18] [Laughter from several students]\n[00:11:20] Mr. Agrawal: That's not overboard, that's thorough! Can you read a few?\n[00:11:24] Student (Leo Fernandez): Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...\n[00:11:34] [More laughter]\n[00:11:36] Mr. Agrawal: I love it, Leo. This is actually really close to pseudocode. You're thinking like a programmer. Alright — let's talk decomposition. When a problem is complex, what do we do?\n[00:11:48] Student (Priya Mehta): Break it into smaller parts?\n[00:11:51] Mr. Agrawal: Yes. We decompose it. The sandwich is actually three sub-problems: bread setup, spread application, and assembly. Each of those can be its own function. This maps directly to how we'll write Python functions next week.\n[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly https://www.youtube.com/watch?v=QXjU9qTsYCc\n[00:12:02] Student (Aaliyah Carter): [Chat] omg we watched that in 8th grade lol\n[00:12:04] Mr. Agrawal: Leo drop the distractions 😄 but yes that's actually a solid resource, I'll add it to Classroom.\n[00:12:09] Student (Danny Reyes): Wait are we actually gonna code a sandwich?\n[00:12:13] Mr. Agrawal: laughs Not quite. But we'll use this mental model. Okay — I want to do a quick Nearpod poll before we wrap up. Checking your understanding. One second while I launch it.\n[00:12:28] [Poll launched]\nQuestion: Which of the following is the BEST example of an algorithm?\nA) A list of your favorite songs\nB) Directions from your house to school\nC) A photo of a map\nD) The name of a city\n[00:12:55] Mr. Agrawal: Okay I'm seeing responses come in... 78% of you said B — directions from your house to school. That is correct! Directions are a sequence of steps with a clear start, end, and decision points. A list of songs has no sequence logic. Good job.\n[00:13:14] Student (Marcus Williams): What about C though? A map kind of shows steps?\n[00:13:19] Mr. Agrawal: Great question. A map is a representation of space — it's data. But it's not an algorithm until you apply a process to it — like, GPS takes the map data and runs an algorithm to find the shortest path. Does that distinction make sense?\n[00:13:32] Student (Marcus Williams): Yeah okay yeah.\n[00:13:35] Mr. Agrawal: Alright, we have about 5 minutes left. Homework for Thursday: complete the algorithm design worksheet on Google Classroom — it's the one titled \"Everyday Algorithms.\" Also, for those of you who haven't submitted your Unit 2 reflection, that's now past due and affecting your grade.\n[00:13:53] Student (Jalen Thompson): Mr. Agrawal is the worksheet the one with the flowcharts?\n[00:13:57] Mr. Agrawal: Yes, the one with the flowcharts. There are three problems. You pick two of the three. Any other questions?\n[00:14:06] Student (Aaliyah Carter): Are we going to keep using Scratch or switch to Python?\n[00:14:10] Mr. Agrawal: We're transitioning to Python starting next Thursday. We'll use replit — make sure your accounts are set up. I'll send a reminder on Classroom.\n[00:14:19] Mr. Agrawal: Okay everyone — great work today. I'll see you Thursday. Jalen, Marcus — stay on for a second.\n[00:14:26] [Students begin leaving the meeting]\n[00:14:31] Student (Jalen Thompson): Yes Mr. Agrawal?\n[00:14:33] Mr. Agrawal: Jalen, you've been really engaged today, I just want to make sure you're keeping up with the written work too. Your participation is great but I need those docs submitted.\n[00:14:42] Student (Jalen Thompson): Yeah I'll do it tonight I promise.\n[00:14:44] Mr. Agrawal: I'm going to hold you to that. Okay, have a good afternoon both of you.\n[00:14:49] [Recording ended]",
+    "transcript": "CLASS ROSTER — CS4All Demo Session\nMs. Rivera | Period 4 | Spring 2026\n#Student NameEmail1Aaliyah Carteracarter@cs4all.nyc2Danny Reyesdreyes@cs4all.nyc3Jalen Thompsonjthompson@cs4all.nyc4Keisha Brownkbrown@cs4all.nyc5Leo Fernandezlfernandez@cs4all.nyc6Marcus Williamsmwilliams@cs4all.nyc7Priya Mehtapmehta@cs4all.nyc8Brianna Owensbowens@cs4all.nyc9Caleb Nguyencnguyen@cs4all.nyc10Destiny Lewisdlewis@cs4all.nyc11Elijah Sandersesanders@cs4all.nyc12Fatima Hassanfhassan@cs4all.nyc13Gabriel Torresgtorres@cs4all.nyc14Hannah Kimhkim@cs4all.nyc15Isaiah Mooreimoore@cs4all.nyc16Jasmine Pateljpatel@cs4all.nyc17Kevin Diazkdiaz@cs4all.nyc18Lena Wulwu@cs4all.nyc\n\nCS4ALL Zoom Demo — Full Transcript\nMeeting Title: CS4All Intro to Computational Thinking — Demo Session\nDate: April 28, 2026\nDuration: 47 minutes\nParticipants: Ms. Rivera (Teacher), 18 Students\n\n[00:00:03] Ms. Rivera: Alright everyone, I'm going to start the recording now. Can everyone give me a thumbs up in the reactions if you can hear me okay?\n[00:00:11] Student (Jalen Thompson): I can hear you!\n[00:00:13] Student (Priya Mehta): Yes, audio is good.\n[00:00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?\n[00:00:28] Student (Marcus Williams): I forgot 😭\n[00:00:31] Ms. Rivera: Marcus, come see me after. Okay, so let's get into it. I'm going to share my screen. Can everyone see the slides?\n[00:00:41] Student (Aaliyah Carter): Yes!\n[00:00:42] Student (Danny Reyes): Yep.\n[00:00:44] Ms. Rivera: Great. So — who can tell me, in their own words, what an algorithm is? Don't look it up, just think about it. Anyone?\n[00:00:57] Student (Priya Mehta): Is it like... a set of steps to solve a problem?\n[00:01:02] Ms. Rivera: Yes! Exactly. A sequence of instructions. Now here's what I want you to think about — where do you encounter algorithms in your daily life? Drop it in the chat.\n[00:01:14] Student (Jalen Thompson): [Chat] TikTok algorithm lol\n[00:01:15] Student (Keisha Brown): [Chat] GPS directions\n[00:01:16] Student (Danny Reyes): [Chat] recipes\n[00:01:17] Student (Marcus Williams): [Chat] alarm clock??\n[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well → https://www.youtube.com/watch?v=6hfOvs8pY1k\n[00:01:20] Ms. Rivera: Love these. Danny — recipes, yes! That's a great one. An alarm clock is actually a really interesting case, Marcus — why do you think that might be algorithmic?\n[00:01:33] Student (Marcus Williams): Uh... because it like, checks the time and then does something based on a condition?\n[00:01:40] Ms. Rivera: Boom. Conditional logic. That's exactly it. Okay, let's move to the activity. I'm going to put you all into breakout rooms — groups of three. Your task is to write out the steps to make a peanut butter and jelly sandwich as if you were programming a robot. Be super literal. The robot has no common sense.\n[00:02:01] Student (Aaliyah Carter): Wait do we write it in a doc?\n[00:02:04] Ms. Rivera: Yes, I'm dropping a Docs link in the chat right now. You have 8 minutes. Go!\n[00:02:09] [Breakout rooms opened — 6 groups]\n\n[00:10:17] [Breakout rooms closed — all participants returned]\n[00:10:22] Ms. Rivera: Okay welcome back! Let's hear from a few groups. Group 2, Keisha — can you share what your group came up with?\n[00:10:31] Student (Keisha Brown): Okay so we wrote: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...\n[00:10:45] Ms. Rivera: Already I'm stopping you — \"flat surface.\" What if the robot doesn't know what flat means? Or what surface to use?\n[00:10:53] Student (Keisha Brown): Oh... we'd have to define that.\n[00:10:55] Ms. Rivera: Exactly! This is what we call the precision problem in programming. Computers do exactly what you tell them — nothing more, nothing less. This is why debugging is so hard. Your logic might be right but your instructions are ambiguous. Okay Group 5, let's hear from you.\n[00:11:14] Student (Leo Fernandez): We kind of went overboard — we wrote like 34 steps.\n[00:11:18] [Laughter from several students]\n[00:11:20] Ms. Rivera: That's not overboard, that's thorough! Can you read a few?\n[00:11:24] Student (Leo Fernandez): Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...\n[00:11:34] [More laughter]\n[00:11:36] Ms. Rivera: I love it, Leo. This is actually really close to pseudocode. You're thinking like a programmer. Alright — let's talk decomposition. When a problem is complex, what do we do?\n[00:11:48] Student (Priya Mehta): Break it into smaller parts?\n[00:11:51] Ms. Rivera: Yes. We decompose it. The sandwich is actually three sub-problems: bread setup, spread application, and assembly. Each of those can be its own function. This maps directly to how we'll write Python functions next week.\n[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly https://www.youtube.com/watch?v=QXjU9qTsYCc\n[00:12:02] Student (Aaliyah Carter): [Chat] omg we watched that in 8th grade lol\n[00:12:04] Ms. Rivera: Leo drop the distractions 😄 but yes that's actually a solid resource, I'll add it to Classroom.\n[00:12:09] Student (Danny Reyes): Wait are we actually gonna code a sandwich?\n[00:12:13] Ms. Rivera: laughs Not quite. But we'll use this mental model. Okay — I want to do a quick Nearpod poll before we wrap up. Checking your understanding. One second while I launch it.\n[00:12:28] [Poll launched]\nQuestion: Which of the following is the BEST example of an algorithm?\n\nA) A list of your favorite songs\nB) Directions from your house to school\nC) A photo of a map\nD) The name of a city\n\n[00:12:55] Ms. Rivera: Okay I'm seeing responses come in... 78% of you said B — directions from your house to school. That is correct! Directions are a sequence of steps with a clear start, end, and decision points. A list of songs has no sequence logic. Good job.\n[00:13:14] Student (Marcus Williams): What about C though? A map kind of shows steps?\n[00:13:19] Ms. Rivera: Great question. A map is a representation of space — it's data. But it's not an algorithm until you apply a process to it — like, GPS takes the map data and runs an algorithm to find the shortest path. Does that distinction make sense?\n[00:13:32] Student (Marcus Williams): Yeah okay yeah.\n[00:13:35] Ms. Rivera: Alright, we have about 5 minutes left. Homework for Thursday: complete the algorithm design worksheet on Google Classroom — it's the one titled \"Everyday Algorithms.\" Also, for those of you who haven't submitted your Unit 2 reflection, that's now past due and affecting your grade.\n[00:13:53] Student (Jalen Thompson): Ms. Rivera is the worksheet the one with the flowcharts?\n[00:13:57] Ms. Rivera: Yes, the one with the flowcharts. There are three problems. You pick two of the three. Any other questions?\n[00:14:06] Student (Aaliyah Carter): Are we going to keep using Scratch or switch to Python?\n[00:14:10] Ms. Rivera: We're transitioning to Python starting next Thursday. We'll use replit — make sure your accounts are set up. I'll send a reminder on Classroom.\n[00:14:19] Ms. Rivera: Okay everyone — great work today. I'll see you Thursday. Jalen, Marcus — stay on for a second.\n[00:14:26] [Students begin leaving the meeting]\n[00:14:31] Student (Jalen Thompson): Yes Ms. Rivera?\n[00:14:33] Ms. Rivera: Jalen, you've been really engaged today, I just want to make sure you're keeping up with the written work too. Your participation is great but I need those docs submitted.\n[00:14:42] Student (Jalen Thompson): Yeah I'll do it tonight I promise.\n[00:14:44] Ms. Rivera: I'm going to hold you to that. Okay, have a good afternoon both of you.\n[00:14:49] [Recording ended]",
     "notes": "",
-    "recap": "This general classroom focused on CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026, This is why debugging is so hard, main lesson ideas. Students leave with a shared recap, class-wide follow-up work, and personal review steps based on attendance, questions, and participation from the session.",
+    "recap": "This general classroom session focused on CS4ALL, This is why debugging is so hard. Students practiced writing exact, step-by-step instructions by programming a peanut butter and jelly sandwich for a robot. The class explored the precision problem, where vague instructions can cause a program to fail. We connected that work to problem decomposition by breaking the task into smaller steps that can become functions. A quick Nearpod poll checked whether students understood algorithms versus data. The teacher announced a transition to Python next week so students can apply these ideas in code. Homework: 00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday? Shared 2 video resources in chat for extra review.",
     "essentialQuestions": [
-      "What were the most important takeaways about CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026?",
-      "Which students need support or catch-up before the next session?",
-      "What follow-up work should be completed by 2026-05-08?"
+      "What makes an instruction precise enough for an algorithm or robot?",
+      "How can you break a complex task into smaller, more manageable steps?",
+      "Why is a sequence of directions an algorithm while a map is just a representation of data?"
     ],
     "attendance": {
-      "aaliyah-carter": "present",
-      "danny-reyes": "present",
-      "jalen-thompson": "present",
-      "keisha-brown": "present",
-      "leo-fernandez": "present",
-      "marcus-williams": "present",
-      "priya-mehta": "present",
-      "brianna-owens": "present",
-      "caleb-nguyen": "present",
-      "destiny-lewis": "present",
-      "elijah-sanders": "present",
-      "fatima-hassan": "present",
-      "gabriel-torres": "present",
-      "hannah-kim": "present",
-      "isaiah-moore": "present",
-      "jasmine-patel": "present",
-      "kevin-diaz": "present",
-      "lena-wu": "present"
+      "student-jalen-thompson": "present",
+      "student-priya-mehta": "present",
+      "student-marcus-williams": "present",
+      "student-aaliyah-carter": "present",
+      "student-danny-reyes": "present",
+      "student-keisha-brown": "present",
+      "student-leo-fernandez": "present"
     },
     "resources": [
       {
@@ -391,19 +1946,19 @@
         "title": "[00:01:18] Student (Priya Mehta): [Chat] found this video that explains it really well →",
         "url": "https://www.youtube.com/watch?v=6hfOvs8pY1k",
         "type": "video",
-        "relatedTopic": "CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026"
+        "relatedTopic": "CS4ALL"
       },
       {
         "id": "res-2",
         "title": "[00:11:58] Student (Leo Fernandez): [Chat] yo this video breaks down decomposition perfectly",
         "url": "https://www.youtube.com/watch?v=QXjU9qTsYCc",
         "type": "video",
-        "relatedTopic": "CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026"
+        "relatedTopic": "CS4ALL"
       }
     ],
     "actionItems": [
       {
-        "id": "task-class-mookdbta",
+        "id": "task-class-moq1xd1f",
         "title": "Complete assigned follow-up work",
         "description": "Class-level follow-up generated from the imported general classroom record.",
         "dueDate": "2026-05-08",
@@ -411,109 +1966,10 @@
         "source": "Detected from transcript, notes, or teacher-entered session details."
       },
       {
-        "id": "task-student-0-mookdbta",
-        "title": "Marcus Williams support check",
-        "description": "Revisit the part of CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 that caused confusion, then complete the class follow-up.",
-        "ownerId": "marcus-williams",
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "source": "Generated from attendance and participation signals."
-      },
-      {
-        "id": "task-student-1-mookdbta",
-        "title": "Brianna Owens support check",
-        "description": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "ownerId": "brianna-owens",
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "source": "Generated from attendance and participation signals."
-      },
-      {
-        "id": "task-student-2-mookdbta",
-        "title": "Caleb Nguyen support check",
-        "description": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "ownerId": "caleb-nguyen",
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "source": "Generated from attendance and participation signals."
-      },
-      {
-        "id": "task-student-3-mookdbta",
-        "title": "Destiny Lewis support check",
-        "description": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "ownerId": "destiny-lewis",
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "source": "Generated from attendance and participation signals."
-      },
-      {
-        "id": "task-student-4-mookdbta",
-        "title": "Elijah Sanders support check",
-        "description": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "ownerId": "elijah-sanders",
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "source": "Generated from attendance and participation signals."
-      },
-      {
-        "id": "task-student-5-mookdbta",
-        "title": "Fatima Hassan support check",
-        "description": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "ownerId": "fatima-hassan",
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "source": "Generated from attendance and participation signals."
-      },
-      {
-        "id": "task-student-6-mookdbta",
-        "title": "Gabriel Torres support check",
-        "description": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "ownerId": "gabriel-torres",
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "source": "Generated from attendance and participation signals."
-      },
-      {
-        "id": "task-student-7-mookdbta",
-        "title": "Hannah Kim support check",
-        "description": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "ownerId": "hannah-kim",
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "source": "Generated from attendance and participation signals."
-      },
-      {
-        "id": "task-student-8-mookdbta",
-        "title": "Isaiah Moore support check",
-        "description": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "ownerId": "isaiah-moore",
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "source": "Generated from attendance and participation signals."
-      },
-      {
-        "id": "task-student-9-mookdbta",
-        "title": "Jasmine Patel support check",
-        "description": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "ownerId": "jasmine-patel",
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "source": "Generated from attendance and participation signals."
-      },
-      {
-        "id": "task-student-10-mookdbta",
-        "title": "Kevin Diaz support check",
-        "description": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "ownerId": "kevin-diaz",
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "source": "Generated from attendance and participation signals."
-      },
-      {
-        "id": "task-student-11-mookdbta",
-        "title": "Lena Wu support check",
-        "description": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "ownerId": "lena-wu",
+        "id": "task-student-0-moq1xd1f",
+        "title": "Student (Marcus Williams) support check",
+        "description": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
+        "ownerId": "student-marcus-williams",
         "dueDate": "2026-05-08",
         "status": "todo",
         "source": "Generated from attendance and participation signals."
@@ -521,181 +1977,148 @@
     ],
     "participationEvents": [
       {
-        "id": "p-aaliyah-carter-0-mookdbta",
-        "studentId": "aaliyah-carter",
-        "type": "chat",
-        "text": "Shared: Yes!",
-        "confidence": 0.86,
-        "approved": true
-      },
-      {
-        "id": "p-aaliyah-carter-1-mookdbta",
-        "studentId": "aaliyah-carter",
-        "type": "asked_question",
-        "text": "Asked: Wait do we write it in a doc?",
-        "confidence": 0.86,
-        "approved": true
-      },
-      {
-        "id": "p-danny-reyes-0-mookdbta",
-        "studentId": "danny-reyes",
-        "type": "chat",
-        "text": "Shared: Yep.",
-        "confidence": 0.86,
-        "approved": true
-      },
-      {
-        "id": "p-danny-reyes-1-mookdbta",
-        "studentId": "danny-reyes",
-        "type": "chat",
-        "text": "Shared: [Chat] recipes",
-        "confidence": 0.86,
-        "approved": true
-      },
-      {
-        "id": "p-jalen-thompson-0-mookdbta",
-        "studentId": "jalen-thompson",
+        "id": "p-student-jalen-thompson-0-moq1xd1f",
+        "studentId": "student-jalen-thompson",
         "type": "chat",
         "text": "Shared: I can hear you!",
         "confidence": 0.86,
         "approved": true
       },
       {
-        "id": "p-jalen-thompson-1-mookdbta",
-        "studentId": "jalen-thompson",
+        "id": "p-student-jalen-thompson-1-moq1xd1f",
+        "studentId": "student-jalen-thompson",
         "type": "chat",
         "text": "Shared: [Chat] TikTok algorithm lol",
         "confidence": 0.86,
         "approved": true
       },
       {
-        "id": "p-keisha-brown-0-mookdbta",
-        "studentId": "keisha-brown",
-        "type": "chat",
-        "text": "Shared: [Chat] GPS directions",
-        "confidence": 0.86,
-        "approved": true
-      },
-      {
-        "id": "p-keisha-brown-1-mookdbta",
-        "studentId": "keisha-brown",
-        "type": "chat",
-        "text": "Shared: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...",
-        "confidence": 0.86,
-        "approved": true
-      },
-      {
-        "id": "p-leo-fernandez-0-mookdbta",
-        "studentId": "leo-fernandez",
-        "type": "chat",
-        "text": "Shared: We kind of went overboard — we wrote like 34 steps.",
-        "confidence": 0.86,
-        "approved": true
-      },
-      {
-        "id": "p-leo-fernandez-1-mookdbta",
-        "studentId": "leo-fernandez",
-        "type": "chat",
-        "text": "Shared: Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...",
-        "confidence": 0.86,
-        "approved": true
-      },
-      {
-        "id": "p-marcus-williams-0-mookdbta",
-        "studentId": "marcus-williams",
-        "type": "chat",
-        "text": "Shared: I forgot 😭",
-        "confidence": 0.86,
-        "approved": true
-      },
-      {
-        "id": "p-marcus-williams-1-mookdbta",
-        "studentId": "marcus-williams",
-        "type": "asked_question",
-        "text": "Asked: [Chat] alarm clock??",
-        "confidence": 0.86,
-        "approved": true
-      },
-      {
-        "id": "p-priya-mehta-0-mookdbta",
-        "studentId": "priya-mehta",
+        "id": "p-student-priya-mehta-0-moq1xd1f",
+        "studentId": "student-priya-mehta",
         "type": "chat",
         "text": "Shared: Yes, audio is good.",
         "confidence": 0.86,
         "approved": true
       },
       {
-        "id": "p-priya-mehta-1-mookdbta",
-        "studentId": "priya-mehta",
+        "id": "p-student-priya-mehta-1-moq1xd1f",
+        "studentId": "student-priya-mehta",
         "type": "asked_question",
         "text": "Asked: Is it like... a set of steps to solve a problem?",
+        "confidence": 0.86,
+        "approved": true
+      },
+      {
+        "id": "p-student-marcus-williams-0-moq1xd1f",
+        "studentId": "student-marcus-williams",
+        "type": "chat",
+        "text": "Shared: I forgot 😭",
+        "confidence": 0.86,
+        "approved": true
+      },
+      {
+        "id": "p-student-marcus-williams-1-moq1xd1f",
+        "studentId": "student-marcus-williams",
+        "type": "asked_question",
+        "text": "Asked: [Chat] alarm clock??",
+        "confidence": 0.86,
+        "approved": true
+      },
+      {
+        "id": "p-student-aaliyah-carter-0-moq1xd1f",
+        "studentId": "student-aaliyah-carter",
+        "type": "chat",
+        "text": "Shared: Yes!",
+        "confidence": 0.86,
+        "approved": true
+      },
+      {
+        "id": "p-student-aaliyah-carter-1-moq1xd1f",
+        "studentId": "student-aaliyah-carter",
+        "type": "asked_question",
+        "text": "Asked: Wait do we write it in a doc?",
+        "confidence": 0.86,
+        "approved": true
+      },
+      {
+        "id": "p-student-danny-reyes-0-moq1xd1f",
+        "studentId": "student-danny-reyes",
+        "type": "chat",
+        "text": "Shared: Yep.",
+        "confidence": 0.86,
+        "approved": true
+      },
+      {
+        "id": "p-student-danny-reyes-1-moq1xd1f",
+        "studentId": "student-danny-reyes",
+        "type": "chat",
+        "text": "Shared: [Chat] recipes",
+        "confidence": 0.86,
+        "approved": true
+      },
+      {
+        "id": "p-student-keisha-brown-0-moq1xd1f",
+        "studentId": "student-keisha-brown",
+        "type": "chat",
+        "text": "Shared: [Chat] GPS directions",
+        "confidence": 0.86,
+        "approved": true
+      },
+      {
+        "id": "p-student-keisha-brown-1-moq1xd1f",
+        "studentId": "student-keisha-brown",
+        "type": "chat",
+        "text": "Shared: Step 1 — Pick up the bread bag. Step 2 — Open the bread bag. Step 3 — Remove two slices of bread. Step 4 — Place slices on a flat surface...",
+        "confidence": 0.86,
+        "approved": true
+      },
+      {
+        "id": "p-student-leo-fernandez-0-moq1xd1f",
+        "studentId": "student-leo-fernandez",
+        "type": "chat",
+        "text": "Shared: We kind of went overboard — we wrote like 34 steps.",
+        "confidence": 0.86,
+        "approved": true
+      },
+      {
+        "id": "p-student-leo-fernandez-1-moq1xd1f",
+        "studentId": "student-leo-fernandez",
+        "type": "chat",
+        "text": "Shared: Step 1 — Initialize hand variable. Step 2 — Assign dominant hand to variable. Step 3 — Extend arm toward bread bag...",
         "confidence": 0.86,
         "approved": true
       }
     ],
     "followUps": [
       {
-        "studentId": "aaliyah-carter",
+        "studentId": "student-jalen-thompson",
+        "reminder": "Review CS4ALL and complete the assigned follow-up.",
+        "catchUp": "Your dashboard connects your class participation to the follow-up work.",
+        "tasks": [
+          "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+        ],
+        "dueDate": "2026-05-08",
+        "status": "todo",
+        "score": 58
+      },
+      {
+        "studentId": "student-priya-mehta",
         "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
         "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
         "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
-          "Review the answer to your question: Wait do we write it in a doc?"
+          "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+          "Review the answer to your question: Is it like... a set of steps to solve a problem?"
         ],
         "dueDate": "2026-05-08",
         "status": "todo",
         "score": 65
       },
       {
-        "studentId": "danny-reyes",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "Your dashboard connects your class participation to the follow-up work.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 58
-      },
-      {
-        "studentId": "jalen-thompson",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "Your dashboard connects your class participation to the follow-up work.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 58
-      },
-      {
-        "studentId": "keisha-brown",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "Your dashboard connects your class participation to the follow-up work.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 58
-      },
-      {
-        "studentId": "leo-fernandez",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "Your dashboard connects your class participation to the follow-up work.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 58
-      },
-      {
-        "studentId": "marcus-williams",
-        "reminder": "Revisit the part of CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 that caused confusion, then complete the class follow-up.",
+        "studentId": "student-marcus-williams",
+        "reminder": "Revisit the part of CS4ALL that caused confusion, then complete the class follow-up.",
         "catchUp": "Your dashboard includes the shared class recap plus extra review for the part that seemed confusing during class.",
         "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+          "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
           "Review the answer to your question: [Chat] alarm clock??",
           "Redo the step connected to: I forgot 😭"
         ],
@@ -704,143 +2127,55 @@
         "score": 49
       },
       {
-        "studentId": "priya-mehta",
+        "studentId": "student-aaliyah-carter",
         "reminder": "Start with the answer to your question, then complete the shared class follow-up.",
         "catchUp": "Your dashboard includes the shared class recap plus a review task tied to the question you asked.",
         "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
-          "Review the answer to your question: Is it like... a set of steps to solve a problem?"
+          "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?",
+          "Review the answer to your question: Wait do we write it in a doc?"
         ],
         "dueDate": "2026-05-08",
         "status": "todo",
         "score": 65
       },
       {
-        "studentId": "brianna-owens",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
+        "studentId": "student-danny-reyes",
+        "reminder": "Review CS4ALL and complete the assigned follow-up.",
+        "catchUp": "Your dashboard connects your class participation to the follow-up work.",
         "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
         ],
         "dueDate": "2026-05-08",
         "status": "todo",
-        "score": 52
+        "score": 58
       },
       {
-        "studentId": "caleb-nguyen",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
+        "studentId": "student-keisha-brown",
+        "reminder": "Review CS4ALL and complete the assigned follow-up.",
+        "catchUp": "Your dashboard connects your class participation to the follow-up work.",
         "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
         ],
         "dueDate": "2026-05-08",
         "status": "todo",
-        "score": 52
+        "score": 58
       },
       {
-        "studentId": "destiny-lewis",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
+        "studentId": "student-leo-fernandez",
+        "reminder": "Review CS4ALL and complete the assigned follow-up.",
+        "catchUp": "Your dashboard connects your class participation to the follow-up work.",
         "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
+          "00:15] Ms. Rivera: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
         ],
         "dueDate": "2026-05-08",
         "status": "todo",
-        "score": 52
-      },
-      {
-        "studentId": "elijah-sanders",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 52
-      },
-      {
-        "studentId": "fatima-hassan",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 52
-      },
-      {
-        "studentId": "gabriel-torres",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 52
-      },
-      {
-        "studentId": "hannah-kim",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 52
-      },
-      {
-        "studentId": "isaiah-moore",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 52
-      },
-      {
-        "studentId": "jasmine-patel",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 52
-      },
-      {
-        "studentId": "kevin-diaz",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 52
-      },
-      {
-        "studentId": "lena-wu",
-        "reminder": "Review CS4All Demo Session Mr. Agrawal | Period 4 | Spring 2026 and complete the assigned follow-up.",
-        "catchUp": "You were marked present. Use the recap and resources to confirm the main takeaways.",
-        "tasks": [
-          "00:15] Mr. Agrawal: Perfect. Okay, so welcome back everyone. Today we're starting Unit 3 — Algorithms and Problem Decomposition. Before we dive in, quick check — did everyone finish the exit ticket from last Thursday?"
-        ],
-        "dueDate": "2026-05-08",
-        "status": "todo",
-        "score": 52
+        "score": 58
       }
     ],
     "unmatchedParticipants": [],
     "transcriptAliases": {},
-    "ownerEmail": "rushilcpm02@gmail.com"
+    "ownerEmail": "rushil1@gmail.com"
   },
   "demoLoaded": true,
-  "updatedAt": "2026-05-02T16:36:28.900Z"
+  "updatedAt": "2026-05-03T17:36:52.177Z"
 }

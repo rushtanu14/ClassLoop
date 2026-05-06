@@ -466,6 +466,38 @@ a {
   background: var(--primary);
 }
 
+.review-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.review-tabs button {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 14px;
+  font-weight: 900;
+  color: var(--muted);
+  background: var(--surface-strong);
+  border: 1px solid transparent;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.review-tabs button:hover {
+  background: var(--surface);
+}
+
+.review-tabs button.active {
+  color: #ffffff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
 .input-with-icon {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -1094,6 +1126,12 @@ button.account-pill {
 .content-grid {
   display: grid;
   gap: 18px;
+}
+
+.roster-toggle-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
 }
 
 .two-columns {
@@ -1813,7 +1851,7 @@ th {
 
 .student-picker {
   display: grid;
-  grid-template-columns: repeat(3, minmax(78px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
   gap: 8px;
   min-width: 300px;
 }
@@ -1823,11 +1861,19 @@ th {
   align-items: center;
   gap: 8px;
   min-height: 46px;
+  min-width: 0;
   padding: 6px 9px;
   border: 1px solid var(--line);
   border-radius: 12px;
   color: var(--ink);
   background: rgba(255, 255, 255, 0.8);
+}
+
+.student-picker-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .student-picker-item.active {
@@ -2808,11 +2854,11 @@ th {
 .roster-row {
   display: grid;
   grid-template-columns:
-    auto minmax(135px, 1fr) minmax(180px, 1.15fr) minmax(118px, 0.72fr) minmax(160px, 1fr)
-    minmax(160px, 0.95fr) auto;
+    auto minmax(170px, 1.6fr) minmax(200px, 2fr) minmax(120px, 0.8fr) minmax(150px, 1.2fr)
+    minmax(190px, 1.4fr) auto;
   grid-template-areas: "avatar name email attendance aliases access remove";
   gap: 10px;
-  align-items: end;
+  align-items: start;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -2846,6 +2892,11 @@ th {
 
 .roster-row .field {
   min-width: 0;
+}
+
+.roster-row .field input,
+.roster-row .field select {
+  width: 100%;
 }
 
 .student-access-cell {
@@ -2968,11 +3019,18 @@ th {
   padding: 18px;
 }
 
+.student-preview-top > div,
+.student-preview-card,
+.student-preview-columns > div {
+  min-width: 0;
+}
+
 .student-preview-top h3,
 .student-preview-top p,
 .student-preview-card h4,
 .student-preview-card p {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .student-preview-top p,
@@ -2989,7 +3047,7 @@ th {
 
 .student-preview-columns {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
   padding: 18px;
 }
