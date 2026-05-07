@@ -261,7 +261,7 @@ Tests validate:
 2. **Publish preview**: Show each student exactly what they'll see before distributing.
 3. **Completion check-ins**: Real task states: not started → working → submitted → reviewed. Hook up student submissions.
 4. **Roster manager**: Reuse rosters across multiple sessions without re-pasting.
-5. **LMS integration**: Export/sync to Google Classroom, Canvas, Schoology.
+5. **External sync later**: Consider Classroom, Canvas, or Schoology only if the user accepts external integration setup.
 6. **Privacy dashboard**: Explain to schools how student data is handled (no rankings, teacher-only signals, student-specific sharing).
 
 ## Common Pitfalls

@@ -86,10 +86,10 @@ Core MVP promise:
 4. Add completion check-in states that feel real: “not started,” “working,” “submitted,” and “teacher reviewed.”
 5. Add a simple class roster manager so the product feels reusable across multiple sessions, not just one import.
 6. Add a privacy/explanation panel written for schools: private teacher signals, no public ranking, student-specific sharing only.
-7. Add export/share actions for reports, because teachers and tutors will expect PDF, email, or LMS-friendly output later.
+7. Add export/share actions for reports, because teachers and tutors will expect PDF or email-friendly output later.
 
 ## Monetization Direction
 
 - Free: limited sessions per month, basic recap, basic action items.
-- Pro: unlimited sessions, AI transcript processing, student dashboards, analytics, exports.
-- Future school/team plan: admin dashboards, LMS integration, roster sync, privacy controls, and team reporting.
+- Pro: unlimited sessions, student dashboards, analytics, exports, and saved rosters.
+- Future school/team plan: admin dashboards, roster sync, privacy controls, and team reporting.

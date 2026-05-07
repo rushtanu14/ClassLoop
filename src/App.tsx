@@ -637,6 +637,15 @@ function sharedStateJson(state: Pick<SharedState, "accounts" | "sessions" | "dra
 function safeBackgroundUrl(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "linear-gradient(transparent, transparent)";
+  try {
+    const parsed = new URL(trimmed, window.location.origin);
+    const isLocalHttp = parsed.protocol === "http:" && ["localhost", "127.0.0.1"].includes(parsed.hostname);
+    if (!["https:", "data:", "blob:"].includes(parsed.protocol) && !isLocalHttp) {
+      return "linear-gradient(transparent, transparent)";
+    }
+  } catch {
+    return "linear-gradient(transparent, transparent)";
+  }
   const sanitized = trimmed.replace(/["\\\n\r]/g, "");
   return `url("${sanitized}")`;
 }
@@ -3862,6 +3871,13 @@ function DesignSystemPage({
     const preset = themePresets[key];
     setTheme((current) => ({ ...current, key, accent: preset.accent }));
   };
+  const customPreviewStyle = theme.imageUrl.trim()
+    ? {
+        backgroundImage: `linear-gradient(135deg, rgba(8, 18, 32, 0.34), rgba(8, 18, 32, 0.78)), ${safeBackgroundUrl(theme.imageUrl)}`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }
+    : undefined;
 
   return (
     <div className="page-stack appearance-page">
@@ -3874,7 +3890,7 @@ function DesignSystemPage({
             for your teaching style while staying easy to scan during a busy school day.
           </p>
         </div>
-        <div className={`live-theme-preview ${themePresets[theme.key].previewClass}`}>
+        <div className={`live-theme-preview ${themePresets[theme.key].previewClass}`} style={customPreviewStyle}>
           <span className="preview-glow" />
           <div className="preview-nav" />
           <div className="preview-card large">
