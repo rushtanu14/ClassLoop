@@ -120,14 +120,14 @@ Core domain models:
 - Real-time parsing feedback (unmatched participants flagged)
 - Teacher-facing controls: edit, approve, publish workflow
 
-### Integration Policy
+### Free-First External Services Policy
 
-Keep integrations free-first and optional:
+Keep external services free-first and narrow:
 
 - Email should work with a Gmail account the user owns, including a no-reply-like account such as `classloop.noreply@gmail.com`. Do not imply ClassLoop can generate Gmail accounts or send from unauthenticated domains.
-- Google Classroom should connect to an existing teacher Classroom account. Avoid adding requirements that force paid Google Workspace upgrades for the prototype.
-- LMS posting should target an LMS the school already provides or a self-hosted/free option such as Moodle. Paid LMS access should not be required for the app to be useful.
-- Speech-to-text should prefer browser speech recognition or local/self-hosted transcription. OpenAI speech-to-text is optional and paid, so keep transcript paste/upload fully usable.
+- Do not add paid API-key features to the working app.
+- Do not show Google Classroom OAuth posting, LMS posting, OpenAI transcription, or custom transcription-service hooks unless the user explicitly asks to reintroduce external integrations.
+- Audio capture should use browser live speech recognition when available; transcript paste/upload must remain the reliable free path.
 
 ## Real Session Example
 
@@ -276,8 +276,8 @@ Tests validate:
 1. **Teacher edit UI**: Add inline edits to recap, questions, action items before publish (not just form views).
 2. **Publish preview**: Show each student exactly what they'll see before distributing.
 3. **Completion check-ins**: Real task states: not started → working → submitted → reviewed. Hook up student submissions.
-4. **Roster sync**: Add CSV, Google Classroom, Canvas, and Schoology roster import/export around the saved roster manager.
-5. **LMS integration**: Export/sync to Google Classroom, Canvas, Schoology.
+4. **Roster import/export**: Add CSV roster import/export around the saved roster manager.
+5. **External sync later**: Consider Google Classroom, Canvas, or Schoology only if the user accepts external integration setup.
 6. **Privacy dashboard**: Explain to schools how student data is handled (no rankings, teacher-only signals, student-specific sharing).
 
 ## Common Pitfalls

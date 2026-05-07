@@ -275,7 +275,7 @@ Make the code changes and then summarize exactly what changed and how you verifi
 
 ## 2026-05-06 Feature QA Prompt: Access, Appearance, Storage, Capture, Privacy, Rosters
 
-Use this prompt when testing the ClassLoop feature set after appearance, storage, browser tests, speech-to-text, delivery logging, privacy controls, roster templates, or sidebar navigation are changed:
+Use this prompt when testing the ClassLoop feature set after appearance, storage, browser tests, live audio notes, delivery logging, privacy controls, roster templates, or sidebar navigation are changed:
 
 ```text
 You are testing ClassLoop. Verify functionality; do not redesign the app.
@@ -306,9 +306,9 @@ Feature checks:
    - Sign back in and confirm the student's saved theme returns.
 10. Teacher appearance settings remain teacher-account scoped.
 11. Image backdrop URL updates the live preview and app background when a safe HTTPS image URL is used.
-12. Audio recording and online call capture require recording permission confirmation when privacy settings require it.
-13. If OPENAI_API_KEY or CLASSLOOP_TRANSCRIBE_URL is configured, recorded audio posts to /api/transcribe and transcript text is appended to the transcript field.
-14. Publish preview shows delivery logs after email, Google Classroom, or LMS post actions.
+12. Live audio notes require microphone permission confirmation when privacy settings require it.
+13. Paid/API-key/external-platform features are absent from the working app: no OpenAI transcription, custom transcription endpoint, Google Classroom posting, LMS posting, or online-call capture buttons.
+14. Publish preview shows delivery logs after email send actions.
 15. Privacy page is accessible to teachers and exposes retention settings, export, delete class data, consent settings, and audit log.
 16. Account/session/browser roster fallback storage uses secure classloop:secure:* localStorage keys; legacy plain classloop:accounts/session keys should migrate away.
 17. Responsive layout has no horizontal overflow at a phone-sized viewport.
@@ -328,7 +328,7 @@ Report:
 - pass/fail by command
 - parsed import counts
 - browser test results
-- any feature not fully verifiable without external credentials
+- any feature not fully verifiable without the Gmail sender
 - exact file/function suspected for any failure
 - when the user says "use the testing script," also include concise feedback on how the test run went, what could be improved, and feature ideas that would improve user experience
 ```
@@ -349,23 +349,19 @@ Playwright is a required dev dependency for ClassLoop browser QA.
 - Browser fallback storage should use `classloop:secure:*` keys with AES-GCM encryption and migrate legacy plain localStorage keys.
 - This is local encryption at rest. It is not true multi-device sync. Real multi-device student access requires a backend database, server-side auth/session validation, HTTPS, and school-approved identity/OAuth.
 
-## 2026-05-06 Speech-To-Text Notes
+## 2026-05-06 Live Audio Notes
 
-- Browser live speech recognition is useful when available, but it is not enough for reliable recording transcription.
-- `/api/transcribe` should accept base64 audio and support:
-  - Free-first local/self-hosted transcription with `CLASSLOOP_TRANSCRIBE_URL`.
-  - OpenAI speech-to-text with `OPENAI_API_KEY` and `CLASSLOOP_TRANSCRIBE_MODEL` only as an optional paid provider.
-  - A custom school transcription service with `CLASSLOOP_TRANSCRIBE_URL` and optional `CLASSLOOP_TRANSCRIBE_TOKEN`.
-- Recording and online call capture should require explicit in-app consent when privacy settings require it.
+- Browser live speech recognition is the only audio-to-text path kept in the working app.
+- Transcript paste/upload is the reliable free fallback.
+- Do not add `/api/transcribe`, OpenAI speech-to-text, custom transcription-provider APIs, or online-call capture unless the user explicitly reopens paid/external integration work.
+- Live audio notes should require explicit in-app consent when privacy settings require it.
 
-## 2026-05-06 Free-First Integration Policy
+## 2026-05-06 Free-First External Services Policy
 
 - The user does not want to pay for integrations during the prototype stage.
 - ClassLoop cannot generate a Gmail account or send from an address the user does not own.
 - Free email path: the user creates/owns a Gmail account such as `classloop.noreply@gmail.com`, enables 2-Step Verification, creates an app password, and configures ClassLoop to send from that mailbox with `CLASSLOOP_REPLY_TO` set to the teacher/support inbox.
-- Google Classroom should use an existing teacher/school Classroom account. Do not require paid Workspace upgrades for the prototype.
-- LMS posting should only require an already-provided school LMS account/API token or a self-hosted/free Moodle/school middleware endpoint.
-- OpenAI transcription is not free. Keep it optional and document local/self-hosted transcription as the no-API-cost path.
+- Remove or hide Google Classroom OAuth posting, LMS posting, OpenAI transcription, custom transcription endpoints, and online-call capture from the working app because they depend on external integration setup or paid API-key paths.
 - If no external credentials are configured, ClassLoop must remain useful through transcript paste/upload, local review, publish preview, student portal, roster manager, and analytics.
 
 ## 2026-05-06 Roster Template Notes

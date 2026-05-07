@@ -90,8 +90,8 @@ Playwright starts the Vite dev server on `127.0.0.1:5173` and runs Chromium chec
 When the user says "use the testing script," run the saved ClassLoop QA sequence and report:
 - pass/fail by command
 - browser workflow result
-- anything not verifiable without external credentials
-- whether optional integrations are staying free-first, meaning Gmail uses a user-owned mailbox, Classroom uses an existing teacher account, LMS uses existing/self-hosted access, and OpenAI transcription is not required
+- anything not verifiable without the configured Gmail/SMTP sender
+- whether paid/API-key/external-platform features remain absent from the app, except Gmail/SMTP email through a user-owned sender
 - concise feedback on how the run went
 - what could be improved
 - feature ideas that would improve user experience

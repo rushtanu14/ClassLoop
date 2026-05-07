@@ -40,24 +40,29 @@ The launcher installs missing dependencies when needed, then opens ClassLoop in 
 - Teacher-side session dashboard, import flow, AI review draft, session report, and analytics.
 - Student-side dashboard and session detail views.
 - Student and teacher appearance customization, saved only to the signed-in account.
-- Audio recording and online-call capture with consent confirmation and optional backend speech-to-text.
-- Publish preview with one-click recap email delivery plus Google Classroom/LMS posting hooks.
+- Transcript paste/upload plus live audio notes when browser speech recognition is available.
+- Publish preview with one-click recap email delivery through a user-owned Gmail/SMTP sender.
 - Per-student preview differences that explain why each student receives different follow-ups.
 - Saved roster manager that reuses class rosters by session template after the first published session.
 - Privacy controls for retention settings, workspace export/delete, and audit history.
 - Explicit sample accounts and sample session data for demonstrations.
 - Checked-in app build under `dist/`, wrapped by the desktop launcher.
 
-## Free-First Integrations
+## Free-First External Services
 
 ClassLoop should work without paid services. Transcript paste/upload, local accounts, review, publishing, student preview, analytics, and roster management are local-first.
 
-Optional external integrations should use free or already-owned accounts:
+External service support is intentionally narrow:
 
 - Email: use a Gmail account you own, such as `classloop.noreply@gmail.com`, with an app password. ClassLoop cannot generate Gmail accounts or send from addresses you do not own.
-- Google Classroom: connect an existing teacher Classroom account. Do not require a paid Workspace upgrade for the prototype.
-- LMS: connect only to school-provided Canvas/Schoology/Moodle access, or a self-hosted Moodle/school middleware endpoint.
-- Speech-to-text: prefer browser speech recognition or a local/self-hosted transcription endpoint. OpenAI transcription remains supported as an optional paid provider, not the default path.
+- Audio notes: use browser live speech recognition when available, with transcript paste/upload as the reliable fallback.
+
+Removed/deferred because they require paid API keys, school platform credentials, or external integration setup:
+
+- OpenAI/custom transcription.
+- Google Classroom OAuth posting.
+- Canvas/LMS posting.
+- Background online-call capture that depends on external transcription.
 
 ## Sample Accounts
 
@@ -111,7 +116,7 @@ Core MVP promise:
 2. Add teacher edit affordances directly to student follow-up cards so judges immediately see that the teacher stays in control before publishing.
 3. Add a lightweight “publish preview” step showing exactly what each student will see.
 4. Add completion check-in states that feel real: “not started,” “working,” “submitted,” and “teacher reviewed.”
-5. Add roster import/export actions for Google Classroom, CSV, and LMS roster sync.
+5. Add CSV roster import/export before considering any external Classroom or LMS sync.
 6. Add a privacy/explanation panel written for schools: private teacher signals, no public ranking, student-specific sharing only.
 7. Add export/share actions for reports, because teachers and tutors will expect PDF, email, or LMS-friendly output later.
 
@@ -119,4 +124,4 @@ Core MVP promise:
 
 - Free: limited sessions per month, basic recap, basic action items.
 - Pro: unlimited sessions, AI transcript processing, student dashboards, analytics, exports.
-- Future school/team plan: admin dashboards, LMS integration, roster sync, privacy controls, and team reporting.
+- Future school/team plan: admin dashboards, roster sync, privacy controls, and team reporting.

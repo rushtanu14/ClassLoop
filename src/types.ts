@@ -2,7 +2,7 @@ export type AttendanceStatus = "present" | "absent" | "late";
 
 export type SessionStatus = "draft" | "published";
 
-export type SessionCaptureMode = "transcript" | "audio" | "live_call";
+export type SessionCaptureMode = "transcript" | "audio";
 
 export type SessionType =
   | "Math review"
@@ -88,25 +88,12 @@ export type SessionEmailDelivery = {
 
 export type DeliveryLog = {
   id: string;
-  provider: "email" | "google_classroom" | "lms";
+  provider: "email";
   target: string;
   status: "sent" | "posted" | "failed" | "skipped";
   message: string;
   createdAt: string;
   recipientCount?: number;
-};
-
-export type SessionIntegrations = {
-  googleClassroomConnected?: boolean;
-  googleClassroomCourseId?: string;
-  googleClassroomCourseName?: string;
-  googleClassroomPostedAt?: string;
-  lmsConnected?: boolean;
-  lmsName?: string;
-  lmsUrl?: string;
-  lmsCourseId?: string;
-  lmsCourseName?: string;
-  lmsPostedAt?: string;
 };
 
 export type UnmatchedParticipant = {
@@ -138,5 +125,4 @@ export type Session = {
   transcriptAliases?: Record<string, string>;
   emailDelivery?: SessionEmailDelivery;
   deliveryLogs?: DeliveryLog[];
-  integrations?: SessionIntegrations;
 };

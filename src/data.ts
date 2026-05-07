@@ -824,6 +824,5 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
       recipients: [],
       skipped: [],
     },
-    integrations: {},
   };
 }
