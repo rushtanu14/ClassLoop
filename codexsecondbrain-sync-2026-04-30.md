@@ -426,6 +426,16 @@ When using the ClassLoop testing script, also verify:
 - Recap email delivery on the improvement branch is now server-authoritative: send requests use a published `sessionId` and owner email instead of trusting a client-provided draft session.
 - Verification passed on both branches: `npm run build`, `npm run test:import`, `node -c desktop/main.cjs`, `node --check api/*.js api/billing/*.js`, `npm run test:browser`, and `git diff --check`.
 
+## 2026-05-09 Main Promotion + UX Smoke Update
+
+- Promoted the working `codex/audio-session-improvements` experience into `main` so `main` is now the current branch Rushil should work from.
+- `main` now includes the richer daily-use workflow: consent-first capture modes, one-click recap delivery UI, saved rosters, class/course manager, publish audit, student submitted/reviewed completion state, report exports, hosted backend/freemium scaffold, and privacy controls.
+- Fixed a promotion merge regression where duplicate privacy/billing defaults broke the Vite app.
+- Restored CSV import/export controls in the shared roster manager so draft review rosters, saved rosters, and classes all keep CSV workflow access.
+- Expanded `tests/browser/classloop.spec.ts` into a deeper UX smoke script covering account creation/reset/settings, capture choices, roster CSV import/export, class reuse, publish preview, report downloads, student submission, teacher review, privacy, sync/billing fallback, appearance, tutorial, role gates, and mobile overflow.
+- Manual-style Playwright UX pass against the running app covered login, capture mode selection, sample import, CSV import, publish, student preview completion, analytics, and privacy. It found no page errors, no console errors, and no desktop horizontal overflow.
+- Verification passed on `main`: `npm run build`, `npm run test:import`, `npm run test:browser` (12/12), `node -c desktop/main.cjs`, `node --check api/*.js api/billing/*.js`, and `git diff --check`.
+
 ## 2026-05-09 Skills Added From Backend Rollout
 
 Created three reusable ClassLoop skills:

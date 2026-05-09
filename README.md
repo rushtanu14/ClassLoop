@@ -52,7 +52,7 @@ npm install
 | **Styling** | CSS |
 | **Package Manager** | npm |
 
-## Current Improvement Branch Experience
+## Current Main Experience
 
 - Original classroom visual style: clean white surfaces with green education-focused accents.
 - Desktop app shell powered by Electron.
@@ -60,7 +60,7 @@ npm install
 - Teacher-side session dashboard, import flow, AI review draft, session report, and analytics.
 - Student-side dashboard and session detail views.
 - Student and teacher appearance customization, saved only to the signed-in account.
-- Transcript paste/upload plus live audio notes when browser speech recognition is available.
+- Transcript paste/upload plus consent-first in-person and online-meeting capture guidance.
 - Publish preview with one-click recap email delivery through a user-owned Gmail/SMTP sender.
 - Per-student preview differences that explain why each student receives different follow-ups.
 - Saved roster manager with CSV import/export and alias cleanup.

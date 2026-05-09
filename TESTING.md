@@ -34,6 +34,8 @@
 - **Class Manager**: Saved classes show reusable rosters, default templates, and linked session history.
 - **Student View**: Published sessions appear in the student-facing portal.
 - **Student Completion**: Students can mark work complete, which moves the follow-up into a submitted state for teacher review.
+- **Teacher Review Loop**: Teacher preview can mark submitted student check-ins as reviewed.
+- **Capture Modes**: New session flow exposes transcript, in-person class, and online meeting capture choices without biometric voice identification claims.
 - **Analytics Hiding**: Student navigation does not expose teacher analytics.
 - **Publish Audit**: Preview/report pages show publish audit evidence for class-wide and per-student follow-ups.
 - **Report Exports**: Session report exposes JSON, CSV, and print actions.

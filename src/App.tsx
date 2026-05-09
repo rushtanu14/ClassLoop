@@ -386,19 +386,6 @@ const themePresets: Record<
 
 const accentOptions = ["#0f766e", "#2563eb", "#38bdf8", "#8b5cf6", "#e11d48", "#f59e0b", "#16a34a"];
 
-const defaultPrivacySettings: PrivacySettings = {
-  retentionDays: 365,
-  recordingConsentRequired: true,
-  allowStudentExport: true,
-  auditLogEnabled: true,
-  noTrainingOnStudentData: true,
-};
-
-const defaultBillingProfile: BillingProfile = {
-  tier: "free",
-  status: "not_configured",
-};
-
 const routeLabels: Record<RouteKey, string> = {
   dashboard: "Teacher dashboard",
   "new-session": "Import session",
@@ -4100,6 +4087,27 @@ function RosterManager({
 
   const content = (
     <div className="roster-manager">
+        <div className="roster-template-actions">
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(event) => importCsv(event.target.files?.[0])}
+            hidden
+          />
+          <button className="ghost-button" type="button" onClick={() => csvInputRef.current?.click()}>
+            <UploadCloud size={17} />
+            Import CSV
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => downloadTextFile(`${slugify(sessionTitle, "classloop-roster")}.csv`, rosterToCsv(students), "text/csv")}
+          >
+            <ArrowUpRight size={17} />
+            Export CSV
+          </button>
+        </div>
         {students.map((student, index) => (
           <article key={student.id} className={showAttendance ? "roster-row" : "roster-row without-attendance"}>
             <Avatar student={student} />
