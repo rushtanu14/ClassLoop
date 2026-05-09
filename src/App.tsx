@@ -414,7 +414,9 @@ function normalizeEmail(email: string) {
 }
 
 function studentAccessEmails(student: Student) {
-  return uniqueText([student.linkedAccountEmail, student.email].map((email) => normalizeEmail(email)).filter(Boolean));
+  return uniqueText(
+    [student.linkedAccountEmail, student.email].map((email) => normalizeEmail(email ?? "")).filter(Boolean),
+  );
 }
 
 function studentMatchesEmail(student: Student, email: string) {
