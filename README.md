@@ -12,7 +12,27 @@ ClassLoop runs as a desktop application.
 ./run.sh
 ```
 
-The launcher installs missing dependencies when needed, then opens ClassLoop in a native Electron window.
+The launcher installs or repairs missing dependencies with `npm ci` when `package-lock.json` is present, then opens ClassLoop in a native Electron window.
+
+For a browser-based dev server instead of Electron:
+
+```bash
+./run.sh --dev
+```
+
+Useful launcher environment variables:
+
+```bash
+HOST=127.0.0.1 FRONTEND_PORT=5177 OPEN_BROWSER=0 ./run.sh --dev
+```
+
+You can also install dependencies directly:
+
+```bash
+npm install
+```
+
+`npm install` also downloads the Playwright Chromium browser through the project `postinstall` script.
 
 ## Tech Stack
 
@@ -91,12 +111,11 @@ classloop-student
 ## Testing
 
 ```bash
+npm install
 npm run build
 npm run test:import
 npm run test:browser
 ```
-
-`npm install` installs the Chromium browser used by Playwright through the project `postinstall` script.
 
 ## PRD Alignment
 
