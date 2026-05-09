@@ -79,6 +79,25 @@ test("teacher can log in, import a sample, preview publishing, publish, open stu
   await expect(page.getByText(/Manage retention, recording consent/i)).toBeVisible();
 });
 
+test("teacher can choose in-person or online meeting capture without biometric voice ID", async ({ page }) => {
+  await signIn(page, "teacher");
+  await page.getByRole("button", { name: /new session/i }).first().click();
+
+  await expect(page.getByText(/Use a transcript, in-person capture, or meeting audio/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /Transcript/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /In-person class/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Online meeting/i })).toBeVisible();
+
+  await page.getByRole("button", { name: /In-person class/i }).click();
+  await expect(page.getByText(/No voiceprints are created/i)).toBeVisible();
+  await expect(page.getByText(/unknown voice segments/i)).toBeVisible();
+  await expect(page.getByText(/Start capture before discussion/i)).toBeVisible();
+
+  await page.getByRole("button", { name: /Online meeting/i }).click();
+  await expect(page.getByText(/Start capture when the call begins/i)).toBeVisible();
+  await expect(page.getByText(/platform transcript/i)).toBeVisible();
+});
+
 test("students cannot access analytics but can save appearance while logged in, with default theme restored on logout", async ({ page }) => {
   await signIn(page, "student");
   await expect(page.getByRole("button", { name: /analytics/i })).toHaveCount(0);
