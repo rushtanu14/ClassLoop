@@ -7,6 +7,7 @@ import type {
   SessionType,
   Student,
   StudentFollowUp,
+  StudentSubmission,
   UnmatchedParticipant,
 } from "./types";
 
@@ -793,6 +794,12 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
         source: "Generated from attendance and participation signals.",
       })),
   ];
+  const submissions: StudentSubmission[] = roster.map((student) => ({
+    studentId: student.id,
+    sessionId: `session-generated-${suffix}`,
+    status: "todo",
+    note: "",
+  }));
 
   return {
     id: `session-generated-${suffix}`,
@@ -817,6 +824,7 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     actionItems,
     participationEvents,
     followUps,
+    submissions,
     unmatchedParticipants,
     transcriptAliases: {},
     emailDelivery: {

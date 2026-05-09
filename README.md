@@ -52,7 +52,7 @@ npm install
 | **Styling** | CSS |
 | **Package Manager** | npm |
 
-## Current Main Experience
+## Current Improvement Branch Experience
 
 - Original classroom visual style: clean white surfaces with green education-focused accents.
 - Desktop app shell powered by Electron.
@@ -63,7 +63,11 @@ npm install
 - Transcript paste/upload plus live audio notes when browser speech recognition is available.
 - Publish preview with one-click recap email delivery through a user-owned Gmail/SMTP sender.
 - Per-student preview differences that explain why each student receives different follow-ups.
-- Saved roster manager that reuses class rosters by session template after the first published session.
+- Saved roster manager with CSV import/export and alias cleanup.
+- Class/course manager that stores reusable class rosters, default session templates, and linked session history.
+- Publish audit showing what will be shared with the class and why each student receives different follow-ups.
+- Student completion flow from to do to submitted to teacher reviewed.
+- Print, JSON, and CSV-friendly session reports for sharing or local recordkeeping.
 - Privacy controls for retention settings, workspace export/delete, and audit history.
 - Explicit sample accounts and sample session data for demonstrations.
 - Checked-in app build under `dist/`, wrapped by the desktop launcher.
@@ -131,16 +135,15 @@ Core MVP promise:
 
 ## High-Value Next Changes
 
-1. Make the import-to-review moment stronger: add a clearer “before and after” transformation from transcript text to recap, tasks, resources, and student follow-ups.
-2. Add teacher edit affordances directly to student follow-up cards so judges immediately see that the teacher stays in control before publishing.
-3. Add a lightweight “publish preview” step showing exactly what each student will see.
-4. Add completion check-in states that feel real: “not started,” “working,” “submitted,” and “teacher reviewed.”
-5. Add CSV roster import/export before considering any external Classroom or LMS sync.
-6. Add a privacy/explanation panel written for schools: private teacher signals, no public ranking, student-specific sharing only.
-7. Add export/share actions for reports, because teachers and tutors will expect PDF, email, or LMS-friendly output later.
+1. Add teacher notes templates for recurring lesson styles, such as exit tickets, lab workshops, club meetings, and tutoring sessions.
+2. Add local version history for publish changes so teachers can compare what changed between draft, published, and revised follow-ups.
+3. Add a lightweight student inbox showing unread class updates and teacher-reviewed submissions.
+4. Add accessibility settings for font size, reduced motion, and high-contrast classroom mode.
+5. Add a local backup/restore workflow for moving ClassLoop data between devices without a hosted backend.
+6. Add optional school-managed backend sync only if the user later accepts hosting, credentials, and privacy review.
 
 ## Monetization Direction
 
 - Free: limited sessions per month, basic recap, basic action items.
-- Pro: unlimited sessions, AI transcript processing, student dashboards, analytics, exports.
+- Pro: unlimited sessions, local transcript processing, student dashboards, analytics, exports.
 - Future school/team plan: admin dashboards, roster sync, privacy controls, and team reporting.

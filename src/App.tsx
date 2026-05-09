@@ -57,15 +57,20 @@ import {
 import type {
   ActionItem,
   AttendanceStatus,
+  ClassGroup,
   DeliveryLog,
   ParticipationEvent,
   ParticipationType,
+  PublishAuditEntry,
   Resource,
+  RosterTemplate,
   Session,
   SessionCaptureMode,
   SessionType,
   Student,
   StudentFollowUp,
+  StudentSubmission,
+  StudentSubmissionStatus,
   TaskStatus,
   UnmatchedParticipant,
 } from "./types";
@@ -79,6 +84,7 @@ type RouteKey =
   | "report"
   | "student"
   | "student-session"
+  | "classes"
   | "rosters"
   | "analytics"
   | "tutorial"
@@ -130,6 +136,7 @@ type SharedState = {
   sessions: Session[];
   draft: Session | null;
   demoLoaded: boolean;
+  classGroups: ClassGroup[];
   rosterTemplates: RosterTemplate[];
   privacySettings: PrivacySettings;
   auditLog: AuditLogEntry[];
@@ -137,16 +144,6 @@ type SharedState = {
 };
 
 type SyncStatus = "connecting" | "shared" | "local";
-
-type RosterTemplate = {
-  id: string;
-  ownerEmail: string;
-  name: string;
-  sessionType: SessionType;
-  students: Student[];
-  createdAt: string;
-  updatedAt: string;
-};
 
 type PrivacySettings = {
   retentionDays: number;
@@ -220,6 +217,7 @@ type EmailDeliveryResult = {
 const navItems: NavItem[] = [
   { route: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { route: "new-session", label: "New session", icon: PlusCircle },
+  { route: "classes", label: "Classes", icon: BookOpen },
   { route: "rosters", label: "Rosters", icon: Users },
   { route: "review", label: "Draft review", icon: Sparkles },
   { route: "report", label: "Session report", icon: ClipboardCheck },
@@ -320,6 +318,7 @@ const secureLocalKeys = {
   sessions: "classloop:secure:sessions:v3",
   draft: "classloop:secure:draft:v3",
   demoLoaded: "classloop:secure:demo-loaded:v1",
+  classGroups: "classloop:secure:class-groups:v1",
   rosterTemplates: "classloop:secure:roster-templates:v1",
   privacySettings: "classloop:secure:privacy:v1",
   auditLog: "classloop:secure:audit:v1",
@@ -371,6 +370,7 @@ const routeLabels: Record<RouteKey, string> = {
   report: "Session report",
   student: "Student dashboard",
   "student-session": "Student session detail",
+  classes: "Class manager",
   rosters: "Roster manager",
   analytics: "Teacher analytics",
   tutorial: "How it works",
@@ -413,6 +413,15 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function studentAccessEmails(student: Student) {
+  return uniqueText([student.linkedAccountEmail, student.email].map((email) => normalizeEmail(email)).filter(Boolean));
+}
+
+function studentMatchesEmail(student: Student, email: string) {
+  const normalizedEmail = normalizeEmail(email);
+  return studentAccessEmails(student).includes(normalizedEmail);
+}
+
 function getSpeechRecognitionConstructor() {
   const speechWindow = window as SpeechRecognitionWindow;
   return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
@@ -431,7 +440,7 @@ function appendCapturedText(current: string, text: string) {
 
 function studentEmailRecipients(session: Session) {
   return session.students
-    .map((student) => normalizeEmail(student.linkedAccountEmail || student.email))
+    .map((student) => studentAccessEmails(student)[0] ?? "")
     .filter((email) => email && !email.endsWith("@classloop.local"));
 }
 
@@ -543,6 +552,10 @@ function createDemoSession(): Session {
     isDemo: true,
     date: "2026-04-27",
     status: "published",
+    submissions: (session.submissions ?? []).map((submission) => ({
+      ...submission,
+      sessionId: "demo-geometry-review",
+    })),
   };
 }
 
@@ -556,11 +569,10 @@ function teacherSessionsFor(sessions: Session[], email: string) {
 }
 
 function studentSessionsFor(sessions: Session[], email: string) {
-  const normalizedEmail = normalizeEmail(email);
   return sessions.filter(
     (session) =>
       session.status === "published" &&
-      session.students.some((student) => normalizeEmail(student.email) === normalizedEmail),
+      session.students.some((student) => studentMatchesEmail(student, email)),
   );
 }
 
@@ -575,13 +587,13 @@ function publishedRoster(sessions: Session[]) {
       sessions
         .filter((session) => session.status === "published")
         .flatMap((session) => session.students)
-        .map((student) => [student.email.toLowerCase(), student]),
+        .map((student) => [student.id, student]),
     ).values(),
   );
 }
 
 function findStudentByEmail(sessions: Session[], email: string) {
-  return publishedRoster(sessions).find((student) => normalizeEmail(student.email) === normalizeEmail(email));
+  return publishedRoster(sessions).find((student) => studentMatchesEmail(student, email));
 }
 
 function studentById(id: string, roster: Student[] = []) {
@@ -665,11 +677,23 @@ function syncSessionRoster(session: Session, students: Student[]): Session {
   const nextFollowUps = normalizedStudents.map(
     (student) => session.followUps.find((followUp) => followUp.studentId === student.id) ?? blankFollowUpForStudent(student, session),
   );
+  const nextSubmissions = normalizedStudents.map((student) => {
+    const existing = (session.submissions ?? []).find((submission) => submission.studentId === student.id);
+    return (
+      existing ?? {
+        studentId: student.id,
+        sessionId: session.id,
+        status: "todo" as const,
+        note: "",
+      }
+    );
+  });
   return {
     ...session,
     students: normalizedStudents,
     attendance: nextAttendance,
     followUps: nextFollowUps,
+    submissions: nextSubmissions,
     actionItems: session.actionItems.filter((item) => !item.ownerId || studentIds.has(item.ownerId)),
     participationEvents: session.participationEvents.filter((event) => studentIds.has(event.studentId)),
   };
@@ -760,6 +784,8 @@ function statusLabel(status: TaskStatus) {
   const labels: Record<TaskStatus, string> = {
     todo: "To do",
     in_progress: "In progress",
+    submitted: "Submitted",
+    reviewed: "Reviewed",
     complete: "Complete",
     overdue: "Overdue",
   };
@@ -789,7 +815,11 @@ function attendanceLabel(status: AttendanceStatus) {
 function completionRate(sessions: Session[]) {
   const followUps = sessions.flatMap((session) => session.followUps);
   if (followUps.length === 0) return 0;
-  return Math.round((followUps.filter((followUp) => followUp.status === "complete").length / followUps.length) * 100);
+  return Math.round(
+    (followUps.filter((followUp) => ["submitted", "reviewed", "complete"].includes(followUp.status)).length /
+      followUps.length) *
+      100,
+  );
 }
 
 function attentionCount(sessions: Session[]) {
@@ -905,6 +935,7 @@ async function readLocalStateFallback(): Promise<SharedState> {
     sessions: await readSecureLocalJson<Session[]>(secureLocalKeys.sessions, "classloop:sessions:v3", []),
     draft: await readSecureLocalJson<Session | null>(secureLocalKeys.draft, "classloop:draft:v3", null),
     demoLoaded: await readSecureLocalJson<boolean>(secureLocalKeys.demoLoaded, "classloop:demo-loaded:v1", false),
+    classGroups: await readSecureLocalJson<ClassGroup[]>(secureLocalKeys.classGroups, "classloop:class-groups:v1", []),
     rosterTemplates: await readSecureLocalJson<RosterTemplate[]>(
       secureLocalKeys.rosterTemplates,
       "classloop:roster-templates:v1",
@@ -920,13 +951,14 @@ async function readLocalStateFallback(): Promise<SharedState> {
 }
 
 async function writeLocalStateFallback(
-  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "rosterTemplates" | "privacySettings" | "auditLog">,
+  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "classGroups" | "rosterTemplates" | "privacySettings" | "auditLog">,
 ) {
   await Promise.all([
     writeSecureLocalJson(secureLocalKeys.accounts, state.accounts),
     writeSecureLocalJson(secureLocalKeys.sessions, state.sessions),
     writeSecureLocalJson(secureLocalKeys.draft, state.draft),
     writeSecureLocalJson(secureLocalKeys.demoLoaded, state.demoLoaded),
+    writeSecureLocalJson(secureLocalKeys.classGroups, state.classGroups),
     writeSecureLocalJson(secureLocalKeys.rosterTemplates, state.rosterTemplates),
     writeSecureLocalJson(secureLocalKeys.privacySettings, state.privacySettings),
     writeSecureLocalJson(secureLocalKeys.auditLog, state.auditLog),
@@ -939,6 +971,7 @@ function normalizeSharedState(data: Partial<SharedState>): SharedState {
     sessions: Array.isArray(data.sessions) ? data.sessions : [],
     draft: data.draft ?? null,
     demoLoaded: Boolean(data.demoLoaded),
+    classGroups: Array.isArray(data.classGroups) ? data.classGroups : [],
     rosterTemplates: Array.isArray(data.rosterTemplates) ? data.rosterTemplates : [],
     privacySettings: { ...defaultPrivacySettings, ...(data.privacySettings ?? {}) },
     auditLog: Array.isArray(data.auditLog) ? data.auditLog : [],
@@ -947,13 +980,14 @@ function normalizeSharedState(data: Partial<SharedState>): SharedState {
 }
 
 function sharedStateJson(
-  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "rosterTemplates" | "privacySettings" | "auditLog">,
+  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "classGroups" | "rosterTemplates" | "privacySettings" | "auditLog">,
 ) {
   return JSON.stringify({
     accounts: state.accounts,
     sessions: state.sessions,
     draft: state.draft,
     demoLoaded: state.demoLoaded,
+    classGroups: state.classGroups,
     rosterTemplates: state.rosterTemplates,
     privacySettings: state.privacySettings,
     auditLog: state.auditLog,
@@ -976,6 +1010,173 @@ function safeBackgroundUrl(value: string) {
   return `url("${sanitized}")`;
 }
 
+function csvEscape(value: string) {
+  const clean = value ?? "";
+  return /[",\n]/.test(clean) ? `"${clean.replace(/"/g, '""')}"` : clean;
+}
+
+function parseCsvRows(text: string) {
+  const rows: string[][] = [];
+  let current = "";
+  let row: string[] = [];
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      row.push(current.trim());
+      current = "";
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && next === "\n") index += 1;
+      row.push(current.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  row.push(current.trim());
+  if (row.some(Boolean)) rows.push(row);
+  return rows;
+}
+
+function rosterStudentsFromCsv(text: string) {
+  const rows = parseCsvRows(text);
+  if (!rows.length) return [];
+  const header = rows[0].map((cell) => cell.toLowerCase().replace(/\s+/g, ""));
+  const hasHeader = header.some((cell) => ["firstname", "lastname", "name", "studentname", "email", "emailaddress"].includes(cell));
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+  const nameIndex = header.findIndex((cell) => cell === "name" || cell === "studentname" || cell === "student");
+  const firstIndex = header.findIndex((cell) => cell === "firstname" || cell === "first");
+  const lastIndex = header.findIndex((cell) => cell === "lastname" || cell === "last");
+  const emailIndex = header.findIndex((cell) => cell === "email" || cell === "emailaddress");
+  const aliasesIndex = header.findIndex((cell) => cell === "aliases" || cell === "zoomnames" || cell === "nickname");
+
+  return dataRows
+    .map((row, index) => {
+      const email = normalizeEmail(emailIndex >= 0 ? row[emailIndex] ?? "" : row.find((cell) => /@/.test(cell)) ?? "");
+      const name =
+        nameIndex >= 0
+          ? row[nameIndex] ?? ""
+          : [firstIndex >= 0 ? row[firstIndex] : row[0], lastIndex >= 0 ? row[lastIndex] : row[1]]
+              .filter(Boolean)
+              .join(" ");
+      const aliases = aliasesIndex >= 0 ? (row[aliasesIndex] ?? "").split(/[;,]/).map((item) => item.trim()).filter(Boolean) : [];
+      return makeRosterStudent(name, email, index, aliases);
+    })
+    .filter((student) => student.name.trim() && student.email.includes("@"));
+}
+
+function rosterToCsv(students: Student[]) {
+  return [
+    ["Name", "Email", "Aliases"].map(csvEscape).join(","),
+    ...students.map((student) =>
+      [student.name, student.email, uniqueText(student.aliases ?? []).join("; ")].map(csvEscape).join(","),
+    ),
+  ].join("\n");
+}
+
+function downloadTextFile(filename: string, contents: string, type = "text/plain") {
+  const blob = new Blob([contents], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function setStudentSubmission(
+  session: Session,
+  studentId: string,
+  status: StudentSubmissionStatus,
+  note = "",
+): Session {
+  const now = new Date().toISOString();
+  const currentSubmissions = session.submissions ?? [];
+  const existing = currentSubmissions.find((submission) => submission.studentId === studentId);
+  const nextSubmission: StudentSubmission = {
+    studentId,
+    sessionId: session.id,
+    status,
+    note: note || existing?.note || "",
+    submittedAt: status === "submitted" ? now : existing?.submittedAt,
+    reviewedAt: status === "reviewed" ? now : existing?.reviewedAt,
+  };
+  const nextStatus: TaskStatus = status === "working" ? "in_progress" : status === "todo" ? "todo" : status;
+  return {
+    ...session,
+    submissions: existing
+      ? currentSubmissions.map((submission) =>
+          submission.studentId === studentId ? { ...submission, ...nextSubmission } : submission,
+        )
+      : [...currentSubmissions, nextSubmission],
+    followUps: session.followUps.map((followUp) =>
+      followUp.studentId === studentId
+        ? {
+            ...followUp,
+            status: nextStatus,
+            score: status === "reviewed" ? 100 : status === "submitted" ? Math.max(followUp.score, 90) : followUp.score,
+          }
+        : followUp,
+    ),
+  };
+}
+
+function makePublishAudit(session: Session): PublishAuditEntry[] {
+  const createdAt = new Date().toISOString();
+  const entries: PublishAuditEntry[] = [
+    {
+      sessionId: session.id,
+      type: "class_recap",
+      message: `Class recap, ${session.actionItems.length} action items, and ${session.resources.length} resources will be published.`,
+      createdAt,
+    },
+  ];
+
+  session.students.forEach((student) => {
+    const diff = previewDiffForStudent(session, student);
+    entries.push({
+      sessionId: session.id,
+      studentId: student.id,
+      type: "student_followup",
+      message: `${student.name}: ${diff.reasons[0]?.label ?? "Shared class baseline"}; ${diff.sharedTaskCount} shared tasks, ${diff.uniqueTaskCount} personalized tasks.`,
+      createdAt,
+    });
+  });
+
+  return entries;
+}
+
+function sessionFollowThroughCsv(session: Session) {
+  const rows = [
+    ["Student", "Email", "Attendance", "Status", "Readiness", "Due date", "Reminder"].map(csvEscape).join(","),
+    ...session.followUps.map((followUp) => {
+      const student = studentById(followUp.studentId, session.students);
+      return [
+        student.name,
+        student.email,
+        attendanceLabel(session.attendance[student.id] ?? "present"),
+        statusLabel(followUp.status),
+        String(followUp.score),
+        followUp.dueDate,
+        followUp.reminder,
+      ]
+        .map(csvEscape)
+        .join(",");
+    }),
+  ];
+  return rows.join("\n");
+}
+
 function App() {
   const [route, setRoute] = useState<RouteKey>(getRoute);
   const [accounts, setAccounts] = useState<Account[]>(demoAccounts);
@@ -985,6 +1186,7 @@ function App() {
   const [auth, setAuth] = useState<AuthSession | null>(null);
   const [theme, setTheme] = useState<ThemeSettings>(defaultTheme);
   const [demoLoaded, setDemoLoaded] = useState(false);
+  const [classGroups, setClassGroups] = useState<ClassGroup[]>([]);
   const [rosterTemplates, setRosterTemplates] = useState<RosterTemplate[]>([]);
   const [rosterPromptSession, setRosterPromptSession] = useState<Session | null>(null);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(defaultPrivacySettings);
@@ -1001,6 +1203,7 @@ function App() {
       sessions: [],
       draft: null,
       demoLoaded: false,
+      classGroups: [],
       rosterTemplates: [],
       privacySettings: defaultPrivacySettings,
       auditLog: [],
@@ -1032,6 +1235,7 @@ function App() {
         setSessions(state.sessions);
         setDraft(state.draft);
         setDemoLoaded(state.demoLoaded);
+        setClassGroups(state.classGroups);
         setRosterTemplates(state.rosterTemplates);
         setPrivacySettings(state.privacySettings);
         setAuditLog(state.auditLog);
@@ -1047,6 +1251,7 @@ function App() {
         setSessions(localState.sessions);
         setDraft(localState.draft);
         setDemoLoaded(localState.demoLoaded);
+        setClassGroups(localState.classGroups);
         setRosterTemplates(localState.rosterTemplates);
         setPrivacySettings(localState.privacySettings);
         setAuditLog(localState.auditLog);
@@ -1066,11 +1271,11 @@ function App() {
   useEffect(() => {
     if (!sharedReady) return;
     if (!serverSyncRef.current) {
-      void writeLocalStateFallback({ accounts, sessions, draft, demoLoaded, rosterTemplates, privacySettings, auditLog });
+      void writeLocalStateFallback({ accounts, sessions, draft, demoLoaded, classGroups, rosterTemplates, privacySettings, auditLog });
       return;
     }
 
-    const nextJson = sharedStateJson({ accounts, sessions, draft, demoLoaded, rosterTemplates, privacySettings, auditLog });
+    const nextJson = sharedStateJson({ accounts, sessions, draft, demoLoaded, classGroups, rosterTemplates, privacySettings, auditLog });
     if (nextJson === lastSharedJsonRef.current) return;
 
     if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
@@ -1094,7 +1299,7 @@ function App() {
           writeTimerRef.current = null;
         });
     }, 300);
-  }, [accounts, auditLog, demoLoaded, draft, privacySettings, rosterTemplates, sessions, sharedReady]);
+  }, [accounts, auditLog, classGroups, demoLoaded, draft, privacySettings, rosterTemplates, sessions, sharedReady]);
 
   useEffect(() => {
     if (!sharedReady || !serverSyncRef.current) return;
@@ -1113,6 +1318,7 @@ function App() {
             setSessions(state.sessions);
             setDraft(state.draft);
             setDemoLoaded(state.demoLoaded);
+            setClassGroups(state.classGroups);
             setRosterTemplates(state.rosterTemplates);
             setPrivacySettings(state.privacySettings);
             setAuditLog(state.auditLog);
@@ -1155,6 +1361,13 @@ function App() {
         ? rosterTemplates.filter((template) => normalizeEmail(template.ownerEmail) === normalizeEmail(auth.email))
         : [],
     [auth, rosterTemplates],
+  );
+  const teacherClassGroups = useMemo(
+    () =>
+      auth?.role === "teacher"
+        ? classGroups.filter((group) => normalizeEmail(group.ownerEmail) === normalizeEmail(auth.email))
+        : [],
+    [auth, classGroups],
   );
   const activeTheme = useMemo(
     () => ({
@@ -1238,6 +1451,37 @@ function App() {
       updatedAt: now,
     };
     setRosterTemplates((current) => [template, ...current]);
+    setClassGroups((current) => {
+      const existing = current.find(
+        (group) =>
+          normalizeEmail(group.ownerEmail) === normalizeEmail(auth.email) &&
+          group.name.trim().toLowerCase() === template.name.trim().toLowerCase(),
+      );
+      if (existing) {
+        return current.map((group) =>
+          group.id === existing.id
+            ? {
+                ...group,
+                defaultSessionType: template.sessionType,
+                students: template.students,
+                updatedAt: now,
+              }
+            : group,
+        );
+      }
+      return [
+        {
+          id: `class-group-${Date.now().toString(36)}`,
+          ownerEmail: auth.email,
+          name: template.name,
+          defaultSessionType: template.sessionType,
+          students: template.students,
+          createdAt: now,
+          updatedAt: now,
+        },
+        ...current,
+      ];
+    });
     appendAudit("save_roster_template", `Saved ${template.name} for ${session.type}.`);
   };
 
@@ -1259,6 +1503,40 @@ function App() {
     setRosterTemplates((current) => current.filter((template) => template.id !== templateId));
   };
 
+  const createClassGroupFromTemplate = (template: RosterTemplate) => {
+    if (!auth || auth.role !== "teacher") return;
+    const now = new Date().toISOString();
+    const group: ClassGroup = {
+      id: `class-group-${Date.now().toString(36)}`,
+      ownerEmail: auth.email,
+      name: template.name,
+      defaultSessionType: template.sessionType,
+      students: template.students,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setClassGroups((current) => [group, ...current]);
+    appendAudit("create_class_group", `Created class group ${group.name}.`);
+  };
+
+  const updateClassGroup = (groupId: string, changes: Partial<ClassGroup>) => {
+    setClassGroups((current) =>
+      current.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              ...changes,
+              updatedAt: new Date().toISOString(),
+            }
+          : group,
+      ),
+    );
+  };
+
+  const deleteClassGroup = (groupId: string) => {
+    setClassGroups((current) => current.filter((group) => group.id !== groupId));
+  };
+
   const ensureDemoSession = () => {
     const demoSession = createDemoSession();
     setSessions((current) =>
@@ -1271,7 +1549,20 @@ function App() {
   const publishDraft = (sessionOverride?: Session) => {
     if (!visibleDraft || !auth) return;
     const source = sessionOverride ?? visibleDraft;
-    const published = { ...source, ownerEmail: auth.email, status: "published" as const };
+    const published = {
+      ...source,
+      ownerEmail: auth.email,
+      status: "published" as const,
+      submissions:
+        source.submissions ??
+        source.students.map((student) => ({
+          studentId: student.id,
+          sessionId: source.id,
+          status: "todo" as const,
+          note: "",
+        })),
+      publishAudit: makePublishAudit(source),
+    };
     updateSession(published);
     setDraft(published);
     appendAudit("publish_session", `Published ${published.title}.`);
@@ -1289,12 +1580,9 @@ function App() {
       current.map((session) =>
         session.id === sessionId
           ? {
-              ...session,
-              followUps: session.followUps.map((followUp) =>
-                followUp.studentId === studentId ? { ...followUp, status: "complete", score: 100 } : followUp,
-              ),
+              ...setStudentSubmission(session, studentId, "submitted", "Marked complete from the student portal."),
               actionItems: session.actionItems.map((item) =>
-                item.ownerId === studentId || !item.ownerId ? { ...item, status: "complete" } : item,
+                item.ownerId === studentId || !item.ownerId ? { ...item, status: "submitted" } : item,
               ),
             }
           : session,
@@ -1539,6 +1827,21 @@ function App() {
           onUpdateAccount={handleUpdateAccount}
         />
         {effectiveRoute === "dashboard" && <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} />}
+        {effectiveRoute === "classes" && auth.role === "teacher" && (
+          <ClassGroupsPage
+            groups={teacherClassGroups}
+            rosterTemplates={teacherRosterTemplates}
+            sessions={teacherSessions}
+            ownerEmail={auth.email}
+            onCreateFromTemplate={createClassGroupFromTemplate}
+            onCreateBlank={(group) => {
+              setClassGroups((current) => [group, ...current]);
+              appendAudit("create_class_group", `Created class group ${group.name}.`);
+            }}
+            onUpdate={updateClassGroup}
+            onDelete={deleteClassGroup}
+          />
+        )}
         {effectiveRoute === "rosters" && auth.role === "teacher" && (
           <RosterTemplatesPage
             templates={teacherRosterTemplates}
@@ -1549,6 +1852,7 @@ function App() {
             }}
             onUpdate={updateRosterTemplate}
             onDelete={deleteRosterTemplate}
+            onCreateClassGroup={createClassGroupFromTemplate}
           />
         )}
         {effectiveRoute === "new-session" && (
@@ -1558,6 +1862,7 @@ function App() {
             onUseDemo={() => setDemoLoaded(true)}
             recordingConsentRequired={privacySettings.recordingConsentRequired}
             rosterTemplates={teacherRosterTemplates}
+            classGroups={teacherClassGroups}
           />
         )}
         {effectiveRoute === "processing" && <Processing draft={visibleDraft} />}
@@ -2569,12 +2874,14 @@ function ImportSession({
   onUseDemo,
   recordingConsentRequired,
   rosterTemplates,
+  classGroups,
 }: {
   ownerEmail: string;
   setDraft: (session: Session) => void;
   onUseDemo: () => void;
   recordingConsentRequired: boolean;
   rosterTemplates: RosterTemplate[];
+  classGroups: ClassGroup[];
 }) {
   const [title, setTitle] = useState("");
   const [template, setTemplate] = useState<SessionType>("General classroom");
@@ -2600,6 +2907,11 @@ function ImportSession({
     [rosterTemplates, template],
   );
   const [loadedRosterTemplateId, setLoadedRosterTemplateId] = useState("");
+  const matchingClassGroups = useMemo(
+    () => classGroups.filter((group) => group.defaultSessionType === template || !template),
+    [classGroups, template],
+  );
+  const [loadedClassGroupId, setLoadedClassGroupId] = useState("");
 
   useEffect(() => {
     const matchingTemplate = rosterTemplates.find((templateItem) => templateItem.sessionType === template);
@@ -2767,7 +3079,13 @@ function ImportSession({
       captureDurationSeconds: recordedSeconds || undefined,
       transcriptSource,
     });
-    setDraft({ ...session, ownerEmail });
+    const selectedGroup = classGroups.find((group) => group.id === loadedClassGroupId);
+    setDraft({
+      ...session,
+      ownerEmail,
+      classGroupId: selectedGroup?.id,
+      classGroupName: selectedGroup?.name,
+    });
     navigate("processing", { session: session.id });
   };
 
@@ -2777,9 +3095,20 @@ function ImportSession({
 
   const useSavedRoster = (templateId: string) => {
     setLoadedRosterTemplateId(templateId);
+    setLoadedClassGroupId("");
     const selectedTemplate = rosterTemplates.find((templateItem) => templateItem.id === templateId);
     if (selectedTemplate) {
       setRoster(formatRosterFromStudents(selectedTemplate.students));
+    }
+  };
+
+  const useClassGroup = (groupId: string) => {
+    setLoadedClassGroupId(groupId);
+    setLoadedRosterTemplateId("");
+    const selectedGroup = classGroups.find((group) => group.id === groupId);
+    if (selectedGroup) {
+      setTemplate(selectedGroup.defaultSessionType);
+      setRoster(formatRosterFromStudents(selectedGroup.students));
     }
   };
 
@@ -2790,6 +3119,7 @@ function ImportSession({
     if (savedRoster) {
       setRoster(formatRosterFromStudents(savedRoster.students));
       setLoadedRosterTemplateId(savedRoster.id);
+      setLoadedClassGroupId("");
     } else {
       setLoadedRosterTemplateId("");
     }
@@ -2846,12 +3176,25 @@ function ImportSession({
               </div>
             )}
             {matchingRosterTemplates.length > 0 && (
-              <label className="field compact wide">
+              <label className="field compact">
                 <span>Saved roster</span>
                 <select value={loadedRosterTemplateId} onChange={(event) => useSavedRoster(event.target.value)}>
                   {matchingRosterTemplates.map((templateItem) => (
                     <option key={templateItem.id} value={templateItem.id}>
                       {templateItem.name} · {templateItem.students.length} students
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {matchingClassGroups.length > 0 && (
+              <label className="field compact">
+                <span>Saved class</span>
+                <select value={loadedClassGroupId} onChange={(event) => useClassGroup(event.target.value)}>
+                  <option value="">Choose a class roster</option>
+                  {matchingClassGroups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name} · {group.students.length} students
                     </option>
                   ))}
                 </select>
@@ -3300,6 +3643,8 @@ function ReviewDraft({
                       >
                         <option value="todo">To do</option>
                         <option value="in_progress">In progress</option>
+                        <option value="submitted">Submitted</option>
+                        <option value="reviewed">Reviewed</option>
                         <option value="complete">Complete</option>
                         <option value="overdue">Overdue</option>
                       </select>
@@ -3460,20 +3805,226 @@ function RosterManager({
   );
 }
 
+function ClassGroupsPage({
+  groups,
+  rosterTemplates,
+  sessions,
+  ownerEmail,
+  onCreateFromTemplate,
+  onCreateBlank,
+  onUpdate,
+  onDelete,
+}: {
+  groups: ClassGroup[];
+  rosterTemplates: RosterTemplate[];
+  sessions: Session[];
+  ownerEmail: string;
+  onCreateFromTemplate: (template: RosterTemplate) => void;
+  onCreateBlank: (group: ClassGroup) => void;
+  onUpdate: (groupId: string, changes: Partial<ClassGroup>) => void;
+  onDelete: (groupId: string) => void;
+}) {
+  const [activeGroupId, setActiveGroupId] = useState(groups[0]?.id ?? "");
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
+  const activeGroup = groups.find((group) => group.id === activeGroupId) ?? groups[0];
+  const activeAttendance =
+    activeGroup?.students.reduce<Record<string, AttendanceStatus>>((acc, student) => {
+      acc[student.id] = "present";
+      return acc;
+    }, {}) ?? {};
+  const groupSessions = activeGroup
+    ? sessions.filter((session) => session.classGroupId === activeGroup.id || session.classGroupName === activeGroup.name)
+    : [];
+
+  useEffect(() => {
+    if (groups.length && !groups.some((group) => group.id === activeGroupId)) setActiveGroupId(groups[0].id);
+    if (!groups.length && activeGroupId) setActiveGroupId("");
+  }, [activeGroupId, groups]);
+
+  const createBlankClass = () => {
+    const now = new Date().toISOString();
+    const group: ClassGroup = {
+      id: `class-group-${Date.now().toString(36)}`,
+      ownerEmail,
+      name: "New class",
+      defaultSessionType: "General classroom",
+      students: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    onCreateBlank(group);
+    setActiveGroupId(group.id);
+  };
+
+  const importCsvIntoActiveGroup = async (file?: File) => {
+    if (!file || !activeGroup) return;
+    const students = rosterStudentsFromCsv(await file.text());
+    if (students.length) onUpdate(activeGroup.id, { students });
+    if (csvInputRef.current) csvInputRef.current.value = "";
+  };
+
+  if (!groups.length) {
+    return (
+      <div className="page-stack class-group-page">
+        <section className="review-banner">
+          <div>
+            <span className="eyebrow">Class manager</span>
+            <h2>Keep each class roster ready for the next session.</h2>
+            <p>Create a class manually or turn an existing saved roster into a reusable class group.</p>
+          </div>
+          <button className="primary-button" type="button" onClick={createBlankClass}>
+            <UserPlus size={17} />
+            Create class
+          </button>
+        </section>
+        <section className="content-grid two-columns align-start">
+          <EmptyState
+            icon={BookOpen}
+            title="No classes yet"
+            detail="Create a class or save one from a roster after publishing your first session."
+            action="Create class"
+            onAction={createBlankClass}
+          />
+          {rosterTemplates.length > 0 && (
+            <Panel title="Start from a saved roster" icon={Users}>
+              <div className="roster-template-list">
+                {rosterTemplates.map((template) => (
+                  <button key={template.id} className="roster-template-card" type="button" onClick={() => onCreateFromTemplate(template)}>
+                    <strong>{template.name}</strong>
+                    <span>{template.sessionType}</span>
+                    <small>{template.students.length} students</small>
+                  </button>
+                ))}
+              </div>
+            </Panel>
+          )}
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-stack class-group-page">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Class manager</span>
+          <h2>Reusable classes and course rosters.</h2>
+          <p>Each class keeps a roster, Zoom-name aliases, a default template, and its past published sessions.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={createBlankClass}>
+          <UserPlus size={17} />
+          New class
+        </button>
+      </section>
+
+      <section className="content-grid roster-template-layout align-start">
+        <Panel title="Classes" icon={BookOpen}>
+          <div className="roster-template-list">
+            {groups.map((group) => (
+              <button
+                key={group.id}
+                className={group.id === activeGroup.id ? "roster-template-card selected" : "roster-template-card"}
+                type="button"
+                onClick={() => setActiveGroupId(group.id)}
+              >
+                <strong>{group.name}</strong>
+                <span>{group.defaultSessionType}</span>
+                <small>{group.students.length} students</small>
+              </button>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Class details" icon={Settings2}>
+          <div className="roster-template-settings">
+            <label className="field compact">
+              <span>Class name</span>
+              <input value={activeGroup.name} onChange={(event) => onUpdate(activeGroup.id, { name: event.target.value })} />
+            </label>
+            <label className="field compact">
+              <span>Default template</span>
+              <select
+                value={activeGroup.defaultSessionType}
+                onChange={(event) => onUpdate(activeGroup.id, { defaultSessionType: event.target.value as SessionType })}
+              >
+                {templateOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="class-history-card">
+              <strong>{groupSessions.length}</strong>
+              <span>published sessions linked to this class</span>
+            </div>
+            <div className="roster-template-actions">
+              <input
+                ref={csvInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(event) => importCsvIntoActiveGroup(event.target.files?.[0])}
+                hidden
+              />
+              <button className="ghost-button" type="button" onClick={() => csvInputRef.current?.click()}>
+                <UploadCloud size={17} />
+                Import CSV
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() =>
+                  downloadTextFile(`${slugify(activeGroup.name, "classloop-class")}.csv`, rosterToCsv(activeGroup.students), "text/csv")
+                }
+              >
+                <ArrowUpRight size={17} />
+                Export CSV
+              </button>
+              <button className="ghost-button danger" type="button" onClick={() => onDelete(activeGroup.id)}>
+                <Trash2 size={17} />
+                Delete class
+              </button>
+            </div>
+          </div>
+          <RosterManager
+            students={activeGroup.students}
+            attendance={activeAttendance}
+            studentAccountEmails={[]}
+            sessionTitle={activeGroup.name}
+            onStudentsChange={(students) => onUpdate(activeGroup.id, { students })}
+            onAttendanceChange={() => undefined}
+            showAttendance={false}
+            wrapPanel={false}
+          />
+        </Panel>
+      </section>
+    </div>
+  );
+}
+
 function RosterTemplatesPage({
   templates,
   ownerEmail,
   onCreate,
   onUpdate,
   onDelete,
+  onCreateClassGroup,
 }: {
   templates: RosterTemplate[];
   ownerEmail: string;
   onCreate: (template: RosterTemplate) => void;
   onUpdate: (templateId: string, changes: Partial<RosterTemplate>) => void;
   onDelete: (templateId: string) => void;
+  onCreateClassGroup: (template: RosterTemplate) => void;
 }) {
   const [activeTemplateId, setActiveTemplateId] = useState(templates[0]?.id ?? "");
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
+  const activeTemplate = templates.find((template) => template.id === activeTemplateId) ?? templates[0];
+  const activeAttendance =
+    activeTemplate?.students.reduce<Record<string, AttendanceStatus>>((acc, student) => {
+      acc[student.id] = "present";
+      return acc;
+    }, {}) ?? {};
 
   useEffect(() => {
     if (templates.length && !templates.some((template) => template.id === activeTemplateId)) {
@@ -3499,12 +4050,14 @@ function RosterTemplatesPage({
     setActiveTemplateId(template.id);
   };
 
-  const activeTemplate = templates.find((template) => template.id === activeTemplateId) ?? templates[0];
-  const activeAttendance =
-    activeTemplate?.students.reduce<Record<string, AttendanceStatus>>((acc, student) => {
-      acc[student.id] = "present";
-      return acc;
-    }, {}) ?? {};
+  const importCsvIntoActiveTemplate = async (file?: File) => {
+    if (!file || !activeTemplate) return;
+    const students = rosterStudentsFromCsv(await file.text());
+    if (students.length) {
+      onUpdate(activeTemplate.id, { students });
+    }
+    if (csvInputRef.current) csvInputRef.current.value = "";
+  };
 
   if (!templates.length) {
     return (
@@ -3589,6 +4142,37 @@ function RosterTemplatesPage({
               <Trash2 size={17} />
               Delete roster
             </button>
+            <div className="roster-template-actions">
+              <input
+                ref={csvInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(event) => importCsvIntoActiveTemplate(event.target.files?.[0])}
+                hidden
+              />
+              <button className="ghost-button" type="button" onClick={() => csvInputRef.current?.click()}>
+                <UploadCloud size={17} />
+                Import CSV
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() =>
+                  downloadTextFile(
+                    `${slugify(activeTemplate.name, "classloop-roster")}.csv`,
+                    rosterToCsv(activeTemplate.students),
+                    "text/csv",
+                  )
+                }
+              >
+                <ArrowUpRight size={17} />
+                Export CSV
+              </button>
+              <button className="text-button" type="button" onClick={() => onCreateClassGroup(activeTemplate)}>
+                Save as class
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
           <RosterManager
             students={activeTemplate.students}
@@ -3807,6 +4391,24 @@ function PublishPreview({
   setDraft: (session: Session | null) => void;
   publishDraft: (sessionOverride?: Session) => void;
 }) {
+  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus | null>(null);
+  const [deliveryMessage, setDeliveryMessage] = useState("");
+  const [integrationMessage, setIntegrationMessage] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const loadIntegrationStatus = async () => {
+    try {
+      const status = await apiJson<IntegrationStatus>("/api/integrations/status");
+      setIntegrationStatus(status);
+      setIntegrationMessage("");
+    } catch (error) {
+      setIntegrationMessage(error instanceof Error ? error.message : "Unable to load integration status.");
+    }
+  };
+
+  useEffect(() => {
+    loadIntegrationStatus();
+  }, []);
+
   if (!draft) {
     return (
       <EmptyState
@@ -3827,26 +4429,19 @@ function PublishPreview({
   const selectedPreviewDiff = previewDiffForStudent(draft, student);
   const delivery = draft.emailDelivery ?? { status: "not_sent" as const, recipients: [], skipped: [] };
   const emailSent = delivery.status === "sent";
+  const isPublished = draft.status === "published";
   const recipientCount = studentEmailRecipients(draft).length;
-  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus | null>(null);
-  const [deliveryMessage, setDeliveryMessage] = useState("");
-  const [integrationMessage, setIntegrationMessage] = useState("");
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const currentPublishAudit = draft.publishAudit ?? makePublishAudit(draft);
   const updatePreviewSession = (sessionId: string, updater: (session: Session) => Session) => {
     if (sessionId === draft.id) setDraft(updater(draft));
   };
   const updateDraft = (updater: (session: Session) => Session) => setDraft(updater(draft));
-  const loadIntegrationStatus = async () => {
-    try {
-      const status = await apiJson<IntegrationStatus>("/api/integrations/status");
-      setIntegrationStatus(status);
-      setIntegrationMessage("");
-    } catch (error) {
-      setIntegrationMessage(error instanceof Error ? error.message : "Unable to load integration status.");
-    }
-  };
   const sendStudentEmails = async () => {
     if (emailSent || recipientCount === 0 || isSendingEmail) return;
+    if (!isPublished) {
+      setDeliveryMessage("Publish the session before sending recap emails.");
+      return;
+    }
     setIsSendingEmail(true);
     setDeliveryMessage("");
     try {
@@ -3862,10 +4457,6 @@ function PublishPreview({
       setIsSendingEmail(false);
     }
   };
-  useEffect(() => {
-    loadIntegrationStatus();
-  }, []);
-
   return (
     <div className="page-stack publish-preview-page">
       <section className="review-banner">
@@ -3897,7 +4488,9 @@ function PublishPreview({
               <p>
                 {emailSent
                   ? `Sent to ${delivery.recipients.length} students${delivery.sentAt ? ` on ${formatDate(delivery.sentAt)}` : ""}.`
-                  : `${recipientCount} students have deliverable roster or linked account emails.`}
+                  : isPublished
+                    ? `${recipientCount} students have deliverable roster or linked account emails.`
+                    : "Publish the session first, then send the approved recap and action items."}
               </p>
               {!emailSent && integrationStatus?.email?.configured && (
                 <small>
@@ -3917,7 +4510,7 @@ function PublishPreview({
               className="primary-button full"
               type="button"
               onClick={sendStudentEmails}
-              disabled={emailSent || recipientCount === 0 || isSendingEmail}
+              disabled={!isPublished || emailSent || recipientCount === 0 || isSendingEmail}
             >
               {emailSent ? <CheckCircle2 size={17} /> : <Send size={17} />}
               {emailSent ? "Emails sent" : isSendingEmail ? "Sending..." : "Send recap emails"}
@@ -3941,6 +4534,21 @@ function PublishPreview({
           </div>
         </Panel>
       )}
+
+      <Panel title="Publish audit" icon={ClipboardCheck}>
+        <div className="publish-audit-list">
+          {currentPublishAudit.slice(0, 8).map((entry, index) => {
+            const auditStudent = entry.studentId ? studentById(entry.studentId, draft.students) : null;
+            return (
+              <div key={`${entry.type}-${entry.studentId ?? "class"}-${index}`} className="publish-audit-row">
+                <span>{auditStudent ? auditStudent.name : "Class-wide"}</span>
+                <strong>{entry.type.replace(/_/g, " ")}</strong>
+                <small>{entry.message}</small>
+              </div>
+            );
+          })}
+        </div>
+      </Panel>
 
       <section className="content-grid two-columns align-start">
         <Panel title="Choose student preview" icon={GraduationCap}>
@@ -4090,6 +4698,36 @@ function SessionReport({
             <Settings2 size={17} />
             Edit draft
           </button>
+          <button
+            className="ghost-button"
+            onClick={() =>
+              downloadTextFile(
+                `${slugify(session.title, "classloop-session")}.json`,
+                JSON.stringify(session, null, 2),
+                "application/json",
+              )
+            }
+          >
+            <ArrowUpRight size={17} />
+            Export JSON
+          </button>
+          <button
+            className="ghost-button"
+            onClick={() =>
+              downloadTextFile(
+                `${slugify(session.title, "classloop-follow-through")}.csv`,
+                sessionFollowThroughCsv(session),
+                "text/csv",
+              )
+            }
+          >
+            <FileText size={17} />
+            Export CSV
+          </button>
+          <button className="ghost-button" onClick={() => window.print()}>
+            <ClipboardCheck size={17} />
+            Print report
+          </button>
           <button className="primary-button" onClick={() => navigate("student")}>
             <GraduationCap size={17} />
             View student dashboard
@@ -4183,6 +4821,23 @@ function SessionReport({
           </table>
         </div>
       </Panel>
+
+      {(session.publishAudit ?? []).length > 0 && (
+        <Panel title="Publish audit" icon={ClipboardCheck}>
+          <div className="publish-audit-list">
+            {(session.publishAudit ?? []).map((entry, index) => {
+              const auditStudent = entry.studentId ? studentById(entry.studentId, session.students) : null;
+              return (
+                <div key={`${entry.type}-${entry.studentId ?? "class"}-${index}`} className="publish-audit-row">
+                  <span>{auditStudent ? auditStudent.name : "Class-wide"}</span>
+                  <strong>{entry.type.replace(/_/g, " ")}</strong>
+                  <small>{entry.message}</small>
+                </div>
+              );
+            })}
+          </div>
+        </Panel>
+      )}
     </div>
   );
 }
@@ -4306,6 +4961,24 @@ function StudentDashboard({
         </section>
       )}
 
+      {auth.role === "student" && latest && latestFollowUp && (
+        <Panel title="Since your last visit" icon={SlidersHorizontal}>
+          <div className="student-change-list">
+            {previewDiffForStudent(latest, student)
+              .reasons.slice(0, 3)
+              .map((reason) => (
+                <div key={`${reason.label}-${reason.detail}`} className="student-change-row">
+                  <CheckCircle2 size={17} />
+                  <span>
+                    <strong>{reason.label}</strong>
+                    <small>{reason.detail}</small>
+                  </span>
+                </div>
+              ))}
+          </div>
+        </Panel>
+      )}
+
       {auth.role === "teacher" && latest && latestFollowUp && updateSession && (
         <StudentVisibleEditor session={latest} studentId={activeStudentId} updateSession={updateSession} compact />
       )}
@@ -4320,7 +4993,7 @@ function StudentDashboard({
                 onClick={() => navigate("student-session", { session: session.id })}
               >
                 <span className="task-check">
-                  {followUp.status === "complete" ? <CheckCircle2 size={18} /> : <Clock3 size={18} />}
+                  {["submitted", "reviewed", "complete"].includes(followUp.status) ? <CheckCircle2 size={18} /> : <Clock3 size={18} />}
                 </span>
                 <span>
                   <strong>{followUp.tasks[0]}</strong>
@@ -4488,6 +5161,7 @@ function StudentVisibleEditor({
 }) {
   const followUp = session.followUps.find((item) => item.studentId === studentId);
   const student = studentById(studentId, session.students);
+  const submission = (session.submissions ?? []).find((item) => item.studentId === studentId);
 
   if (!followUp) return null;
 
@@ -4529,10 +5203,29 @@ function StudentVisibleEditor({
       resources: current.resources.filter((resource) => resource.id !== resourceId),
     }));
   };
+  const markReviewed = () => {
+    updateCurrentSession((current) => setStudentSubmission(current, studentId, "reviewed", "Reviewed by teacher."));
+  };
 
   return (
     <Panel title={`Edit ${student.name}'s student view`} icon={Settings2}>
       <div className={compact ? "student-visible-editor compact-editor" : "student-visible-editor"}>
+        <div className="submission-state-card">
+          <div>
+            <span className="eyebrow">Completion state</span>
+            <strong>{statusLabel(followUp.status)}</strong>
+            <small>
+              {submission?.submittedAt
+                ? `Submitted ${formatDate(submission.submittedAt)}`
+                : "Student has not submitted this check-in yet."}
+              {submission?.reviewedAt ? ` · reviewed ${formatDate(submission.reviewedAt)}` : ""}
+            </small>
+          </div>
+          <button className="ghost-button" type="button" onClick={markReviewed} disabled={followUp.status === "reviewed"}>
+            <CheckCircle2 size={17} />
+            Mark reviewed
+          </button>
+        </div>
         <label className="field compact">
           <span>Student-facing recap</span>
           <textarea
@@ -4558,6 +5251,8 @@ function StudentVisibleEditor({
             <select value={followUp.status} onChange={(event) => updateFollowUp({ status: event.target.value as TaskStatus })}>
               <option value="todo">To do</option>
               <option value="in_progress">In progress</option>
+              <option value="submitted">Submitted</option>
+              <option value="reviewed">Reviewed</option>
               <option value="complete">Complete</option>
               <option value="overdue">Overdue</option>
             </select>
@@ -4631,7 +5326,7 @@ function TeacherAnalytics({ sessions }: { sessions: Session[] }) {
 
   const latest = published[0];
   const totalFollowUps = published.flatMap((session) => session.followUps);
-  const completed = totalFollowUps.filter((followUp) => followUp.status === "complete").length;
+  const completed = totalFollowUps.filter((followUp) => ["submitted", "reviewed", "complete"].includes(followUp.status)).length;
   const overdue = totalFollowUps.filter((followUp) => followUp.status === "overdue").length;
   const roster = Array.from(new Map(published.flatMap((session) => session.students).map((student) => [student.id, student])).values());
   const participationTotals = roster.map((student) => {

@@ -18,7 +18,7 @@ export type ParticipationType =
   | "quiet"
   | "absent";
 
-export type TaskStatus = "todo" | "in_progress" | "complete" | "overdue";
+export type TaskStatus = "todo" | "in_progress" | "submitted" | "reviewed" | "complete" | "overdue";
 
 export type Student = {
   id: string;
@@ -29,6 +29,45 @@ export type Student = {
   aliases?: string[];
   linkedAccountEmail?: string;
   inviteSentAt?: string;
+};
+
+export type ClassGroup = {
+  id: string;
+  ownerEmail: string;
+  name: string;
+  defaultSessionType: SessionType;
+  students: Student[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RosterTemplate = {
+  id: string;
+  ownerEmail: string;
+  name: string;
+  sessionType: SessionType;
+  students: Student[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type StudentSubmissionStatus = "todo" | "working" | "submitted" | "reviewed";
+
+export type StudentSubmission = {
+  studentId: string;
+  sessionId: string;
+  status: StudentSubmissionStatus;
+  note: string;
+  submittedAt?: string;
+  reviewedAt?: string;
+};
+
+export type PublishAuditEntry = {
+  sessionId: string;
+  studentId?: string;
+  type: "class_recap" | "student_followup" | "resource" | "delivery" | "completion";
+  message: string;
+  createdAt: string;
 };
 
 export type Resource = {
@@ -106,6 +145,8 @@ export type Session = {
   id: string;
   ownerEmail?: string;
   isDemo?: boolean;
+  classGroupId?: string;
+  classGroupName?: string;
   title: string;
   type: SessionType;
   date: string;
@@ -125,4 +166,6 @@ export type Session = {
   transcriptAliases?: Record<string, string>;
   emailDelivery?: SessionEmailDelivery;
   deliveryLogs?: DeliveryLog[];
+  publishAudit?: PublishAuditEntry[];
+  submissions?: StudentSubmission[];
 };

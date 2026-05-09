@@ -40,7 +40,7 @@ ClassLoop
 │   └── import-flow.test.ts  # End-to-end parsing tests
 ├── tests/browser/
 │   └── classloop.spec.ts    # Playwright workflow/access tests
-├── playwright.config.ts     # Browser test config; starts Vite on 127.0.0.1:5173
+├── playwright.config.ts     # Browser test config; starts Vite on 127.0.0.1:5177
 ├── vite.config.ts           # Build config (fingerprinting for prod)
 └── tsconfig*.json           # TypeScript configs (main + test)
 ```
@@ -267,18 +267,18 @@ Tests validate:
 4. **String formatting**: Date strings are ISO 8601 (YYYY-MM-DD). Names are lowercase-slugified for IDs.
 5. **Error handling**: Parser is defensive (unmatched names flagged but don't break import). UI shows warnings clearly.
 6. **Accessibility**: Icons from lucide-react (semantic naming). Enough contrast for education-friendly green theme.
-7. **Browser QA**: Keep Playwright installed. `npm install` runs `playwright install chromium`; run `npm run test:browser` for login/import/publish/student/analytics/access/responsive coverage.
+7. **Browser QA**: Keep Playwright installed. `npm install` runs `playwright install chromium`; run `npm run test:browser` for login/import/publish/student/analytics/access/responsive/class manager/CSV/report export coverage.
 8. **Local storage security**: Desktop state is encrypted with Electron `safeStorage` when available. Browser fallback uses encrypted `classloop:secure:*` localStorage keys. True multi-device access still requires a backend.
 9. **Testing prompt upkeep**: When adding user-facing features, update the feature QA prompt in `codexsecondbrain-sync-2026-04-30.md` and Playwright coverage so future agents test the new workflow plus layout/readability issues.
 
 ## High-Value Next Work
 
-1. **Teacher edit UI**: Add inline edits to recap, questions, action items before publish (not just form views).
-2. **Publish preview**: Show each student exactly what they'll see before distributing.
-3. **Completion check-ins**: Real task states: not started → working → submitted → reviewed. Hook up student submissions.
-4. **Roster import/export**: Add CSV roster import/export around the saved roster manager.
+1. **Version history**: Track what changed between draft, publish, and later teacher edits.
+2. **Student inbox**: Add unread updates and reviewed-submission feedback in the student portal.
+3. **Accessibility settings**: Add font size, reduced motion, and stronger contrast presets.
+4. **Local backup/restore**: Let teachers move encrypted ClassLoop data between devices without a hosted backend.
 5. **External sync later**: Consider Google Classroom, Canvas, or Schoology only if the user accepts external integration setup.
-6. **Privacy dashboard**: Explain to schools how student data is handled (no rankings, teacher-only signals, student-specific sharing).
+6. **Class analytics by roster**: Add class-group-level trends once multiple sessions exist for the same saved class.
 
 ## Common Pitfalls
 

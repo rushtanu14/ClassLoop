@@ -48,6 +48,7 @@ function readDataFile() {
         sessions: [],
         draft: null,
         demoLoaded: false,
+        classGroups: [],
         rosterTemplates: [],
         updatedAt: new Date().toISOString(),
       };
@@ -70,6 +71,7 @@ function readDataFile() {
       sessions: [],
       draft: null,
       demoLoaded: false,
+      classGroups: [],
       rosterTemplates: [],
       privacySettings: undefined,
       auditLog: [],
@@ -107,6 +109,7 @@ function writeDataFile(payload) {
     sessions: Array.isArray(payload.sessions) ? payload.sessions : [],
     draft: payload.draft ?? null,
     demoLoaded: Boolean(payload.demoLoaded),
+    classGroups: Array.isArray(payload.classGroups) ? payload.classGroups : [],
     rosterTemplates: Array.isArray(payload.rosterTemplates) ? payload.rosterTemplates : [],
     privacySettings: payload.privacySettings,
     auditLog: Array.isArray(payload.auditLog) ? payload.auditLog : [],
@@ -443,7 +446,7 @@ async function createWindow() {
         return false;
       }
     })();
-    callback(trusted && ["media", "display-capture"].includes(permission));
+    callback(trusted && permission === "media");
   });
 
   await window.loadURL(`${staticServer.url}/#/dashboard`);

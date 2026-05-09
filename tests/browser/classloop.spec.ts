@@ -20,6 +20,7 @@ async function publishGeometrySample(page: Page) {
   await expect(page.getByText(/review the student view/i)).toBeVisible();
   await expect(page.getByText(/student portal preview/i)).toBeVisible();
   await expect(page.getByText(/per-student preview differences/i)).toBeVisible();
+  await expect(page.getByText(/publish audit/i)).toBeVisible();
   await expect(page.locator(".preview-diff-row")).toHaveCount(6);
   await page.locator(".preview-diff-row").filter({ hasText: "Aarav" }).click();
   await expect(page.getByLabel(/Preview for Aarav Patel/i)).toBeVisible();
@@ -46,16 +47,33 @@ test("teacher can log in, import a sample, preview publishing, publish, open stu
   await page.getByRole("button", { name: /rosters/i }).click();
   await expect(page.getByText("Geometry review roster")).toBeVisible();
   await expect(page.getByText(/6 students/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /export csv/i })).toBeVisible();
+  await page.locator('input[accept=".csv,text/csv"]').setInputFiles({
+    name: "period-4.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("Name,Email,Aliases\nMaya Chen,maya@classloop.demo,Maya iPad\nAarav Patel,aarav@classloop.demo,\n"),
+  });
+  await expect(page.locator('input[value="Maya iPad"]')).toBeVisible();
+
+  await page.getByRole("button", { name: /classes/i }).click();
+  await expect(page.getByText("Geometry review roster")).toBeVisible();
+  await expect(page.getByText(/published sessions linked to this class/i)).toBeVisible();
 
   await page.getByRole("button", { name: /new session/i }).first().click();
   await page.getByRole("button", { name: /math review/i }).click();
   await expect(page.getByLabel(/saved roster/i)).toContainText("Geometry review roster");
+  await expect(page.getByLabel(/saved class/i)).toContainText("Geometry review roster");
 
   await page.getByRole("button", { name: /student view/i }).click();
   await expect(page.getByText(/follow-up dashboard/i)).toBeVisible();
 
   await page.getByRole("button", { name: /analytics/i }).click();
   await expect(page.getByText(/Participation and follow-through/i)).toBeVisible();
+
+  await page.getByRole("button", { name: /session report/i }).click();
+  await expect(page.getByRole("button", { name: /export json/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /export csv/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /print report/i })).toBeVisible();
 
   await page.getByRole("button", { name: /privacy/i }).click();
   await expect(page.getByText(/Manage retention, recording consent/i)).toBeVisible();
@@ -64,6 +82,9 @@ test("teacher can log in, import a sample, preview publishing, publish, open stu
 test("students cannot access analytics but can save appearance while logged in, with default theme restored on logout", async ({ page }) => {
   await signIn(page, "student");
   await expect(page.getByRole("button", { name: /analytics/i })).toHaveCount(0);
+  await page.getByRole("button", { name: /mark complete/i }).click();
+  await expect(page.getByText(/submitted/i).first()).toBeVisible();
+  await expect(page.getByText(/since your last visit/i)).toBeVisible();
 
   await page.getByRole("button", { name: /appearance/i }).click();
   await page.getByRole("button", { name: /Graphite focus/i }).click();

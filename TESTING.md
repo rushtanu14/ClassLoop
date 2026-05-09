@@ -30,8 +30,13 @@
 - **Publish Preview**: Teacher can open the preview and publish student follow-ups.
 - **Per-Student Preview Diffs**: Publish preview explains why each student receives different follow-up content.
 - **Roster Manager**: Publishing prompts the teacher to save the roster; saved rosters appear in the Rosters tab and auto-load for matching session templates.
+- **CSV Roster Import/Export**: Saved rosters and class groups accept CSV files and expose CSV export controls.
+- **Class Manager**: Saved classes show reusable rosters, default templates, and linked session history.
 - **Student View**: Published sessions appear in the student-facing portal.
+- **Student Completion**: Students can mark work complete, which moves the follow-up into a submitted state for teacher review.
 - **Analytics Hiding**: Student navigation does not expose teacher analytics.
+- **Publish Audit**: Preview/report pages show publish audit evidence for class-wide and per-student follow-ups.
+- **Report Exports**: Session report exposes JSON, CSV, and print actions.
 - **Appearance**: Students can change appearance while signed in; logout returns the login screen to the default theme; sign-in restores the saved account theme.
 - **Responsive Layout**: Core controls remain visible at phone-sized width without horizontal overflow.
 
@@ -83,7 +88,7 @@ Playwright is installed in the repo through `@playwright/test`.
 **Automated install**: `npm install` runs `playwright install chromium` through `postinstall`.
 **Run browser tests**: `npm run test:browser`
 
-Playwright starts the Vite dev server on `127.0.0.1:5173` and runs Chromium checks across desktop and mobile-sized projects.
+Playwright starts the Vite dev server on `127.0.0.1:5177` and runs Chromium checks across desktop and mobile-sized projects.
 
 ## Testing Script Response
 
@@ -92,6 +97,7 @@ When the user says "use the testing script," run the saved ClassLoop QA sequence
 - browser workflow result
 - anything not verifiable without the configured Gmail/SMTP sender
 - whether paid/API-key/external-platform features remain absent from the app, except Gmail/SMTP email through a user-owned sender
+- whether class manager, CSV roster import/export, publish audit, student submitted/reviewed states, and report exports are reachable
 - concise feedback on how the run went
 - what could be improved
 - feature ideas that would improve user experience

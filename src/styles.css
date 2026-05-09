@@ -1254,6 +1254,16 @@ button:disabled:hover {
   background: #e4edff;
 }
 
+.status-pill.submitted {
+  color: #7c3aed;
+  background: #ede9fe;
+}
+
+.status-pill.reviewed {
+  color: #047857;
+  background: #d1fae5;
+}
+
 .status-pill.todo {
   color: #655330;
   background: #f2ead9;
@@ -1653,6 +1663,7 @@ button:disabled:hover {
 }
 
 .delivery-log-list,
+.publish-audit-list,
 .audit-list,
 .settings-stack {
   display: grid;
@@ -1660,6 +1671,7 @@ button:disabled:hover {
 }
 
 .delivery-log-row,
+.publish-audit-row,
 .audit-row {
   display: grid;
   gap: 3px;
@@ -1670,10 +1682,60 @@ button:disabled:hover {
 }
 
 .delivery-log-row span,
+.publish-audit-row span,
 .audit-row span,
 .delivery-log-row small,
+.publish-audit-row small,
 .audit-row small {
   color: var(--muted);
+}
+
+.publish-audit-row strong {
+  text-transform: capitalize;
+}
+
+.student-change-list {
+  display: grid;
+  gap: 10px;
+}
+
+.student-change-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffefa;
+}
+
+.student-change-row svg {
+  color: var(--primary);
+}
+
+.student-change-row strong,
+.student-change-row small,
+.submission-state-card strong,
+.submission-state-card small {
+  display: block;
+}
+
+.student-change-row small,
+.submission-state-card small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.submission-state-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
 }
 
 .danger-soft {
@@ -2927,6 +2989,18 @@ th {
   background: rgba(59, 130, 246, 0.24);
 }
 
+:root[data-theme="abyssal"] .status-pill.submitted,
+:root[data-theme="graphite"] .status-pill.submitted {
+  color: #ede9fe;
+  background: rgba(139, 92, 246, 0.26);
+}
+
+:root[data-theme="abyssal"] .status-pill.reviewed,
+:root[data-theme="graphite"] .status-pill.reviewed {
+  color: #d1fae5;
+  background: rgba(16, 185, 129, 0.24);
+}
+
 :root[data-theme="abyssal"] .status-pill.todo,
 :root[data-theme="graphite"] .status-pill.todo {
   color: #fef3c7;
@@ -3170,6 +3244,34 @@ th {
   grid-template-columns: minmax(180px, 1.2fr) minmax(170px, 0.8fr) auto;
   align-items: end;
   margin-bottom: 14px;
+}
+
+.roster-template-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.class-history-card {
+  display: grid;
+  gap: 2px;
+  min-height: 62px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+}
+
+.class-history-card strong {
+  color: var(--heading);
+  font-size: 1.4rem;
+}
+
+.class-history-card span {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .ghost-button.danger {
@@ -3649,7 +3751,11 @@ th {
   .icon-button,
   .roster-row,
   .roster-template-card,
+  .class-history-card,
   .participant-card,
+  .publish-audit-row,
+  .student-change-row,
+  .submission-state-card,
   .link-student-control select,
   .editable-line input,
   .resource-edit-row input,
@@ -3671,7 +3777,11 @@ th {
   .icon-button,
   .roster-row,
   .roster-template-card,
+  .class-history-card,
   .participant-card,
+  .publish-audit-row,
+  .student-change-row,
+  .submission-state-card,
   .link-student-control select,
   .editable-line input,
   .resource-edit-row input,
@@ -3995,5 +4105,34 @@ th {
   .primary-button,
   .ghost-button {
     width: 100%;
+  }
+}
+
+@media print {
+  body,
+  .app-shell {
+    background: #ffffff !important;
+  }
+
+  .sidebar,
+  .topbar,
+  .report-actions,
+  .logout-button {
+    display: none !important;
+  }
+
+  .app-shell {
+    display: block;
+  }
+
+  .main-area {
+    width: 100%;
+  }
+
+  .panel,
+  .report-hero,
+  .metric-card {
+    box-shadow: none !important;
+    break-inside: avoid;
   }
 }

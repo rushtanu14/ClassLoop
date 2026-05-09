@@ -341,7 +341,7 @@ Playwright is a required dev dependency for ClassLoop browser QA.
 - Keep `npm run test:browser` available.
 - Keep `postinstall` running `playwright install chromium` so a fresh repo install has the browser needed for tests.
 - Browser tests live in `tests/browser/classloop.spec.ts`.
-- Playwright config lives in `playwright.config.ts` and starts Vite on `127.0.0.1:5173`.
+- Playwright config lives in `playwright.config.ts` and starts Vite on `127.0.0.1:5177`.
 
 ## 2026-05-06 Security/Storage Notes
 
@@ -371,3 +371,36 @@ Playwright is a required dev dependency for ClassLoop browser QA.
 - Publishing a session with students prompts the teacher to name and save that roster if no saved roster exists for that session type.
 - The import flow should keep the saved roster behavior helpful but unobtrusive: show a saved roster selector only when a matching roster exists.
 - Image backdrop URLs should update the app background and live preview for safe HTTPS/data/blob/local images; Electron CSP must allow HTTPS image loads.
+
+## 2026-05-07 Branch-Aware Improvement Implementation
+
+- `codex/audio-session-improvements` is the richer free-first product branch.
+- `main` should remain the original clean white/green classroom UI with stable local-first workflows.
+- Improvement branch now includes:
+  - shared `ClassGroup`, `RosterTemplate`, `StudentSubmission`, and `PublishAuditEntry` types in `src/types.ts`
+  - Classes sidebar tab for reusable class/course rosters with default session type and linked session history
+  - CSV import/export for saved rosters and class groups
+  - publish audit rows on publish preview and session report
+  - student completion state that moves to submitted, with teacher-reviewed state available in student-visible editor
+  - student portal “Since your last visit” evidence based on personalized follow-up differences
+  - JSON, CSV, and print report actions on session reports
+  - Electron state persistence for class groups
+- The working app still excludes paid/API-key/external-platform workflows: no OpenAI/custom transcription, Google Classroom posting, LMS posting, or online-call capture.
+- Verification on the improvement branch:
+  - `npm run build` passed
+  - `npm run test:import` passed
+  - `npm run test:browser` passed 6/6 across desktop and mobile projects
+  - `node -c desktop/main.cjs` passed
+  - `git diff --check` passed
+
+### Updated Feature QA Additions
+
+When using the ClassLoop testing script, also verify:
+
+- Classes sidebar tab is teacher-only and shows reusable class rosters.
+- Publishing/saving a roster creates or updates a reusable class group.
+- New Session can load a saved class roster as well as a saved roster template.
+- Saved roster and class pages support CSV import/export.
+- Publish preview and session report show publish audit evidence.
+- Student can submit a follow-up check-in, and teacher can mark it reviewed.
+- Session report exposes JSON export, CSV export, and print actions.
