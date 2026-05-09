@@ -88,6 +88,32 @@ Removed/deferred because they require paid API keys, school platform credentials
 - Canvas/LMS posting.
 - Background online-call capture that depends on external transcription.
 
+## Hosted Backend And Freemium MVP
+
+The local desktop app still works without paid services or cloud credentials. For a public browser version and multi-device access, ClassLoop now includes a Supabase + Stripe backend scaffold:
+
+- Supabase Auth for hosted teacher/student accounts.
+- Supabase workspace state sync for browser/desktop continuity.
+- Row Level Security SQL in `supabase/schema.sql` so each account can only read and write its own ClassLoop state.
+- Stripe Checkout for Pro and School pilot subscriptions.
+- Stripe webhook endpoint for server-owned subscription status updates.
+- Pilot feedback endpoint for collecting early user feedback.
+
+Suggested pricing:
+
+- Free: `$0`, 5 sessions/month, CSV import/export, student preview, local desktop storage.
+- Pro: `$9/month`, unlimited sessions, hosted sync, email delivery logs, privacy exports, and advanced reports.
+- School pilot: `$49/month`, shared pilot workspace, longer retention controls, audit-ready exports, and priority onboarding.
+
+Configure hosted mode from `.env.example`. Public Vite variables are safe for the browser build; `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, and `STRIPE_WEBHOOK_SECRET` must only live in Vercel/server environment variables.
+
+## Privacy And School Readiness
+
+- Retention settings, export/delete workspace data, audit logs, and pilot feedback live in the teacher-only privacy area.
+- Recording or live capture should require clear consent before use.
+- Student data is marked as “no training” by default unless a school or teacher explicitly allows otherwise.
+- Analytics stay teacher-only and should be framed as private support signals, not public rankings.
+
 ## Sample Accounts
 
 Teacher:

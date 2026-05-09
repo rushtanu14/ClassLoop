@@ -7,6 +7,7 @@ const nodemailer = require("nodemailer");
 const rootDir = path.join(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
 const dataFile = path.join(rootDir, ".classloop-data.json");
+let dataFileReadError = null;
 
 const securityHeaders = {
   "Cache-Control": "no-store",
@@ -40,18 +41,31 @@ function resolveAsset(requestUrl) {
   return filePath;
 }
 
-function readDataFile() {
+function emptyWorkspace() {
+  return {
+    accounts: [],
+    sessions: [],
+    draft: null,
+    demoLoaded: false,
+    classGroups: [],
+    rosterTemplates: [],
+    privacySettings: undefined,
+    auditLog: [],
+    billingProfile: undefined,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function dataReadErrorMessage(error) {
+  const detail = error instanceof Error && error.message ? ` ${error.message}` : "";
+  return `Unable to read ClassLoop desktop data.${detail}`;
+}
+
+function readDataFile(options = {}) {
   try {
     if (!fs.existsSync(dataFile)) {
-      return {
-        accounts: [],
-        sessions: [],
-        draft: null,
-        demoLoaded: false,
-        classGroups: [],
-        rosterTemplates: [],
-        updatedAt: new Date().toISOString(),
-      };
+      dataFileReadError = null;
+      return emptyWorkspace();
     }
 
     const stored = JSON.parse(fs.readFileSync(dataFile, "utf8"));
@@ -59,23 +73,26 @@ function readDataFile() {
       if (!safeStorage.isEncryptionAvailable()) {
         throw new Error("Local ClassLoop data encryption is not available.");
       }
+      dataFileReadError = null;
       return JSON.parse(safeStorage.decryptString(Buffer.from(stored.payload, "base64")));
     }
     if (stored.version && stored.payload && stored.encrypted === false) {
+      dataFileReadError = null;
       return stored.payload;
     }
+    dataFileReadError = null;
     return stored;
-  } catch {
+  } catch (error) {
+    dataFileReadError = dataReadErrorMessage(error);
+    if (options.throwOnError) {
+      const readError = new Error(dataFileReadError);
+      readError.statusCode = 423;
+      throw readError;
+    }
     return {
-      accounts: [],
-      sessions: [],
-      draft: null,
-      demoLoaded: false,
-      classGroups: [],
-      rosterTemplates: [],
-      privacySettings: undefined,
-      auditLog: [],
-      updatedAt: new Date().toISOString(),
+      ...emptyWorkspace(),
+      readOnly: true,
+      readError: dataFileReadError,
     };
   }
 }
@@ -90,7 +107,7 @@ function sendJson(response, statusCode, payload) {
 }
 
 function isTrustedLocalOrigin(origin, host) {
-  if (!origin) return true;
+  if (!origin) return false;
   try {
     const parsed = new URL(origin);
     return parsed.protocol === "http:" && parsed.host === host && ["127.0.0.1", "localhost"].includes(parsed.hostname);
@@ -100,10 +117,18 @@ function isTrustedLocalOrigin(origin, host) {
 }
 
 function isTrustedApiRequest(request) {
+  if (["GET", "HEAD", "OPTIONS"].includes(request.method || "GET") && !request.headers.origin) {
+    return true;
+  }
   return isTrustedLocalOrigin(request.headers.origin, request.headers.host);
 }
 
 function writeDataFile(payload) {
+  if (dataFileReadError) {
+    const error = new Error(`${dataFileReadError} Fix or export the existing data file before saving new state.`);
+    error.statusCode = 423;
+    throw error;
+  }
   const nextState = {
     accounts: Array.isArray(payload.accounts) ? payload.accounts : [],
     sessions: Array.isArray(payload.sessions) ? payload.sessions : [],
@@ -113,6 +138,7 @@ function writeDataFile(payload) {
     rosterTemplates: Array.isArray(payload.rosterTemplates) ? payload.rosterTemplates : [],
     privacySettings: payload.privacySettings,
     auditLog: Array.isArray(payload.auditLog) ? payload.auditLog : [],
+    billingProfile: payload.billingProfile,
     updatedAt: new Date().toISOString(),
   };
   const stored = safeStorage.isEncryptionAvailable()
@@ -235,7 +261,7 @@ function textForStudentEmail(session, student) {
     .join("\n");
 }
 
-async function sendRecapEmails(session) {
+async function sendRecapEmails(session, options = {}) {
   const config = emailConfig();
   if (!config.configured) {
     const error = new Error("Email is not configured. Set SMTP or Gmail app-password environment variables before sending.");
@@ -251,7 +277,16 @@ async function sendRecapEmails(session) {
   const transporter = nodemailer.createTransport(config.transport);
   const recipients = [];
   const failed = [];
-  const students = deliverableStudents(session);
+  const onlyEmails = new Set(
+    (Array.isArray(options.onlyEmails) ? options.onlyEmails : []).map((email) => normalizeEmail(email)).filter(Boolean),
+  );
+  const students = deliverableStudents(session).filter((student) => !onlyEmails.size || onlyEmails.has(studentEmail(student)));
+
+  if (onlyEmails.size && !students.length) {
+    const error = new Error("No matching failed recipients were found for this published session.");
+    error.statusCode = 400;
+    throw error;
+  }
 
   for (const student of students) {
     const to = studentEmail(student);
@@ -301,8 +336,9 @@ function readRequestBody(request) {
 
 async function handleStateApi(request, response) {
   if (request.method === "GET") {
-    response.writeHead(200, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
-    response.end(JSON.stringify(readDataFile()));
+    const state = readDataFile();
+    response.writeHead(dataFileReadError ? 423 : 200, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
+    response.end(JSON.stringify(state));
     return true;
   }
 
@@ -312,9 +348,9 @@ async function handleStateApi(request, response) {
       const state = writeDataFile(JSON.parse(body || "{}"));
       response.writeHead(200, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
       response.end(JSON.stringify(state));
-    } catch {
-      response.writeHead(400, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
-      response.end(JSON.stringify({ error: "Unable to save ClassLoop data." }));
+    } catch (error) {
+      response.writeHead(error.statusCode || 400, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
+      response.end(JSON.stringify({ error: error.message || "Unable to save ClassLoop data." }));
     }
     return true;
   }
@@ -345,7 +381,29 @@ async function handleEmailApi(request, response) {
 
   try {
     const body = JSON.parse((await readRequestBody(request)) || "{}");
-    const result = await sendRecapEmails(body.session || {});
+    const sessionId = String(body.sessionId || "").trim();
+    const ownerEmail = normalizeEmail(body.ownerEmail);
+    if (!sessionId || !ownerEmail) {
+      sendJson(response, 400, { error: "Session id and owner email are required before sending recap emails." });
+      return true;
+    }
+
+    const state = readDataFile({ throwOnError: true });
+    const session = (Array.isArray(state.sessions) ? state.sessions : []).find((item) => item.id === sessionId);
+    if (!session) {
+      sendJson(response, 404, { error: "Published session was not found." });
+      return true;
+    }
+    if (session.status !== "published") {
+      sendJson(response, 409, { error: "Publish the session before sending recap emails." });
+      return true;
+    }
+    if (normalizeEmail(session.ownerEmail) !== ownerEmail) {
+      sendJson(response, 403, { error: "Only the teacher who owns this session can send recap emails." });
+      return true;
+    }
+
+    const result = await sendRecapEmails(session, { onlyEmails: body.recipients });
     sendJson(response, 200, result);
   } catch (error) {
     sendJson(response, error.statusCode || 500, { error: error.message || "Unable to send student emails." });

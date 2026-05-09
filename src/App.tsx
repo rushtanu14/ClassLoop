@@ -54,6 +54,20 @@ import {
   sampleRoster,
   sampleTranscript,
 } from "./data";
+import {
+  cloudRequest,
+  createCheckoutSession,
+  createCloudAccount,
+  getBackendStatus,
+  getCloudProfile,
+  getCloudSession,
+  isPaidPlan,
+  planCatalog,
+  signIntoCloud,
+  signOutCloud,
+  type BillingProfile,
+  type PlanTier,
+} from "./cloud";
 import type {
   ActionItem,
   AttendanceStatus,
@@ -87,6 +101,7 @@ type RouteKey =
   | "classes"
   | "rosters"
   | "analytics"
+  | "billing"
   | "tutorial"
   | "appearance"
   | "privacy";
@@ -140,6 +155,7 @@ type SharedState = {
   rosterTemplates: RosterTemplate[];
   privacySettings: PrivacySettings;
   auditLog: AuditLogEntry[];
+  billingProfile: BillingProfile;
   updatedAt?: string;
 };
 
@@ -150,6 +166,7 @@ type PrivacySettings = {
   recordingConsentRequired: boolean;
   allowStudentExport: boolean;
   auditLogEnabled: boolean;
+  noTrainingOnStudentData: boolean;
 };
 
 type AuditLogEntry = {
@@ -223,6 +240,7 @@ const navItems: NavItem[] = [
   { route: "report", label: "Session report", icon: ClipboardCheck },
   { route: "student", label: "Student view", icon: GraduationCap },
   { route: "analytics", label: "Analytics", icon: BarChart3 },
+  { route: "billing", label: "Sync & billing", icon: RefreshCw },
   { route: "tutorial", label: "How it works", icon: BookOpen },
   { route: "appearance", label: "Appearance", icon: Palette },
   { route: "privacy", label: "Privacy", icon: ShieldCheck },
@@ -311,6 +329,12 @@ const defaultPrivacySettings: PrivacySettings = {
   recordingConsentRequired: true,
   allowStudentExport: true,
   auditLogEnabled: true,
+  noTrainingOnStudentData: true,
+};
+
+const defaultBillingProfile: BillingProfile = {
+  tier: "free",
+  status: "not_configured",
 };
 
 const secureLocalKeys = {
@@ -322,6 +346,7 @@ const secureLocalKeys = {
   rosterTemplates: "classloop:secure:roster-templates:v1",
   privacySettings: "classloop:secure:privacy:v1",
   auditLog: "classloop:secure:audit:v1",
+  billingProfile: "classloop:secure:billing:v1",
 };
 
 const themePresets: Record<
@@ -373,6 +398,7 @@ const routeLabels: Record<RouteKey, string> = {
   classes: "Class manager",
   rosters: "Roster manager",
   analytics: "Teacher analytics",
+  billing: "Sync & billing",
   tutorial: "How it works",
   appearance: "Appearance",
   privacy: "Privacy controls",
@@ -385,6 +411,7 @@ function getRoute(): RouteKey {
     route === "processing" ||
     route === "student-session" ||
     route === "publish-preview" ||
+    route === "billing" ||
     route === "privacy"
     ? route
     : "dashboard";
@@ -432,12 +459,19 @@ function getSpeechRecognitionConstructor() {
 const captureModeLabels: Record<SessionCaptureMode, string> = {
   transcript: "Transcript import",
   audio: "Live audio notes",
+  in_person: "In-person class capture",
+  online_meeting: "Online meeting capture",
 };
 
 function appendCapturedText(current: string, text: string) {
   const clean = text.replace(/\s+/g, " ").trim();
   if (!clean) return current;
   return [current.trim(), clean].filter(Boolean).join("\n");
+}
+
+function liveCaptureSpeakerLabel(mode: SessionCaptureMode, segmentNumber: number) {
+  if (mode === "online_meeting") return `Unknown meeting voice ${segmentNumber}`;
+  return `Unknown in-person voice ${segmentNumber}`;
 }
 
 function studentEmailRecipients(session: Session) {
@@ -949,11 +983,16 @@ async function readLocalStateFallback(): Promise<SharedState> {
       defaultPrivacySettings,
     ),
     auditLog: await readSecureLocalJson<AuditLogEntry[]>(secureLocalKeys.auditLog, "classloop:audit:v1", []),
+    billingProfile: await readSecureLocalJson<BillingProfile>(
+      secureLocalKeys.billingProfile,
+      "classloop:billing:v1",
+      defaultBillingProfile,
+    ),
   });
 }
 
 async function writeLocalStateFallback(
-  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "classGroups" | "rosterTemplates" | "privacySettings" | "auditLog">,
+  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "classGroups" | "rosterTemplates" | "privacySettings" | "auditLog" | "billingProfile">,
 ) {
   await Promise.all([
     writeSecureLocalJson(secureLocalKeys.accounts, state.accounts),
@@ -964,6 +1003,7 @@ async function writeLocalStateFallback(
     writeSecureLocalJson(secureLocalKeys.rosterTemplates, state.rosterTemplates),
     writeSecureLocalJson(secureLocalKeys.privacySettings, state.privacySettings),
     writeSecureLocalJson(secureLocalKeys.auditLog, state.auditLog),
+    writeSecureLocalJson(secureLocalKeys.billingProfile, state.billingProfile),
   ]);
 }
 
@@ -977,12 +1017,13 @@ function normalizeSharedState(data: Partial<SharedState>): SharedState {
     rosterTemplates: Array.isArray(data.rosterTemplates) ? data.rosterTemplates : [],
     privacySettings: { ...defaultPrivacySettings, ...(data.privacySettings ?? {}) },
     auditLog: Array.isArray(data.auditLog) ? data.auditLog : [],
+    billingProfile: { ...defaultBillingProfile, ...(data.billingProfile ?? {}) },
     updatedAt: data.updatedAt,
   };
 }
 
 function sharedStateJson(
-  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "classGroups" | "rosterTemplates" | "privacySettings" | "auditLog">,
+  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "classGroups" | "rosterTemplates" | "privacySettings" | "auditLog" | "billingProfile">,
 ) {
   return JSON.stringify({
     accounts: state.accounts,
@@ -993,6 +1034,7 @@ function sharedStateJson(
     rosterTemplates: state.rosterTemplates,
     privacySettings: state.privacySettings,
     auditLog: state.auditLog,
+    billingProfile: state.billingProfile,
   });
 }
 
@@ -1193,6 +1235,7 @@ function App() {
   const [rosterPromptSession, setRosterPromptSession] = useState<Session | null>(null);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(defaultPrivacySettings);
   const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
+  const [billingProfile, setBillingProfile] = useState<BillingProfile>(defaultBillingProfile);
   const [sharedReady, setSharedReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connecting");
   const [passwordResetCodes, setPasswordResetCodes] = useState<Record<string, PasswordResetRecord>>({});
@@ -1209,6 +1252,7 @@ function App() {
       rosterTemplates: [],
       privacySettings: defaultPrivacySettings,
       auditLog: [],
+      billingProfile: defaultBillingProfile,
     }),
   );
   const lastServerUpdatedAtRef = useRef<string | undefined>(undefined);
@@ -1241,6 +1285,7 @@ function App() {
         setRosterTemplates(state.rosterTemplates);
         setPrivacySettings(state.privacySettings);
         setAuditLog(state.auditLog);
+        setBillingProfile(state.billingProfile);
         lastSharedJsonRef.current = sharedStateJson(state);
         lastServerUpdatedAtRef.current = state.updatedAt;
         serverSyncRef.current = true;
@@ -1257,6 +1302,7 @@ function App() {
         setRosterTemplates(localState.rosterTemplates);
         setPrivacySettings(localState.privacySettings);
         setAuditLog(localState.auditLog);
+        setBillingProfile(localState.billingProfile);
         lastSharedJsonRef.current = sharedStateJson(localState);
         serverSyncRef.current = false;
         setSyncStatus("local");
@@ -1273,11 +1319,11 @@ function App() {
   useEffect(() => {
     if (!sharedReady) return;
     if (!serverSyncRef.current) {
-      void writeLocalStateFallback({ accounts, sessions, draft, demoLoaded, classGroups, rosterTemplates, privacySettings, auditLog });
+      void writeLocalStateFallback({ accounts, sessions, draft, demoLoaded, classGroups, rosterTemplates, privacySettings, auditLog, billingProfile });
       return;
     }
 
-    const nextJson = sharedStateJson({ accounts, sessions, draft, demoLoaded, classGroups, rosterTemplates, privacySettings, auditLog });
+    const nextJson = sharedStateJson({ accounts, sessions, draft, demoLoaded, classGroups, rosterTemplates, privacySettings, auditLog, billingProfile });
     if (nextJson === lastSharedJsonRef.current) return;
 
     if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
@@ -1301,7 +1347,7 @@ function App() {
           writeTimerRef.current = null;
         });
     }, 300);
-  }, [accounts, auditLog, classGroups, demoLoaded, draft, privacySettings, rosterTemplates, sessions, sharedReady]);
+  }, [accounts, auditLog, billingProfile, classGroups, demoLoaded, draft, privacySettings, rosterTemplates, sessions, sharedReady]);
 
   useEffect(() => {
     if (!sharedReady || !serverSyncRef.current) return;
@@ -1324,6 +1370,7 @@ function App() {
             setRosterTemplates(state.rosterTemplates);
             setPrivacySettings(state.privacySettings);
             setAuditLog(state.auditLog);
+            setBillingProfile(state.billingProfile);
           }
           lastSharedJsonRef.current = nextJson;
           lastServerUpdatedAtRef.current = state.updatedAt;
@@ -1396,6 +1443,32 @@ function App() {
     ].slice(0, 250));
   };
 
+  const currentState = (): SharedState => ({
+    accounts,
+    sessions,
+    draft,
+    demoLoaded,
+    classGroups,
+    rosterTemplates,
+    privacySettings,
+    auditLog,
+    billingProfile,
+  });
+
+  const applyCloudState = (state: Partial<SharedState>) => {
+    const normalized = normalizeSharedState(state);
+    setAccounts(normalized.accounts);
+    setSessions(normalized.sessions);
+    setDraft(normalized.draft);
+    setDemoLoaded(normalized.demoLoaded);
+    setClassGroups(normalized.classGroups);
+    setRosterTemplates(normalized.rosterTemplates);
+    setPrivacySettings(normalized.privacySettings);
+    setAuditLog(normalized.auditLog);
+    setBillingProfile(normalized.billingProfile);
+    lastSharedJsonRef.current = sharedStateJson(normalized);
+  };
+
   const handleThemeChange: React.Dispatch<React.SetStateAction<ThemeSettings>> = (value) => {
     setTheme((current) => {
       const nextTheme = typeof value === "function" ? value(current) : value;
@@ -1422,6 +1495,8 @@ function App() {
   const visibleDraft = auth?.role === "teacher" && draft && sessionOwnerEmail(draft) === normalizeEmail(auth.email) ? draft : null;
   const latestPublished = teacherSessions.find((session) => session.status === "published") ?? teacherSessions[0];
   const effectiveRoute = auth?.role === "student" && !studentRoutes.has(route) ? "student" : route;
+  const hasPaidAccess = auth?.demo || isPaidPlan(billingProfile);
+  const freeLimitReached = !hasPaidAccess && teacherSessions.length >= 5;
 
   const updateSession = (session: Session) => {
     setSessions((current) => {
@@ -1865,6 +1940,8 @@ function App() {
             recordingConsentRequired={privacySettings.recordingConsentRequired}
             rosterTemplates={teacherRosterTemplates}
             classGroups={teacherClassGroups}
+            canCreateSession={!freeLimitReached}
+            planName={billingProfile.tier === "free" ? "Free" : billingProfile.tier === "school" ? "School pilot" : "Pro"}
           />
         )}
         {effectiveRoute === "processing" && <Processing draft={visibleDraft} />}
@@ -1916,6 +1993,16 @@ function App() {
           />
         )}
         {effectiveRoute === "analytics" && <TeacherAnalytics sessions={teacherSessions} />}
+        {effectiveRoute === "billing" && auth.role === "teacher" && (
+          <SyncBillingPage
+            billingProfile={billingProfile}
+            setBillingProfile={setBillingProfile}
+            currentState={currentState}
+            applyCloudState={applyCloudState}
+            appendAudit={appendAudit}
+            sessionCount={teacherSessions.length}
+          />
+        )}
         {effectiveRoute === "tutorial" && <TutorialPage auth={auth} />}
         {effectiveRoute === "appearance" && <DesignSystemPage theme={activeTheme} setTheme={handleThemeChange} />}
         {effectiveRoute === "privacy" && auth.role === "teacher" && (
@@ -2821,6 +2908,198 @@ function PlanRow({ tier, detail }: { tier: string; detail: string }) {
   );
 }
 
+function SyncBillingPage({
+  billingProfile,
+  setBillingProfile,
+  currentState,
+  applyCloudState,
+  appendAudit,
+  sessionCount,
+}: {
+  billingProfile: BillingProfile;
+  setBillingProfile: (profile: BillingProfile) => void;
+  currentState: () => SharedState;
+  applyCloudState: (state: Partial<SharedState>) => void;
+  appendAudit: (action: string, detail: string, actor?: AuthSession | null) => void;
+  sessionCount: number;
+}) {
+  const backendStatus = getBackendStatus();
+  const [cloudEmail, setCloudEmail] = useState("");
+  const [cloudPassword, setCloudPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [connectedEmail, setConnectedEmail] = useState("");
+
+  useEffect(() => {
+    getCloudSession().then((session) => setConnectedEmail(session?.user.email ?? ""));
+  }, []);
+
+  const refreshProfile = async () => {
+    try {
+      const profile = await getCloudProfile();
+      setBillingProfile(profile.billingProfile);
+      setMessage("Account plan refreshed from hosted sync.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to refresh account plan.");
+    }
+  };
+
+  const connectCloud = async (mode: "signin" | "signup") => {
+    const result =
+      mode === "signin"
+        ? await signIntoCloud(cloudEmail, cloudPassword)
+        : await createCloudAccount(cloudEmail, cloudPassword);
+    setMessage(result.message);
+    setConnectedEmail(result.session?.user.email ?? "");
+    if (result.ok) {
+      appendAudit("cloud_connect", `Connected hosted sync for ${cloudEmail}.`);
+      await refreshProfile();
+    }
+  };
+
+  const uploadCloud = async () => {
+    try {
+      await cloudRequest("/api/cloud-state", { method: "PUT", body: JSON.stringify(currentState()) });
+      setMessage("Uploaded this device's ClassLoop workspace to hosted sync.");
+      appendAudit("cloud_upload", "Uploaded workspace to hosted sync.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Cloud upload failed.");
+    }
+  };
+
+  const downloadCloud = async () => {
+    try {
+      const state = await cloudRequest<Partial<SharedState> | null>("/api/cloud-state");
+      if (!state) {
+        setMessage("No hosted workspace has been saved yet.");
+        return;
+      }
+      applyCloudState(state);
+      setMessage("Downloaded hosted workspace to this device.");
+      appendAudit("cloud_download", "Downloaded workspace from hosted sync.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Cloud download failed.");
+    }
+  };
+
+  const startCheckout = async (tier: Exclude<PlanTier, "free">) => {
+    try {
+      const checkout = await createCheckoutSession(tier);
+      window.location.href = checkout.url;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Stripe Checkout is not configured yet.");
+    }
+  };
+
+  const disconnect = async () => {
+    await signOutCloud();
+    setConnectedEmail("");
+    setMessage("Hosted sync disconnected on this device.");
+  };
+
+  return (
+    <div className="page-stack">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Sync & billing</span>
+          <h2>Make ClassLoop available across devices.</h2>
+          <p>Use hosted sync for teacher/student access on the web, and Stripe Checkout for paid account features.</p>
+        </div>
+        <button className="ghost-button" onClick={() => navigate("privacy")}>
+          <ShieldCheck size={17} />
+          Privacy controls
+        </button>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title="Hosted backend" icon={RefreshCw}>
+          <div className="settings-stack">
+            <div className="integration-card">
+              <strong>{backendStatus.supabaseConfigured ? "Supabase ready" : "Supabase keys needed"}</strong>
+              <small>
+                {backendStatus.supabaseConfigured
+                  ? "Cloud accounts can sync the same workspace across browser and desktop."
+                  : "Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable hosted login."}
+              </small>
+            </div>
+            <label className="field compact">
+              <span>Cloud email</span>
+              <input value={cloudEmail} onChange={(event) => setCloudEmail(event.target.value)} placeholder="you@school.org" />
+            </label>
+            <label className="field compact">
+              <span>Cloud password</span>
+              <input type="password" value={cloudPassword} onChange={(event) => setCloudPassword(event.target.value)} />
+            </label>
+            <div className="button-row">
+              <button className="primary-button" type="button" onClick={() => connectCloud("signin")}>
+                Sign in
+              </button>
+              <button className="ghost-button" type="button" onClick={() => connectCloud("signup")}>
+                Create cloud account
+              </button>
+            </div>
+            {connectedEmail && <p className="settings-message success">Connected as {connectedEmail}</p>}
+            <div className="button-row">
+              <button className="ghost-button" type="button" onClick={uploadCloud} disabled={!connectedEmail}>
+                Upload this device
+              </button>
+              <button className="ghost-button" type="button" onClick={downloadCloud} disabled={!connectedEmail}>
+                Download cloud copy
+              </button>
+              <button className="text-button" type="button" onClick={refreshProfile} disabled={!connectedEmail}>
+                Refresh plan
+              </button>
+              <button className="text-button" type="button" onClick={disconnect} disabled={!connectedEmail}>
+                Disconnect
+              </button>
+            </div>
+            {message && <p className="settings-message">{message}</p>}
+          </div>
+        </Panel>
+
+        <Panel title="Freemium plans" icon={ShieldCheck}>
+          <div className="plan-stack">
+            {planCatalog.map((plan) => (
+              <div key={plan.tier} className="plan-row">
+                <strong>
+                  {plan.name} <span>{plan.price}</span>
+                </strong>
+                <span>{plan.detail}</span>
+                {plan.tier === "free" ? (
+                  <small>
+                    Current usage: {sessionCount}/{plan.sessionLimit} sessions.
+                  </small>
+                ) : (
+                  <button className="text-button" type="button" onClick={() => startCheckout(plan.tier)}>
+                    Start {plan.name}
+                    <ChevronRight size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="integration-card">
+            <span>
+              <strong>Current account</strong>
+              <small>
+                {billingProfile.tier.toUpperCase()} · {billingProfile.status}
+              </small>
+            </span>
+            {!isPaidPlan(billingProfile) && (
+              <button
+                className="ghost-button full"
+                type="button"
+                onClick={() => setBillingProfile({ tier: "free", status: "not_configured" })}
+              >
+                Keep local Free plan
+              </button>
+            )}
+          </div>
+        </Panel>
+      </section>
+    </div>
+  );
+}
+
 function TrendChart({ sessions }: { sessions: Session[] }) {
   const ordered = [...sessions].reverse();
   return (
@@ -2877,6 +3156,8 @@ function ImportSession({
   recordingConsentRequired,
   rosterTemplates,
   classGroups,
+  canCreateSession,
+  planName,
 }: {
   ownerEmail: string;
   setDraft: (session: Session) => void;
@@ -2884,6 +3165,8 @@ function ImportSession({
   recordingConsentRequired: boolean;
   rosterTemplates: RosterTemplate[];
   classGroups: ClassGroup[];
+  canCreateSession: boolean;
+  planName: string;
 }) {
   const [title, setTitle] = useState("");
   const [template, setTemplate] = useState<SessionType>("General classroom");
@@ -2896,6 +3179,7 @@ function ImportSession({
   const [captureMode, setCaptureMode] = useState<SessionCaptureMode>("transcript");
   const [captureStatus, setCaptureStatus] = useState<"idle" | "recording" | "stopped">("idle");
   const [captureMessage, setCaptureMessage] = useState("");
+  const [planMessage, setPlanMessage] = useState("");
   const [recordedSeconds, setRecordedSeconds] = useState(0);
   const [transcriptionAvailable, setTranscriptionAvailable] = useState(true);
   const [recordingConsent, setRecordingConsent] = useState(!recordingConsentRequired);
@@ -2903,6 +3187,7 @@ function ImportSession({
   const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const captureTimerRef = useRef<number | null>(null);
   const captureStartedAtRef = useRef<number | null>(null);
+  const liveSegmentCountRef = useRef(0);
   const activeTemplateFields = templateDetailFields[template];
   const matchingRosterTemplates = useMemo(
     () => rosterTemplates.filter((templateItem) => templateItem.sessionType === template),
@@ -2950,7 +3235,7 @@ function ImportSession({
     const SpeechRecognitionCtor = getSpeechRecognitionConstructor();
     if (!SpeechRecognitionCtor) {
       setTranscriptionAvailable(false);
-      setCaptureMessage("Live audio notes are active, but live transcription is not available in this browser.");
+      setCaptureMessage("Capture is active, but live transcription is not available in this browser. Paste a platform transcript or add notes before generating.");
       return;
     }
 
@@ -2967,12 +3252,17 @@ function ImportSession({
         }
       }
       if (finalText) {
-        setTranscript((current) => appendCapturedText(current, `${captureModeLabels[mode]}: ${finalText}`));
+        liveSegmentCountRef.current += 1;
+        const speakerLabel =
+          mode === "transcript"
+            ? captureModeLabels[mode]
+            : liveCaptureSpeakerLabel(mode, liveSegmentCountRef.current);
+        setTranscript((current) => appendCapturedText(current, `${speakerLabel}: ${finalText}`));
       }
     };
     recognition.onerror = () => {
       setTranscriptionAvailable(false);
-      setCaptureMessage("Live audio notes are active, but transcription paused. Add short notes before generating.");
+      setCaptureMessage("Capture is active, but transcription paused. Add short notes or paste the meeting transcript before generating.");
     };
     recognition.onend = null;
     recognition.start();
@@ -2982,20 +3272,42 @@ function ImportSession({
 
   const startCapture = async (mode: SessionCaptureMode) => {
     if (recordingConsentRequired && !recordingConsent) {
-      setCaptureMessage("Confirm audio permission before starting capture.");
+      setCaptureMessage("Confirm recording/capture permission before starting.");
       return;
     }
     if (captureStatus === "recording") stopCapture();
     setCaptureMode(mode);
     setCaptureMessage("");
+    liveSegmentCountRef.current = 0;
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!navigator.mediaDevices) {
+        throw new Error("Media devices are unavailable in this browser.");
+      }
+      let stream: MediaStream;
+      let startedMessage = "";
+
+      if (mode === "online_meeting" && navigator.mediaDevices.getDisplayMedia) {
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+        const hasAudio = stream.getAudioTracks().length > 0;
+        startedMessage = hasAudio
+          ? "Online meeting capture is running. Share a tab or window with audio when your browser asks, and keep ClassLoop open."
+          : "Online meeting capture is running, but no meeting audio track was shared. Use platform captions/transcript if live text does not appear.";
+      } else {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        });
+        startedMessage =
+          mode === "online_meeting"
+            ? "This browser cannot capture meeting tab audio directly, so ClassLoop is using the microphone as best-effort notes."
+            : "In-person class capture is running. Place the device where discussion is clear and keep ClassLoop open.";
+      }
+
       mediaStreamRef.current = stream;
       captureStartedAtRef.current = Date.now();
       setRecordedSeconds(0);
       setCaptureStatus("recording");
-      setCaptureMessage("Live audio notes are running. Speak normally and keep this window open.");
+      setCaptureMessage(startedMessage);
 
       captureTimerRef.current = window.setInterval(() => {
         if (captureStartedAtRef.current) {
@@ -3006,7 +3318,7 @@ function ImportSession({
       startSpeechRecognition(mode);
     } catch {
       setCaptureStatus("idle");
-      setCaptureMessage("Audio permission was not granted, or this browser cannot capture that source.");
+      setCaptureMessage("Capture permission was not granted, or this browser cannot capture that source. You can still paste or upload the transcript.");
     }
   };
 
@@ -3043,6 +3355,11 @@ function ImportSession({
   };
 
   const generateDraft = () => {
+    if (!canCreateSession) {
+      setPlanMessage(`${planName} has reached the free session limit. Upgrade to keep generating new sessions.`);
+      return;
+    }
+    setPlanMessage("");
     const detailNotes = activeTemplateFields
       .map((field) => {
         const value = templateDetails[field.id]?.trim();
@@ -3057,12 +3374,18 @@ function ImportSession({
             `Capture method: ${captureModeLabels[captureMode]}.`,
             recordedSeconds ? `Captured duration: ${recordedSeconds} seconds.` : "",
             recordingConsent ? "Audio capture consent was confirmed before capture." : "",
+            captureMode === "in_person" || captureMode === "audio"
+              ? "Student voice identification is teacher-assisted. Live segments are labeled as unknown voices until you link them to roster students."
+              : "",
+            captureMode === "online_meeting"
+              ? "Online meeting capture used browser tab/window audio when available. Platform transcripts remain the most reliable source when live text is incomplete."
+              : "",
             transcriptionAvailable ? "Live transcript was added when available." : "No live transcript was available; teacher notes should guide the draft.",
           ]
             .filter(Boolean)
             .join("\n");
     const transcriptSource =
-      captureMode === "audio"
+      captureMode !== "transcript"
         ? transcript.trim()
           ? "live_transcription"
           : "audio_recording"
@@ -3205,9 +3528,9 @@ function ImportSession({
             <div className="capture-panel wide">
               <div>
                 <span className="eyebrow">Capture source</span>
-                <h3>Use a transcript or live audio notes.</h3>
+                <h3>Use a transcript, in-person capture, or meeting audio.</h3>
                 <p>
-                  ClassLoop will use pasted text, uploaded files, browser live transcription, and your notes together when generating the draft.
+                  Transcript paste/upload stays the most reliable path. Live capture is best-effort, consent-first, and keeps speaker matching in your hands.
                 </p>
               </div>
               <div className="capture-mode-grid">
@@ -3222,12 +3545,21 @@ function ImportSession({
                 </button>
                 <button
                   type="button"
-                  className={captureMode === "audio" ? "capture-mode-card active" : "capture-mode-card"}
-                  onClick={() => setCaptureMode("audio")}
+                  className={captureMode === "in_person" || captureMode === "audio" ? "capture-mode-card active" : "capture-mode-card"}
+                  onClick={() => setCaptureMode("in_person")}
                 >
                   <Mic2 size={18} />
-                  <strong>Record audio</strong>
-                  <small>Use free browser speech recognition from the device microphone.</small>
+                  <strong>In-person class</strong>
+                  <small>Use the device microphone for live notes during classroom discussion.</small>
+                </button>
+                <button
+                  type="button"
+                  className={captureMode === "online_meeting" ? "capture-mode-card active" : "capture-mode-card"}
+                  onClick={() => setCaptureMode("online_meeting")}
+                >
+                  <PlayCircle size={18} />
+                  <strong>Online meeting</strong>
+                  <small>Capture a tab or window with audio when the browser supports it.</small>
                 </button>
               </div>
               {captureMode !== "transcript" && (
@@ -3241,7 +3573,9 @@ function ImportSession({
                     <small>
                       {captureStatus === "recording"
                         ? `${recordedSeconds}s captured`
-                        : "Start live audio notes before class, then stop before generating the draft."}
+                        : captureMode === "online_meeting"
+                          ? "Start capture when the call begins. If live text is incomplete, paste the platform transcript afterward."
+                          : "Start capture before discussion, then stop before generating the draft."}
                     </small>
                   </div>
                   {recordingConsentRequired && (
@@ -3251,7 +3585,7 @@ function ImportSession({
                         checked={recordingConsent}
                         onChange={(event) => setRecordingConsent(event.target.checked)}
                       />
-                      <span>I have permission to use live audio notes for this class session.</span>
+                      <span>I have permission to capture audio notes for this class session.</span>
                     </label>
                   )}
                   <div className="capture-buttons">
@@ -3273,6 +3607,18 @@ function ImportSession({
                       <CheckCircle2 size={17} />
                       Stop
                     </button>
+                  </div>
+                </div>
+              )}
+              {captureMode !== "transcript" && (
+                <div className="capture-guidance">
+                  <CheckCircle2 size={17} />
+                  <div>
+                    <strong>No voiceprints are created.</strong>
+                    <small>
+                      ClassLoop labels live speech as unknown voice segments. After the draft is created, link each segment to a roster student,
+                      add a new student, or leave it unassigned.
+                    </small>
                   </div>
                 </div>
               )}
@@ -3344,6 +3690,14 @@ function ImportSession({
               <Wand2 size={18} />
               Generate draft
             </button>
+            {planMessage && (
+              <>
+                <p className="settings-message">{planMessage}</p>
+                <button className="ghost-button full" type="button" onClick={() => navigate("billing")}>
+                  View plan options
+                </button>
+              </>
+            )}
           </div>
         </aside>
       </section>
@@ -4449,7 +4803,7 @@ function PublishPreview({
     try {
       const result = await apiJson<EmailDeliveryResult>("/api/email/send-recaps", {
         method: "POST",
-        body: JSON.stringify({ session: draft }),
+        body: JSON.stringify({ sessionId: draft.id, ownerEmail: draft.ownerEmail }),
       });
       updateDraft((current) => markSessionEmailsSent(current, result));
       setDeliveryMessage(`Sent through ${result.provider} to ${result.recipients.length} students.`);
@@ -5551,6 +5905,16 @@ function PrivacyControlsPage({
                 }
               />
               <span>Keep audit history for sign-ins, publishing, exports, and data changes.</span>
+            </label>
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.noTrainingOnStudentData}
+                onChange={(event) =>
+                  setPrivacySettings((current) => ({ ...current, noTrainingOnStudentData: event.target.checked }))
+                }
+              />
+              <span>No training on student data unless you explicitly allow it.</span>
             </label>
           </div>
         </Panel>

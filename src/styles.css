@@ -1307,6 +1307,11 @@ button:disabled:hover {
   line-height: 1.45;
 }
 
+.plan-row small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
 .trend-chart {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1599,6 +1604,33 @@ button:disabled:hover {
   align-items: center;
 }
 
+.capture-guidance {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px dashed rgba(15, 118, 110, 0.35);
+  border-radius: 14px;
+  background: rgba(236, 253, 245, 0.8);
+  color: var(--ink);
+}
+
+.capture-guidance svg {
+  flex: 0 0 auto;
+  color: var(--primary);
+  margin-top: 2px;
+}
+
+.capture-guidance strong,
+.capture-guidance small {
+  display: block;
+}
+
+.capture-guidance small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .capture-consent,
 .switch-row {
   display: flex;
@@ -1668,6 +1700,12 @@ button:disabled:hover {
 .settings-stack {
   display: grid;
   gap: 12px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .delivery-log-row,

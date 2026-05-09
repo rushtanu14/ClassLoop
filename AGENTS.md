@@ -129,6 +129,16 @@ Keep external services free-first and narrow:
 - Do not show Google Classroom OAuth posting, LMS posting, OpenAI transcription, or custom transcription-service hooks unless the user explicitly asks to reintroduce external integrations.
 - Audio capture should use browser live speech recognition when available; transcript paste/upload must remain the reliable free path.
 
+## Hosted Backend / Freemium Notes
+
+- Hosted multi-device sync is scaffolded with Supabase Auth, `api/cloud-state.js`, and `supabase/schema.sql`.
+- Paid access is scaffolded with Stripe Checkout plus `api/billing/webhook.js`; the webhook updates `classloop_profiles` so entitlements are server-owned.
+- The local desktop app must remain useful without Supabase or Stripe credentials.
+- Free tier target: 5 sessions/month, CSV import/export, student preview, local desktop storage.
+- Pro target: `$9/month` for unlimited sessions, hosted sync, delivery logs, privacy exports, and advanced reports.
+- School pilot target: `$49/month` for shared pilot workspace, longer retention, audit-ready exports, and priority onboarding.
+- Never commit `.env.local`; use `.env.example` as the setup checklist.
+
 ## Real Session Example
 
 **Input**:
@@ -268,7 +278,7 @@ Tests validate:
 5. **Error handling**: Parser is defensive (unmatched names flagged but don't break import). UI shows warnings clearly.
 6. **Accessibility**: Icons from lucide-react (semantic naming). Enough contrast for education-friendly green theme.
 7. **Browser QA**: Keep Playwright installed. `npm install` runs `playwright install chromium`; run `npm run test:browser` for login/import/publish/student/analytics/access/responsive/class manager/CSV/report export coverage.
-8. **Local storage security**: Desktop state is encrypted with Electron `safeStorage` when available. Browser fallback uses encrypted `classloop:secure:*` localStorage keys. True multi-device access still requires a backend.
+8. **Local storage security**: Desktop state is encrypted with Electron `safeStorage` when available. Browser fallback uses encrypted `classloop:secure:*` localStorage keys. Hosted multi-device access uses Supabase Auth and workspace sync when credentials are configured.
 9. **Testing prompt upkeep**: When adding user-facing features, update the feature QA prompt in `codexsecondbrain-sync-2026-04-30.md` and Playwright coverage so future agents test the new workflow plus layout/readability issues.
 
 ## High-Value Next Work
