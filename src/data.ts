@@ -3,9 +3,11 @@ import type {
   ParticipationEvent,
   Resource,
   Session,
+  SessionCaptureMode,
   SessionType,
   Student,
   StudentFollowUp,
+  StudentSubmission,
   UnmatchedParticipant,
 } from "./types";
 
@@ -47,6 +49,10 @@ export type ImportDraftInput = {
   notes: string;
   roster: string;
   resources: string;
+  captureMode?: SessionCaptureMode;
+  captureSourceLabel?: string;
+  captureDurationSeconds?: number;
+  transcriptSource?: "file" | "paste" | "live_transcription" | "audio_recording";
 };
 
 export type TranscriptTextFile = {
@@ -159,11 +165,9 @@ function parseSpeakerLine(line: string): SpeakerLine | null {
 }
 
 function isTimestampLine(line: string) {
-  return (
-    /^(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?(?:\s*-->\s*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?)?$/.test(
-      line.trim(),
-    ) || /^\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}/.test(line.trim())
-  );
+  return /^(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?(?:\s*-->\s*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?)?$/.test(
+    line.trim(),
+  ) || /^\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}/.test(line.trim());
 }
 
 function isLikelySpeakerNameLine(line: string) {
@@ -790,6 +794,12 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
         source: "Generated from attendance and participation signals.",
       })),
   ];
+  const submissions: StudentSubmission[] = roster.map((student) => ({
+    studentId: student.id,
+    sessionId: `session-generated-${suffix}`,
+    status: "todo",
+    note: "",
+  }));
 
   return {
     id: `session-generated-${suffix}`,
@@ -800,6 +810,13 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     students: roster,
     transcript: input.transcript,
     notes: input.notes,
+    capture: {
+      mode: input.captureMode ?? "transcript",
+      sourceLabel: input.captureSourceLabel ?? "Transcript import",
+      capturedAt: new Date().toISOString(),
+      durationSeconds: input.captureDurationSeconds,
+      transcriptSource: input.transcriptSource ?? (input.transcript.trim() ? "paste" : "audio_recording"),
+    },
     recap,
     essentialQuestions,
     attendance,
@@ -807,7 +824,13 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     actionItems,
     participationEvents,
     followUps,
+    submissions,
     unmatchedParticipants,
     transcriptAliases: {},
+    emailDelivery: {
+      status: "not_sent",
+      recipients: [],
+      skipped: [],
+    },
   };
 }

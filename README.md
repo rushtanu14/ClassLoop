@@ -12,7 +12,27 @@ ClassLoop runs as a desktop application.
 ./run.sh
 ```
 
-The launcher installs missing dependencies when needed, then opens ClassLoop in a native Electron window.
+The launcher installs or repairs missing dependencies with `npm ci` when `package-lock.json` is present, then opens ClassLoop in a native Electron window.
+
+For a browser-based dev server instead of Electron:
+
+```bash
+./run.sh --dev
+```
+
+Useful launcher environment variables:
+
+```bash
+HOST=127.0.0.1 FRONTEND_PORT=5177 OPEN_BROWSER=0 ./run.sh --dev
+```
+
+You can also install dependencies directly:
+
+```bash
+npm install
+```
+
+`npm install` also downloads the Playwright Chromium browser through the project `postinstall` script.
 
 ## Tech Stack
 
@@ -32,19 +52,41 @@ The launcher installs missing dependencies when needed, then opens ClassLoop in 
 | **Styling** | CSS |
 | **Package Manager** | npm |
 
-## Current Main Experience
+## Current Improvement Branch Experience
 
 - Original classroom visual style: clean white surfaces with green education-focused accents.
 - Desktop app shell powered by Electron.
 - Teacher and student sign-in screens.
 - Teacher-side session dashboard, import flow, AI review draft, session report, and analytics.
 - Student-side dashboard and session detail views.
-- Publish preview showing the student-facing recap, tasks, resources, and why a follow-up is assigned.
-- Roster manager inside draft review with CSV import/export for local roster cleanup.
-- Import parser handles compressed rosters, Google Classroom-style CSV rows, Zoom VTT captions, Teams transcript blocks, and Google Meet-style captions.
-- Session report actions for print-friendly sharing plus JSON and CSV exports.
+- Student and teacher appearance customization, saved only to the signed-in account.
+- Transcript paste/upload plus live audio notes when browser speech recognition is available.
+- Publish preview with one-click recap email delivery through a user-owned Gmail/SMTP sender.
+- Per-student preview differences that explain why each student receives different follow-ups.
+- Saved roster manager with CSV import/export and alias cleanup.
+- Class/course manager that stores reusable class rosters, default session templates, and linked session history.
+- Publish audit showing what will be shared with the class and why each student receives different follow-ups.
+- Student completion flow from to do to submitted to teacher reviewed.
+- Print, JSON, and CSV-friendly session reports for sharing or local recordkeeping.
+- Privacy controls for retention settings, workspace export/delete, and audit history.
 - Explicit sample accounts and sample session data for demonstrations.
 - Checked-in app build under `dist/`, wrapped by the desktop launcher.
+
+## Free-First External Services
+
+ClassLoop should work without paid services. Transcript paste/upload, local accounts, review, publishing, student preview, analytics, and roster management are local-first.
+
+External service support is intentionally narrow:
+
+- Email: use a Gmail account you own, such as `classloop.noreply@gmail.com`, with an app password. ClassLoop cannot generate Gmail accounts or send from addresses you do not own.
+- Audio notes: use browser live speech recognition when available, with transcript paste/upload as the reliable fallback.
+
+Removed/deferred because they require paid API keys, school platform credentials, or external integration setup:
+
+- OpenAI/custom transcription.
+- Google Classroom OAuth posting.
+- Canvas/LMS posting.
+- Background online-call capture that depends on external transcription.
 
 ## Hosted Backend And Freemium MVP
 
@@ -72,22 +114,6 @@ Configure hosted mode from `.env.example`. Public Vite variables are safe for th
 - Student data is marked as “no training” by default unless a school or teacher explicitly allows otherwise.
 - Analytics stay teacher-only and should be framed as private support signals, not public rankings.
 
-## Branch Split
-
-- `main`: stable white/green classroom app with transcript paste/upload, publish preview, roster CSV cleanup, report exports, parser hardening, and browser QA.
-- `codex/audio-session-improvements`: branch-only experiments for live audio notes, optional Gmail/SMTP recap delivery, class/course manager, publish-audit data model, and submitted/reviewed student workflow.
-
-## Testing
-
-```bash
-npm run build
-npm run test:import
-npm run test:browser
-node -c desktop/main.cjs
-```
-
-Playwright browser tests run on a dedicated Vite port so they do not accidentally connect to another local app.
-
 ## Sample Accounts
 
 Teacher:
@@ -112,6 +138,15 @@ classloop-student
 4. Open the student view to show personalized recaps, tasks, resources, and completion check-ins.
 5. Use analytics to explain how ClassLoop tracks participation and follow-through.
 
+## Testing
+
+```bash
+npm install
+npm run build
+npm run test:import
+npm run test:browser
+```
+
 ## PRD Alignment
 
 ClassLoop is designed for teachers, tutors, instructors, club leaders, and students who need clean follow-up after a class or learning session.
@@ -126,16 +161,15 @@ Core MVP promise:
 
 ## High-Value Next Changes
 
-1. Make the import-to-review moment stronger: add a clearer “before and after” transformation from transcript text to recap, tasks, resources, and student follow-ups.
-2. Add teacher edit affordances directly to student follow-up cards so judges immediately see that the teacher stays in control before publishing.
-3. Add completion check-in states that feel real: “not started,” “working,” “submitted,” and “teacher reviewed.”
-4. Add a simple class roster manager so the product feels reusable across multiple sessions, not just one import.
-5. Add a privacy/explanation panel written for schools: private teacher signals, no public ranking, student-specific sharing only.
-6. Add local backup/restore so teachers can move their desktop data safely.
-7. Add stronger first-run onboarding for brand-new non-demo accounts.
+1. Add teacher notes templates for recurring lesson styles, such as exit tickets, lab workshops, club meetings, and tutoring sessions.
+2. Add local version history for publish changes so teachers can compare what changed between draft, published, and revised follow-ups.
+3. Add a lightweight student inbox showing unread class updates and teacher-reviewed submissions.
+4. Add accessibility settings for font size, reduced motion, and high-contrast classroom mode.
+5. Add a local backup/restore workflow for moving ClassLoop data between devices without a hosted backend.
+6. Add optional school-managed backend sync only if the user later accepts hosting, credentials, and privacy review.
 
 ## Monetization Direction
 
 - Free: limited sessions per month, basic recap, basic action items.
-- Pro: unlimited sessions, local transcript processing, student dashboards, analytics, exports, and saved rosters.
+- Pro: unlimited sessions, local transcript processing, student dashboards, analytics, exports.
 - Future school/team plan: admin dashboards, roster sync, privacy controls, and team reporting.

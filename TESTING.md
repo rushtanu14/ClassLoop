@@ -3,8 +3,10 @@
 ## Test Structure
 
 **File**: `tests/import-flow.test.ts`
-**Framework**: Vitest (TypeScript)
-**Run Command**: `npm run test:import`
+**Frameworks**: TypeScript import regression runner + Playwright browser tests
+**Run Commands**:
+- `npm run test:import`
+- `npm run test:browser`
 
 ## Test Categories
 
@@ -16,10 +18,27 @@
 - **Metadata Filtering**: Skip teacher names, headers
 
 ### Regression Tests
-- **Format Variations**: Comma-sep, pipe-sep, tabular rosters, Google Classroom-style CSV rows
-- **Transcript Variations**: Zoom VTT captions, Teams transcript blocks, Google Meet-style speaker captions
-- **Naming Inconsistencies**: Aliases, case variations, first-name-plus-last-initial speakers such as `Jalen T`
+- **Format Variations**: Comma-sep, pipe-sep, tabular rosters
+- **Google Classroom CSV**: First name, last name, email exports
+- **Transcript Variations**: Zoom `.vtt`, Microsoft Teams transcript blocks, Google Meet captions
+- **Naming Inconsistencies**: Aliases, case variations, first-name/last-initial nicknames
 - **Edge Cases**: Missing roster, malformed transcript
+
+### Browser Access Tests
+- **Login**: Teacher and student sample accounts can sign in.
+- **Import Flow**: Teacher can load the geometry sample and generate a draft.
+- **Publish Preview**: Teacher can open the preview and publish student follow-ups.
+- **Per-Student Preview Diffs**: Publish preview explains why each student receives different follow-up content.
+- **Roster Manager**: Publishing prompts the teacher to save the roster; saved rosters appear in the Rosters tab and auto-load for matching session templates.
+- **CSV Roster Import/Export**: Saved rosters and class groups accept CSV files and expose CSV export controls.
+- **Class Manager**: Saved classes show reusable rosters, default templates, and linked session history.
+- **Student View**: Published sessions appear in the student-facing portal.
+- **Student Completion**: Students can mark work complete, which moves the follow-up into a submitted state for teacher review.
+- **Analytics Hiding**: Student navigation does not expose teacher analytics.
+- **Publish Audit**: Preview/report pages show publish audit evidence for class-wide and per-student follow-ups.
+- **Report Exports**: Session report exposes JSON, CSV, and print actions.
+- **Appearance**: Students can change appearance while signed in; logout returns the login screen to the default theme; sign-in restores the saved account theme.
+- **Responsive Layout**: Core controls remain visible at phone-sized width without horizontal overflow.
 
 ## Test Data Sources
 
@@ -61,16 +80,36 @@
 **Run Tests**: `node --experimental-specifier-resolution=node .test-build/tests/import-flow.test.js`
 **Expected**: All assertions pass, no errors
 
-**Browser Smoke**: `npm run test:browser`
-**Expected**: Playwright passes desktop and mobile checks for account creation, password reset, profile settings, speaker resolution, template details, import, draft editing, participation approval controls, roster CSV import/export, student account linking, publish preview, student-facing task/resource edits, publishing, report downloads, student completion/detail flows, analytics hiding, teacher analytics, appearance settings, tutorial controls, sync/billing fallback states, privacy controls, workspace export, audit log entries, and responsive layout.
+## Browser Test Setup
+
+Playwright is installed in the repo through `@playwright/test`.
+
+**Install browsers**: `npx playwright install chromium`
+**Automated install**: `npm install` runs `playwright install chromium` through `postinstall`.
+**Run browser tests**: `npm run test:browser`
+
+Playwright starts the Vite dev server on `127.0.0.1:5177` and runs Chromium checks across desktop and mobile-sized projects.
+
+## Testing Script Response
+
+When the user says "use the testing script," run the saved ClassLoop QA sequence and report:
+- pass/fail by command
+- browser workflow result
+- anything not verifiable without the configured Gmail/SMTP sender
+- whether paid/API-key/external-platform features remain absent from the app, except Gmail/SMTP email through a user-owned sender
+- whether class manager, CSV roster import/export, publish audit, student submitted/reviewed states, and report exports are reachable
+- concise feedback on how the run went
+- what could be improved
+- feature ideas that would improve user experience
 
 ## Test Maintenance
 
 **When Adding Features**:
-1. Add parser/data coverage to `import-flow.test.ts` when the feature touches import, matching, generated sessions, or exports.
-2. Add browser coverage to `tests/browser/classloop.spec.ts` when the feature changes a user-facing workflow, role gate, persistence state, download/upload, or responsive control.
-3. Update parser/UI logic.
-4. Verify the relevant focused test first, then run the full test command.
+1. Add test case to `import-flow.test.ts` first
+2. Add browser coverage in `tests/browser/classloop.spec.ts` when the feature changes access, routing, or user workflow
+3. Update parser logic in `src/data.ts` or UI logic in `src/App.tsx`
+4. Verify tests pass
+5. Update the feature QA prompt in `codexsecondbrain-sync-2026-04-30.md` so future browser QA includes the new workflow and obvious formatting checks
 
 **When Fixing Bugs**:
 1. Add failing test case reproducing the bug

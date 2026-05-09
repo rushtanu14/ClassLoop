@@ -1,11 +1,23 @@
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, shell, safeStorage } = require("electron");
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const nodemailer = require("nodemailer");
 
 const rootDir = path.join(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
 const dataFile = path.join(rootDir, ".classloop-data.json");
+let dataFileReadError = null;
+
+const securityHeaders = {
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  "X-Frame-Options": "DENY",
+  "Content-Security-Policy":
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'",
+  "Permissions-Policy": "camera=(), geolocation=(), microphone=(self), display-capture=()",
+};
 
 const mimeTypes = {
   ".css": "text/css",
@@ -29,49 +41,282 @@ function resolveAsset(requestUrl) {
   return filePath;
 }
 
-function readDataFile() {
+function emptyWorkspace() {
+  return {
+    accounts: [],
+    sessions: [],
+    draft: null,
+    demoLoaded: false,
+    classGroups: [],
+    rosterTemplates: [],
+    privacySettings: undefined,
+    auditLog: [],
+    billingProfile: undefined,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function dataReadErrorMessage(error) {
+  const detail = error instanceof Error && error.message ? ` ${error.message}` : "";
+  return `Unable to read ClassLoop desktop data.${detail}`;
+}
+
+function readDataFile(options = {}) {
   try {
     if (!fs.existsSync(dataFile)) {
-      return {
-        accounts: [],
-        sessions: [],
-        draft: null,
-        demoLoaded: false,
-        privacySettings: undefined,
-        auditLog: [],
-        billingProfile: undefined,
-        updatedAt: new Date().toISOString(),
-      };
+      dataFileReadError = null;
+      return emptyWorkspace();
     }
 
-    return JSON.parse(fs.readFileSync(dataFile, "utf8"));
-  } catch {
+    const stored = JSON.parse(fs.readFileSync(dataFile, "utf8"));
+    if (stored.encrypted && stored.payload) {
+      if (!safeStorage.isEncryptionAvailable()) {
+        throw new Error("Local ClassLoop data encryption is not available.");
+      }
+      dataFileReadError = null;
+      return JSON.parse(safeStorage.decryptString(Buffer.from(stored.payload, "base64")));
+    }
+    if (stored.version && stored.payload && stored.encrypted === false) {
+      dataFileReadError = null;
+      return stored.payload;
+    }
+    dataFileReadError = null;
+    return stored;
+  } catch (error) {
+    dataFileReadError = dataReadErrorMessage(error);
+    if (options.throwOnError) {
+      const readError = new Error(dataFileReadError);
+      readError.statusCode = 423;
+      throw readError;
+    }
     return {
-      accounts: [],
-      sessions: [],
-      draft: null,
-      demoLoaded: false,
-      privacySettings: undefined,
-      auditLog: [],
-      billingProfile: undefined,
-      updatedAt: new Date().toISOString(),
+      ...emptyWorkspace(),
+      readOnly: true,
+      readError: dataFileReadError,
     };
   }
 }
 
+function withSecurityHeaders(headers = {}) {
+  return { ...securityHeaders, ...headers };
+}
+
+function sendJson(response, statusCode, payload) {
+  response.writeHead(statusCode, withSecurityHeaders({ "Content-Type": "application/json" }));
+  response.end(JSON.stringify(payload));
+}
+
+function isTrustedLocalOrigin(origin, host) {
+  if (!origin) return false;
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === "http:" && parsed.host === host && ["127.0.0.1", "localhost"].includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isTrustedApiRequest(request) {
+  if (["GET", "HEAD", "OPTIONS"].includes(request.method || "GET") && !request.headers.origin) {
+    return true;
+  }
+  return isTrustedLocalOrigin(request.headers.origin, request.headers.host);
+}
+
 function writeDataFile(payload) {
+  if (dataFileReadError) {
+    const error = new Error(`${dataFileReadError} Fix or export the existing data file before saving new state.`);
+    error.statusCode = 423;
+    throw error;
+  }
   const nextState = {
     accounts: Array.isArray(payload.accounts) ? payload.accounts : [],
     sessions: Array.isArray(payload.sessions) ? payload.sessions : [],
     draft: payload.draft ?? null,
     demoLoaded: Boolean(payload.demoLoaded),
+    classGroups: Array.isArray(payload.classGroups) ? payload.classGroups : [],
+    rosterTemplates: Array.isArray(payload.rosterTemplates) ? payload.rosterTemplates : [],
     privacySettings: payload.privacySettings,
     auditLog: Array.isArray(payload.auditLog) ? payload.auditLog : [],
     billingProfile: payload.billingProfile,
     updatedAt: new Date().toISOString(),
   };
-  fs.writeFileSync(dataFile, `${JSON.stringify(nextState, null, 2)}\n`);
+  const stored = safeStorage.isEncryptionAvailable()
+    ? {
+        version: 1,
+        encrypted: true,
+        payload: safeStorage.encryptString(JSON.stringify(nextState)).toString("base64"),
+      }
+    : {
+        version: 1,
+        encrypted: false,
+        payload: nextState,
+      };
+  fs.writeFileSync(dataFile, `${JSON.stringify(stored, null, 2)}\n`, { mode: 0o600 });
   return nextState;
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function studentEmail(student) {
+  return normalizeEmail(student.linkedAccountEmail || student.email);
+}
+
+function deliverableStudents(session) {
+  return Array.isArray(session.students)
+    ? session.students.filter((student) => {
+        const email = studentEmail(student);
+        return email && !email.endsWith("@classloop.local");
+      })
+    : [];
+}
+
+function skippedStudents(session) {
+  return Array.isArray(session.students)
+    ? session.students
+        .filter((student) => {
+          const email = studentEmail(student);
+          return !email || email.endsWith("@classloop.local");
+        })
+        .map((student) => student.name || "Unnamed student")
+    : [];
+}
+
+function emailConfig() {
+  if (process.env.CLASSLOOP_SMTP_HOST) {
+    const senderEmail = process.env.CLASSLOOP_NO_REPLY_EMAIL || process.env.CLASSLOOP_SMTP_FROM || process.env.CLASSLOOP_SMTP_USER;
+    const senderName = process.env.CLASSLOOP_NO_REPLY_NAME || "ClassLoop";
+    return {
+      configured: true,
+      provider: process.env.CLASSLOOP_SMTP_PROVIDER || (process.env.CLASSLOOP_NO_REPLY_EMAIL ? "No-reply SMTP" : "SMTP"),
+      from: senderName && senderEmail ? `${senderName} <${senderEmail}>` : senderEmail,
+      replyTo: process.env.CLASSLOOP_REPLY_TO || undefined,
+      transport: {
+        host: process.env.CLASSLOOP_SMTP_HOST,
+        port: Number(process.env.CLASSLOOP_SMTP_PORT || 587),
+        secure: process.env.CLASSLOOP_SMTP_SECURE === "true" || process.env.CLASSLOOP_SMTP_PORT === "465",
+        auth: process.env.CLASSLOOP_SMTP_USER
+          ? {
+              user: process.env.CLASSLOOP_SMTP_USER,
+              pass: process.env.CLASSLOOP_SMTP_PASS || "",
+            }
+          : undefined,
+      },
+    };
+  }
+
+  if (process.env.CLASSLOOP_GMAIL_USER && process.env.CLASSLOOP_GMAIL_APP_PASSWORD) {
+    const senderEmail = process.env.CLASSLOOP_NO_REPLY_EMAIL || process.env.CLASSLOOP_GMAIL_FROM || process.env.CLASSLOOP_GMAIL_USER;
+    const senderName = process.env.CLASSLOOP_NO_REPLY_NAME || "ClassLoop";
+    return {
+      configured: true,
+      provider: process.env.CLASSLOOP_NO_REPLY_EMAIL ? "No-reply Gmail SMTP" : "Gmail SMTP",
+      from: senderName && senderEmail ? `${senderName} <${senderEmail}>` : senderEmail,
+      replyTo: process.env.CLASSLOOP_REPLY_TO || undefined,
+      transport: {
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: {
+          user: process.env.CLASSLOOP_GMAIL_USER,
+          pass: process.env.CLASSLOOP_GMAIL_APP_PASSWORD,
+        },
+      },
+    };
+  }
+
+  return {
+    configured: false,
+    provider: "Not configured",
+  };
+}
+
+function textForStudentEmail(session, student) {
+  const followUp = Array.isArray(session.followUps)
+    ? session.followUps.find((item) => item.studentId === student.id)
+    : null;
+  const resources = Array.isArray(session.resources) ? session.resources : [];
+  const tasks = followUp?.tasks?.length ? followUp.tasks : ["Review the session recap and complete the assigned work."];
+  return [
+    `Hi ${student.name || "there"},`,
+    "",
+    `Your ClassLoop follow-up is ready for ${session.title || "today's class"}.`,
+    "",
+    "Recap:",
+    session.recap || "A session recap is available in ClassLoop.",
+    "",
+    "Your next steps:",
+    ...tasks.map((task) => `- ${task}`),
+    followUp?.reminder ? ["", "Reminder:", followUp.reminder].join("\n") : "",
+    followUp?.dueDate ? `\nDue: ${followUp.dueDate}` : "",
+    resources.length
+      ? ["", "Resources:", ...resources.map((resource) => `- ${resource.title || resource.url}: ${resource.url}`)].join("\n")
+      : "",
+    "",
+    "Open ClassLoop with your roster email to see the full student dashboard.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function sendRecapEmails(session, options = {}) {
+  const config = emailConfig();
+  if (!config.configured) {
+    const error = new Error("Email is not configured. Set SMTP or Gmail app-password environment variables before sending.");
+    error.statusCode = 503;
+    throw error;
+  }
+  if (!config.from) {
+    const error = new Error("Email sender is missing. Set CLASSLOOP_SMTP_FROM or CLASSLOOP_GMAIL_FROM.");
+    error.statusCode = 503;
+    throw error;
+  }
+
+  const transporter = nodemailer.createTransport(config.transport);
+  const recipients = [];
+  const failed = [];
+  const onlyEmails = new Set(
+    (Array.isArray(options.onlyEmails) ? options.onlyEmails : []).map((email) => normalizeEmail(email)).filter(Boolean),
+  );
+  const students = deliverableStudents(session).filter((student) => !onlyEmails.size || onlyEmails.has(studentEmail(student)));
+
+  if (onlyEmails.size && !students.length) {
+    const error = new Error("No matching failed recipients were found for this published session.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  for (const student of students) {
+    const to = studentEmail(student);
+    try {
+      await transporter.sendMail({
+        from: config.from,
+        replyTo: config.replyTo,
+        to,
+        subject: `ClassLoop recap: ${session.title || "Session follow-up"}`,
+        text: textForStudentEmail(session, student),
+      });
+      recipients.push(to);
+    } catch (error) {
+      failed.push(`${to}: ${error.message}`);
+    }
+  }
+
+  if (!recipients.length && failed.length) {
+    const error = new Error(`No emails were sent. First failure: ${failed[0]}`);
+    error.statusCode = 502;
+    throw error;
+  }
+
+  return {
+    provider: config.provider,
+    sentAt: new Date().toISOString(),
+    recipients,
+    skipped: skippedStudents(session),
+    failed,
+  };
 }
 
 function readRequestBody(request) {
@@ -91,8 +336,9 @@ function readRequestBody(request) {
 
 async function handleStateApi(request, response) {
   if (request.method === "GET") {
-    response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
-    response.end(JSON.stringify(readDataFile()));
+    const state = readDataFile();
+    response.writeHead(dataFileReadError ? 423 : 200, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
+    response.end(JSON.stringify(state));
     return true;
   }
 
@@ -100,28 +346,91 @@ async function handleStateApi(request, response) {
     try {
       const body = await readRequestBody(request);
       const state = writeDataFile(JSON.parse(body || "{}"));
-      response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+      response.writeHead(200, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
       response.end(JSON.stringify(state));
-    } catch {
-      response.writeHead(400, { "Content-Type": "application/json", "Cache-Control": "no-store" });
-      response.end(JSON.stringify({ error: "Unable to save ClassLoop data." }));
+    } catch (error) {
+      response.writeHead(error.statusCode || 400, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
+      response.end(JSON.stringify({ error: error.message || "Unable to save ClassLoop data." }));
     }
     return true;
   }
 
-  response.writeHead(405, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+  response.writeHead(405, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
   response.end(JSON.stringify({ error: "Method not allowed." }));
+  return true;
+}
+
+async function handleIntegrationStatusApi(request, response) {
+  const config = emailConfig();
+  sendJson(response, 200, {
+    email: {
+      configured: config.configured,
+      provider: config.provider,
+      from: config.from,
+      replyTo: config.replyTo,
+    },
+  });
+  return true;
+}
+
+async function handleEmailApi(request, response) {
+  if (request.method !== "POST") {
+    sendJson(response, 405, { error: "Method not allowed." });
+    return true;
+  }
+
+  try {
+    const body = JSON.parse((await readRequestBody(request)) || "{}");
+    const sessionId = String(body.sessionId || "").trim();
+    const ownerEmail = normalizeEmail(body.ownerEmail);
+    if (!sessionId || !ownerEmail) {
+      sendJson(response, 400, { error: "Session id and owner email are required before sending recap emails." });
+      return true;
+    }
+
+    const state = readDataFile({ throwOnError: true });
+    const session = (Array.isArray(state.sessions) ? state.sessions : []).find((item) => item.id === sessionId);
+    if (!session) {
+      sendJson(response, 404, { error: "Published session was not found." });
+      return true;
+    }
+    if (session.status !== "published") {
+      sendJson(response, 409, { error: "Publish the session before sending recap emails." });
+      return true;
+    }
+    if (normalizeEmail(session.ownerEmail) !== ownerEmail) {
+      sendJson(response, 403, { error: "Only the teacher who owns this session can send recap emails." });
+      return true;
+    }
+
+    const result = await sendRecapEmails(session, { onlyEmails: body.recipients });
+    sendJson(response, 200, result);
+  } catch (error) {
+    sendJson(response, error.statusCode || 500, { error: error.message || "Unable to send student emails." });
+  }
   return true;
 }
 
 function createStaticServer() {
   const server = http.createServer(async (request, response) => {
     const parsed = new URL(request.url || "/", "http://127.0.0.1");
+    if (parsed.pathname.startsWith("/api/") && !isTrustedApiRequest(request)) {
+      sendJson(response, 403, { error: "Blocked untrusted local API origin." });
+      return;
+    }
+
     if (parsed.pathname === "/api/state") {
       await handleStateApi(request, response);
       return;
     }
-
+    if (parsed.pathname === "/api/integrations/status") {
+      await handleIntegrationStatusApi(request, response);
+      return;
+    }
+    if (parsed.pathname === "/api/email/send-recaps") {
+      await handleEmailApi(request, response);
+      return;
+    }
     const filePath = resolveAsset(request.url || "/");
 
     if (!filePath || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
@@ -131,10 +440,9 @@ function createStaticServer() {
     }
 
     const extension = path.extname(filePath);
-    response.writeHead(200, {
+    response.writeHead(200, withSecurityHeaders({
       "Content-Type": mimeTypes[extension] || "application/octet-stream",
-      "Cache-Control": "no-store",
-    });
+    }));
     fs.createReadStream(filePath).pipe(response);
   });
 
@@ -176,8 +484,27 @@ async function createWindow() {
   window.once("ready-to-show", () => window.show());
 
   window.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    try {
+      const parsed = new URL(url);
+      if (["https:", "http:", "mailto:"].includes(parsed.protocol)) {
+        shell.openExternal(url);
+      }
+    } catch {
+      // Ignore malformed or unsafe external URLs.
+    }
     return { action: "deny" };
+  });
+
+  window.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    const trusted = (() => {
+      try {
+        const parsed = new URL(webContents.getURL());
+        return parsed.protocol === "http:" && ["127.0.0.1", "localhost"].includes(parsed.hostname);
+      } catch {
+        return false;
+      }
+    })();
+    callback(trusted && permission === "media");
   });
 
   await window.loadURL(`${staticServer.url}/#/dashboard`);

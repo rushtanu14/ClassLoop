@@ -8,7 +8,8 @@ HOST="${HOST:-127.0.0.1}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 OPEN_BROWSER="${OPEN_BROWSER:-1}"
 
-for bin in npm node; do
+required_bins=(npm node)
+for bin in "${required_bins[@]}"; do
   if ! command -v "$bin" >/dev/null 2>&1; then
     echo "ClassLoop needs '$bin' on PATH before it can install or run dependencies." >&2
     exit 1

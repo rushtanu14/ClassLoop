@@ -273,27 +273,137 @@ After fixing, verify and report:
 Make the code changes and then summarize exactly what changed and how you verified it.
 ```
 
-## 2026-05-09 Main Branch Resolution
+## 2026-05-06 Feature QA Prompt: Access, Appearance, Storage, Capture, Privacy, Rosters
 
-- `main` is the current stable working branch target.
-- Promoted into `main`:
-  - roster CSV import/export inside the existing draft review roster manager
-  - JSON, CSV, and print actions on the session report
-  - parser hardening for Google Classroom-style CSV rosters, Zoom VTT captions, Teams transcript blocks, Google Meet-style speaker captions, and first-name-plus-last-initial speakers
-  - linked roster email matching for student dashboard/session visibility
-  - Playwright browser QA covering teacher import/preview/publish, roster CSV, report exports, student access, analytics hiding, and phone-width layout
-- Kept on `codex/audio-session-improvements`:
-  - live audio notes / browser speech-recognition capture
-  - optional Gmail/SMTP recap sending and integration configuration docs
-  - full class/course manager
-  - publish-audit data model/UI
-  - submitted/reviewed student completion workflow
-- Verification on `main`:
+Use this prompt when testing the ClassLoop feature set after appearance, storage, browser tests, live audio notes, delivery logging, privacy controls, roster templates, or sidebar navigation are changed:
+
+```text
+You are testing ClassLoop. Verify functionality; do not redesign the app.
+
+Run:
+- npm run build
+- npm run test:import
+- npm run test:browser
+- node -c desktop/main.cjs
+
+Feature checks:
+1. Teacher login works with teacher@classloop.demo / classloop-teacher.
+2. Student login works with maya@classloop.demo / classloop-student.
+3. Teacher can create/import a session, load the geometry sample, generate a draft, open publish preview, publish, view student preview, and open analytics.
+4. Publish preview shows per-student preview differences explaining why each student got different follow-ups.
+5. After the first published session, the save-roster prompt appears, accepts a teacher-entered roster name, and saves the roster.
+6. The Rosters sidebar tab opens a standalone roster manager:
+   - saved roster is visible with student count
+   - roster name and session type are editable
+   - student names, emails, and Zoom aliases are editable without overlapping text
+7. Creating a new session with a matching session template auto-offers the saved roster and loads it into Bulk roster.
+8. Student can open My portal and Appearance, but cannot access Analytics or teacher-only Rosters/Privacy.
+9. Student appearance settings save only while logged in:
+   - Change student theme.
+   - Confirm html data-theme changes.
+   - Sign out.
+   - Confirm the login screen returns to the default classroom theme.
+   - Sign back in and confirm the student's saved theme returns.
+10. Teacher appearance settings remain teacher-account scoped.
+11. Image backdrop URL updates the live preview and app background when a safe HTTPS image URL is used.
+12. Live audio notes require microphone permission confirmation when privacy settings require it.
+13. Paid/API-key/external-platform features are absent from the working app: no OpenAI transcription, custom transcription endpoint, Google Classroom posting, LMS posting, or online-call capture buttons.
+14. Publish preview shows delivery logs after email send actions.
+15. Privacy page is accessible to teachers and exposes retention settings, export, delete class data, consent settings, and audit log.
+16. Account/session/browser roster fallback storage uses secure classloop:secure:* localStorage keys; legacy plain classloop:accounts/session keys should migrate away.
+17. Responsive layout has no horizontal overflow at a phone-sized viewport.
+18. Frontend formatting pass: no unreadable low-contrast text, overlapping form labels, clipped buttons, blank teacher-only panels, or unnecessary implementation details exposed to users.
+
+Import regression checks:
+- Compressed CS4All roster parses 18 students.
+- Lena Wu parses as lwu@cs4all.nyc.
+- Ms. Rivera is not an unmatched participant.
+- Student (Jalen Thompson), Student (Priya Mehta), and similar Zoom names match roster students.
+- participationEvents.length > 0.
+- followUps.length === 18.
+- resources.length === 2 and both YouTube links are present.
+- Zoom .vtt, Teams transcript blocks, Google Meet captions, Google Classroom CSV roster exports, and nickname/alias matching stay covered.
+
+Report:
+- pass/fail by command
+- parsed import counts
+- browser test results
+- any feature not fully verifiable without the Gmail sender
+- exact file/function suspected for any failure
+- when the user says "use the testing script," also include concise feedback on how the test run went, what could be improved, and feature ideas that would improve user experience
+```
+
+## 2026-05-06 Testing Tooling Requirement
+
+Playwright is a required dev dependency for ClassLoop browser QA.
+
+- Keep `@playwright/test` in `devDependencies`.
+- Keep `npm run test:browser` available.
+- Keep `postinstall` running `playwright install chromium` so a fresh repo install has the browser needed for tests.
+- Browser tests live in `tests/browser/classloop.spec.ts`.
+- Playwright config lives in `playwright.config.ts` and starts Vite on `127.0.0.1:5177`.
+
+## 2026-05-06 Security/Storage Notes
+
+- Desktop `.classloop-data.json` should be written encrypted with Electron `safeStorage` when the OS supports it.
+- Browser fallback storage should use `classloop:secure:*` keys with AES-GCM encryption and migrate legacy plain localStorage keys.
+- This is local encryption at rest. It is not true multi-device sync. Real multi-device student access requires a backend database, server-side auth/session validation, HTTPS, and school-approved identity/OAuth.
+
+## 2026-05-06 Live Audio Notes
+
+- Browser live speech recognition is the only audio-to-text path kept in the working app.
+- Transcript paste/upload is the reliable free fallback.
+- Do not add `/api/transcribe`, OpenAI speech-to-text, custom transcription-provider APIs, or online-call capture unless the user explicitly reopens paid/external integration work.
+- Live audio notes should require explicit in-app consent when privacy settings require it.
+
+## 2026-05-06 Free-First External Services Policy
+
+- The user does not want to pay for integrations during the prototype stage.
+- ClassLoop cannot generate a Gmail account or send from an address the user does not own.
+- Free email path: the user creates/owns a Gmail account such as `classloop.noreply@gmail.com`, enables 2-Step Verification, creates an app password, and configures ClassLoop to send from that mailbox with `CLASSLOOP_REPLY_TO` set to the teacher/support inbox.
+- Remove or hide Google Classroom OAuth posting, LMS posting, OpenAI transcription, custom transcription endpoints, and online-call capture from the working app because they depend on external integration setup or paid API-key paths.
+- If no external credentials are configured, ClassLoop must remain useful through transcript paste/upload, local review, publish preview, student portal, roster manager, and analytics.
+
+## 2026-05-06 Roster Template Notes
+
+- Current improvement branch adds a standalone Rosters sidebar tab for teachers.
+- Roster templates are saved by teacher account and session type, then offered automatically when creating future sessions with the matching template.
+- Publishing a session with students prompts the teacher to name and save that roster if no saved roster exists for that session type.
+- The import flow should keep the saved roster behavior helpful but unobtrusive: show a saved roster selector only when a matching roster exists.
+- Image backdrop URLs should update the app background and live preview for safe HTTPS/data/blob/local images; Electron CSP must allow HTTPS image loads.
+
+## 2026-05-07 Branch-Aware Improvement Implementation
+
+- `codex/audio-session-improvements` is the richer free-first product branch.
+- `main` should remain the original clean white/green classroom UI with stable local-first workflows.
+- Improvement branch now includes:
+  - shared `ClassGroup`, `RosterTemplate`, `StudentSubmission`, and `PublishAuditEntry` types in `src/types.ts`
+  - Classes sidebar tab for reusable class/course rosters with default session type and linked session history
+  - CSV import/export for saved rosters and class groups
+  - publish audit rows on publish preview and session report
+  - student completion state that moves to submitted, with teacher-reviewed state available in student-visible editor
+  - student portal “Since your last visit” evidence based on personalized follow-up differences
+  - JSON, CSV, and print report actions on session reports
+  - Electron state persistence for class groups
+- The working app still excludes paid/API-key/external-platform workflows: no OpenAI/custom transcription, Google Classroom posting, LMS posting, or online-call capture.
+- Verification on the improvement branch:
   - `npm run build` passed
   - `npm run test:import` passed
-  - `npm run test:browser` passed 6/6 across desktop and mobile
+  - `npm run test:browser` passed 6/6 across desktop and mobile projects
   - `node -c desktop/main.cjs` passed
   - `git diff --check` passed
+
+### Updated Feature QA Additions
+
+When using the ClassLoop testing script, also verify:
+
+- Classes sidebar tab is teacher-only and shows reusable class rosters.
+- Publishing/saving a roster creates or updates a reusable class group.
+- New Session can load a saved class roster as well as a saved roster template.
+- Saved roster and class pages support CSV import/export.
+- Publish preview and session report show publish audit evidence.
+- Student can submit a follow-up check-in, and teacher can mark it reviewed.
+- Session report exposes JSON export, CSV export, and print actions.
 
 ## 2026-05-09 Backend / Freemium / Privacy Update
 
