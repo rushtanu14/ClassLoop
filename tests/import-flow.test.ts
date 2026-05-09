@@ -271,6 +271,24 @@ Jalen Thompson, jthompson@cs4all.nyc`,
   assert(transcriptSession.participationEvents.length > 0, `${name} should create participation events`);
 });
 
+const templateDetailSession = createGeneratedSession({
+  title: "Template detail metadata check",
+  template: "Math review",
+  transcript: `Maya Chen: I used AA similarity for the proof.
+Aarav Patel: The matching sides were the tricky part.`,
+  notes: `Practice problems: Problems 7-12 on the similar triangles worksheet
+Skills to reinforce: AA similarity, corresponding sides, proportions, and missing side lengths
+Common mistakes: Cross-multiplication order and matching the wrong sides`,
+  roster: `Maya Chen, maya@classloop.demo
+Aarav Patel, aarav@classloop.demo`,
+  resources: "",
+});
+assertEqual(
+  templateDetailSession.unmatchedParticipants?.length ?? 0,
+  0,
+  "template detail labels should not be treated as unmatched transcript speakers",
+);
+
 const transcriptFile =
   typeof File === "function"
     ? new File([zoomTranscript], "cs4all-demo.vtt", { type: "text/vtt" })

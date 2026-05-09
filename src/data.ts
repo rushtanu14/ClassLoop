@@ -109,7 +109,7 @@ function isTranscriptMetadataSpeaker(speaker: string) {
   const normalized = normalizeSpeakerName(speaker);
   return (
     !normalized ||
-    /^(teacher|instructor|professor|facilitator|host|classloop|meeting title|meeting date|meeting id|meeting passcode|passcode|date|duration|participants?|transcript|transcription|recording|audio|chat|question|questions|answer|answers|summary|agenda|topic|topics|resources?|links?|name|email|attendance|zoom names?|student access|speaker|speakers|speaker matching|transcript speaker matching|start time|end time|timezone|language|notes)$/i.test(
+    /^(teacher|instructor|professor|facilitator|host|classloop|meeting title|meeting date|meeting id|meeting passcode|passcode|date|duration|participants?|transcript|transcription|recording|audio|chat|question|questions|answer|answers|summary|agenda|topic|topics|resources?|links?|name|email|attendance|zoom names?|student access|speaker|speakers|speaker matching|transcript speaker matching|start time|end time|timezone|language|notes|practice problems?|skills? to reinforce|common mistakes?|project or repo|debug targets?|workshop deliverable|decisions made|owners?|next checkpoint|peer questions?|practice goals?)$/i.test(
       normalized,
     ) ||
     /^\d+$/.test(normalized) ||

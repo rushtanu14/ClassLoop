@@ -229,6 +229,16 @@ Essential Questions:
 3. Why is the order of steps important in an algorithm?
 ```
 
+## Hosted Backend / Freemium Notes
+
+- Hosted multi-device sync is scaffolded with Supabase Auth, `api/cloud-state.js`, and `supabase/schema.sql`.
+- Paid access is scaffolded with Stripe Checkout plus `api/billing/webhook.js`; the webhook updates `classloop_profiles` so entitlements are server-owned.
+- The local desktop app must remain useful without Supabase or Stripe credentials.
+- Free tier target: 5 sessions/month, CSV import/export, student preview, local desktop storage.
+- Pro target: `$9/month` for unlimited sessions, hosted sync, delivery logs, privacy exports, and advanced reports.
+- School pilot target: `$49/month` for shared pilot workspace, longer retention, audit-ready exports, and priority onboarding.
+- Never commit `.env.local`; use `.env.example` as the setup checklist.
+
 ## Testing
 
 **Test file**: [tests/import-flow.test.ts](tests/import-flow.test.ts)

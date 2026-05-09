@@ -37,6 +37,9 @@ function readDataFile() {
         sessions: [],
         draft: null,
         demoLoaded: false,
+        privacySettings: undefined,
+        auditLog: [],
+        billingProfile: undefined,
         updatedAt: new Date().toISOString(),
       };
     }
@@ -48,6 +51,9 @@ function readDataFile() {
       sessions: [],
       draft: null,
       demoLoaded: false,
+      privacySettings: undefined,
+      auditLog: [],
+      billingProfile: undefined,
       updatedAt: new Date().toISOString(),
     };
   }
@@ -59,6 +65,9 @@ function writeDataFile(payload) {
     sessions: Array.isArray(payload.sessions) ? payload.sessions : [],
     draft: payload.draft ?? null,
     demoLoaded: Boolean(payload.demoLoaded),
+    privacySettings: payload.privacySettings,
+    auditLog: Array.isArray(payload.auditLog) ? payload.auditLog : [],
+    billingProfile: payload.billingProfile,
     updatedAt: new Date().toISOString(),
   };
   fs.writeFileSync(dataFile, `${JSON.stringify(nextState, null, 2)}\n`);

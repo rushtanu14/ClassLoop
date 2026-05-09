@@ -1289,6 +1289,72 @@ button.account-pill {
   line-height: 1.45;
 }
 
+.plan-row small,
+.integration-card p,
+.settings-message,
+.switch-row span,
+.audit-row small {
+  color: var(--muted);
+}
+
+.integration-card,
+.audit-row {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.settings-stack,
+.audit-list {
+  display: grid;
+  gap: 14px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.switch-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.switch-row input {
+  margin-top: 4px;
+}
+
+.settings-message {
+  margin: 0;
+  font-weight: 700;
+}
+
+.settings-message.success {
+  color: var(--green-dark);
+}
+
+.audit-row {
+  display: grid;
+  gap: 4px;
+}
+
+.audit-row span {
+  color: var(--green-dark);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.danger-soft {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.28);
+}
+
 .trend-chart {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

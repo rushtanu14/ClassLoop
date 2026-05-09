@@ -54,6 +54,20 @@ import {
   sampleRoster,
   sampleTranscript,
 } from "./data";
+import {
+  cloudRequest,
+  createCheckoutSession,
+  createCloudAccount,
+  getBackendStatus,
+  getCloudProfile,
+  getCloudSession,
+  isPaidPlan,
+  planCatalog,
+  signIntoCloud,
+  signOutCloud,
+  type BillingProfile,
+  type PlanTier,
+} from "./cloud";
 import type {
   ActionItem,
   AttendanceStatus,
@@ -78,6 +92,8 @@ type RouteKey =
   | "student"
   | "student-session"
   | "analytics"
+  | "billing"
+  | "privacy"
   | "tutorial"
   | "appearance";
 
@@ -125,10 +141,30 @@ type SharedState = {
   sessions: Session[];
   draft: Session | null;
   demoLoaded: boolean;
+  privacySettings?: PrivacySettings;
+  auditLog?: AuditLogEntry[];
+  billingProfile?: BillingProfile;
   updatedAt?: string;
 };
 
 type SyncStatus = "connecting" | "shared" | "local";
+
+type PrivacySettings = {
+  retentionDays: number;
+  recordingConsentRequired: boolean;
+  allowStudentExport: boolean;
+  auditLogEnabled: boolean;
+  noTrainingOnStudentData: boolean;
+};
+
+type AuditLogEntry = {
+  id: string;
+  actorEmail: string;
+  actorRole: AuthRole;
+  action: string;
+  detail: string;
+  createdAt: string;
+};
 
 type ThemeKey = "abyssal" | "classroom" | "botanical" | "graphite";
 
@@ -145,6 +181,8 @@ const navItems: NavItem[] = [
   { route: "report", label: "Session report", icon: ClipboardCheck },
   { route: "student", label: "Student view", icon: GraduationCap },
   { route: "analytics", label: "Analytics", icon: BarChart3 },
+  { route: "billing", label: "Sync & billing", icon: RefreshCw },
+  { route: "privacy", label: "Privacy", icon: ShieldCheck },
   { route: "tutorial", label: "How it works", icon: BookOpen },
   { route: "appearance", label: "Appearance", icon: Palette },
 ];
@@ -263,6 +301,19 @@ const themePresets: Record<
 
 const accentOptions = ["#0f766e", "#2563eb", "#38bdf8", "#8b5cf6", "#e11d48", "#f59e0b", "#16a34a"];
 
+const defaultPrivacySettings: PrivacySettings = {
+  retentionDays: 365,
+  recordingConsentRequired: true,
+  allowStudentExport: true,
+  auditLogEnabled: true,
+  noTrainingOnStudentData: true,
+};
+
+const defaultBillingProfile: BillingProfile = {
+  tier: "free",
+  status: "not_configured",
+};
+
 const routeLabels: Record<RouteKey, string> = {
   dashboard: "Teacher dashboard",
   "new-session": "Import session",
@@ -273,6 +324,8 @@ const routeLabels: Record<RouteKey, string> = {
   student: "Student dashboard",
   "student-session": "Student session detail",
   analytics: "Teacher analytics",
+  billing: "Sync & billing",
+  privacy: "Privacy",
   tutorial: "How it works",
   appearance: "Appearance",
 };
@@ -629,16 +682,22 @@ function normalizeSharedState(data: Partial<SharedState>): SharedState {
     sessions: Array.isArray(data.sessions) ? data.sessions : [],
     draft: data.draft ?? null,
     demoLoaded: Boolean(data.demoLoaded),
+    privacySettings: { ...defaultPrivacySettings, ...(data.privacySettings ?? {}) },
+    auditLog: Array.isArray(data.auditLog) ? data.auditLog : [],
+    billingProfile: { ...defaultBillingProfile, ...(data.billingProfile ?? {}) },
     updatedAt: data.updatedAt,
   };
 }
 
-function sharedStateJson(state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded">) {
+function sharedStateJson(state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "privacySettings" | "auditLog" | "billingProfile">) {
   return JSON.stringify({
     accounts: state.accounts,
     sessions: state.sessions,
     draft: state.draft,
     demoLoaded: state.demoLoaded,
+    privacySettings: state.privacySettings,
+    auditLog: state.auditLog,
+    billingProfile: state.billingProfile,
   });
 }
 
@@ -710,13 +769,19 @@ function rosterStudentsFromCsv(text: string) {
 
   return dataRows
     .map((row, index) => {
-      const email = normalizeEmail(emailIndex >= 0 ? row[emailIndex] ?? "" : row.find((cell) => /@/.test(cell)) ?? "");
+      const detectedEmailIndex = emailIndex >= 0 ? emailIndex : row.findIndex((cell) => /@/.test(cell));
+      const email = normalizeEmail(detectedEmailIndex >= 0 ? row[detectedEmailIndex] ?? "" : "");
       const name =
         nameIndex >= 0
           ? row[nameIndex] ?? ""
-          : [firstIndex >= 0 ? row[firstIndex] : row[0], lastIndex >= 0 ? row[lastIndex] : row[1]]
-              .filter(Boolean)
-              .join(" ");
+          : firstIndex >= 0 || lastIndex >= 0
+            ? [firstIndex >= 0 ? row[firstIndex] : row[0], lastIndex >= 0 ? row[lastIndex] : row[1]]
+                .filter(Boolean)
+                .join(" ")
+            : row
+                .filter((cell, cellIndex) => cellIndex !== detectedEmailIndex && !/@/.test(cell))
+                .slice(0, detectedEmailIndex > 0 ? detectedEmailIndex : undefined)
+                .join(" ") || row.find((cell, cellIndex) => cellIndex !== detectedEmailIndex && !/@/.test(cell)) || "";
       const aliases = aliasesIndex >= 0 ? (row[aliasesIndex] ?? "").split(/[;,]/).map((item) => item.trim()).filter(Boolean) : [];
       return makeRosterStudent(name, email, index, aliases);
     })
@@ -770,6 +835,9 @@ function App() {
   const [selectedStudentId, setSelectedStudentId] = usePersistentState<string>("classloop:selected-student", "maya");
   const [auth, setAuth] = usePersistentState<AuthSession | null>("classloop:auth:v1", null);
   const [theme, setTheme] = usePersistentState<ThemeSettings>("classloop:theme:main:v1", defaultTheme);
+  const [privacySettings, setPrivacySettings] = usePersistentState<PrivacySettings>("classloop:privacy:v1", defaultPrivacySettings);
+  const [auditLog, setAuditLog] = usePersistentState<AuditLogEntry[]>("classloop:audit:v1", []);
+  const [billingProfile, setBillingProfile] = usePersistentState<BillingProfile>("classloop:billing:v1", defaultBillingProfile);
   const [demoLoaded, setDemoLoaded] = useState(false);
   const [sharedReady, setSharedReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connecting");
@@ -778,7 +846,15 @@ function App() {
   const isSavingRef = useRef(false);
   const writeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSharedJsonRef = useRef(
-    sharedStateJson({ accounts: demoAccounts, sessions: [], draft: null, demoLoaded: false }),
+    sharedStateJson({
+      accounts: demoAccounts,
+      sessions: [],
+      draft: null,
+      demoLoaded: false,
+      privacySettings: defaultPrivacySettings,
+      auditLog: [],
+      billingProfile: defaultBillingProfile,
+    }),
   );
   const lastServerUpdatedAtRef = useRef<string | undefined>(undefined);
 
@@ -806,6 +882,9 @@ function App() {
         setSessions(state.sessions);
         setDraft(state.draft);
         setDemoLoaded(state.demoLoaded);
+        setPrivacySettings(state.privacySettings ?? defaultPrivacySettings);
+        setAuditLog(state.auditLog ?? []);
+        setBillingProfile(state.billingProfile ?? defaultBillingProfile);
         lastSharedJsonRef.current = sharedStateJson(state);
         lastServerUpdatedAtRef.current = state.updatedAt;
         serverSyncRef.current = true;
@@ -817,16 +896,25 @@ function App() {
         const storedSessions = localStorage.getItem("classloop:sessions:v3");
         const storedDraft = localStorage.getItem("classloop:draft:v3");
         const storedDemo = localStorage.getItem("classloop:demo-loaded:v1");
+        const storedPrivacy = localStorage.getItem("classloop:privacy:v1");
+        const storedAudit = localStorage.getItem("classloop:audit:v1");
+        const storedBilling = localStorage.getItem("classloop:billing:v1");
         const localState = normalizeSharedState({
           accounts: storedAccounts ? JSON.parse(storedAccounts) : [],
           sessions: storedSessions ? JSON.parse(storedSessions) : [],
           draft: storedDraft ? JSON.parse(storedDraft) : null,
           demoLoaded: storedDemo ? JSON.parse(storedDemo) : false,
+          privacySettings: storedPrivacy ? JSON.parse(storedPrivacy) : defaultPrivacySettings,
+          auditLog: storedAudit ? JSON.parse(storedAudit) : [],
+          billingProfile: storedBilling ? JSON.parse(storedBilling) : defaultBillingProfile,
         });
         setAccounts(localState.accounts);
         setSessions(localState.sessions);
         setDraft(localState.draft);
         setDemoLoaded(localState.demoLoaded);
+        setPrivacySettings(localState.privacySettings ?? defaultPrivacySettings);
+        setAuditLog(localState.auditLog ?? []);
+        setBillingProfile(localState.billingProfile ?? defaultBillingProfile);
         lastSharedJsonRef.current = sharedStateJson(localState);
         serverSyncRef.current = false;
         setSyncStatus("local");
@@ -847,10 +935,13 @@ function App() {
       localStorage.setItem("classloop:sessions:v3", JSON.stringify(sessions));
       localStorage.setItem("classloop:draft:v3", JSON.stringify(draft));
       localStorage.setItem("classloop:demo-loaded:v1", JSON.stringify(demoLoaded));
+      localStorage.setItem("classloop:privacy:v1", JSON.stringify(privacySettings));
+      localStorage.setItem("classloop:audit:v1", JSON.stringify(auditLog));
+      localStorage.setItem("classloop:billing:v1", JSON.stringify(billingProfile));
       return;
     }
 
-    const nextJson = sharedStateJson({ accounts, sessions, draft, demoLoaded });
+    const nextJson = sharedStateJson({ accounts, sessions, draft, demoLoaded, privacySettings, auditLog, billingProfile });
     if (nextJson === lastSharedJsonRef.current) return;
 
     if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
@@ -874,7 +965,7 @@ function App() {
           writeTimerRef.current = null;
         });
     }, 300);
-  }, [accounts, demoLoaded, draft, sessions, sharedReady]);
+  }, [accounts, auditLog, billingProfile, demoLoaded, draft, privacySettings, sessions, sharedReady]);
 
   useEffect(() => {
     if (!sharedReady || !serverSyncRef.current) return;
@@ -893,6 +984,9 @@ function App() {
             setSessions(state.sessions);
             setDraft(state.draft);
             setDemoLoaded(state.demoLoaded);
+            setPrivacySettings(state.privacySettings ?? defaultPrivacySettings);
+            setAuditLog(state.auditLog ?? []);
+            setBillingProfile(state.billingProfile ?? defaultBillingProfile);
           }
           lastSharedJsonRef.current = nextJson;
           lastServerUpdatedAtRef.current = state.updatedAt;
@@ -942,6 +1036,43 @@ function App() {
   const visibleDraft = auth?.role === "teacher" && draft && sessionOwnerEmail(draft) === normalizeEmail(auth.email) ? draft : null;
   const latestPublished = teacherSessions.find((session) => session.status === "published") ?? teacherSessions[0];
   const effectiveRoute = auth?.role === "student" && !studentRoutes.has(route) ? "student" : route;
+  const hasPaidAccess = auth?.demo || isPaidPlan(billingProfile);
+  const freeLimitReached = Boolean(auth?.role === "teacher" && !hasPaidAccess && teacherSessions.length >= planCatalog[0].sessionLimit);
+  const currentState = () => ({
+    accounts,
+    sessions,
+    draft,
+    demoLoaded,
+    privacySettings,
+    auditLog,
+    billingProfile,
+  });
+
+  const appendAudit = (action: string, detail: string) => {
+    if (!auth || !privacySettings.auditLogEnabled) return;
+    setAuditLog((current) => [
+      {
+        id: `audit-${Date.now().toString(36)}-${current.length}`,
+        actorEmail: auth.email,
+        actorRole: auth.role,
+        action,
+        detail,
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ]);
+  };
+
+  const applyCloudState = (state: Partial<SharedState>) => {
+    const normalized = normalizeSharedState(state);
+    setAccounts(normalized.accounts);
+    setSessions(normalized.sessions);
+    setDraft(normalized.draft);
+    setDemoLoaded(normalized.demoLoaded);
+    setPrivacySettings(normalized.privacySettings ?? defaultPrivacySettings);
+    setAuditLog(normalized.auditLog ?? []);
+    setBillingProfile(normalized.billingProfile ?? defaultBillingProfile);
+  };
 
   const updateSession = (session: Session) => {
     setSessions((current) => {
@@ -974,6 +1105,7 @@ function App() {
     const published = { ...visibleDraft, ownerEmail: auth.email, status: "published" as const };
     updateSession(published);
     setDraft(published);
+    appendAudit("publish_session", `Published ${published.title}.`);
     navigate("report", { session: published.id });
   };
 
@@ -987,7 +1119,7 @@ function App() {
                 followUp.studentId === studentId ? { ...followUp, status: "complete", score: 100 } : followUp,
               ),
               actionItems: session.actionItems.map((item) =>
-                item.ownerId === studentId || !item.ownerId ? { ...item, status: "complete" } : item,
+                item.ownerId === studentId ? { ...item, status: "complete" } : item,
               ),
             }
           : session,
@@ -1184,6 +1316,7 @@ function App() {
   };
 
   const logout = () => {
+    appendAudit("logout", "Signed out.");
     setAuth(null);
     navigate("dashboard");
   };
@@ -1216,6 +1349,8 @@ function App() {
             ownerEmail={auth.email}
             setDraft={setDraft}
             onUseDemo={() => setDemoLoaded(true)}
+            canCreateSession={!freeLimitReached}
+            planName={billingProfile.tier === "free" ? "Free" : billingProfile.tier === "school" ? "School pilot" : "Pro"}
           />
         )}
         {effectiveRoute === "processing" && <Processing draft={visibleDraft} />}
@@ -1267,6 +1402,33 @@ function App() {
           />
         )}
         {effectiveRoute === "analytics" && <TeacherAnalytics sessions={teacherSessions} />}
+        {effectiveRoute === "billing" && auth.role === "teacher" && (
+          <SyncBillingPage
+            billingProfile={billingProfile}
+            setBillingProfile={setBillingProfile}
+            currentState={currentState}
+            applyCloudState={applyCloudState}
+            appendAudit={appendAudit}
+            sessionCount={teacherSessions.length}
+          />
+        )}
+        {effectiveRoute === "privacy" && auth.role === "teacher" && (
+          <PrivacyControlsPage
+            auth={auth}
+            sessions={teacherSessions}
+            accounts={accounts}
+            privacySettings={privacySettings}
+            setPrivacySettings={setPrivacySettings}
+            auditLog={auditLog}
+            appendAudit={appendAudit}
+            clearClassData={() => {
+              const ids = new Set(teacherSessions.map((session) => session.id));
+              setSessions((current) => current.filter((session) => !ids.has(session.id)));
+              setDraft(null);
+              setDemoLoaded(false);
+            }}
+          />
+        )}
         {effectiveRoute === "tutorial" && <TutorialPage auth={auth} />}
         {effectiveRoute === "appearance" && <DesignSystemPage theme={activeTheme} setTheme={setTheme} />}
       </main>
@@ -2147,6 +2309,366 @@ function PlanRow({ tier, detail }: { tier: string; detail: string }) {
   );
 }
 
+function SyncBillingPage({
+  billingProfile,
+  setBillingProfile,
+  currentState,
+  applyCloudState,
+  appendAudit,
+  sessionCount,
+}: {
+  billingProfile: BillingProfile;
+  setBillingProfile: (profile: BillingProfile) => void;
+  currentState: () => SharedState;
+  applyCloudState: (state: Partial<SharedState>) => void;
+  appendAudit: (action: string, detail: string) => void;
+  sessionCount: number;
+}) {
+  const backendStatus = getBackendStatus();
+  const [cloudEmail, setCloudEmail] = useState("");
+  const [cloudPassword, setCloudPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [connectedEmail, setConnectedEmail] = useState("");
+
+  useEffect(() => {
+    getCloudSession().then((session) => setConnectedEmail(session?.user.email ?? ""));
+  }, []);
+
+  const connectCloud = async (mode: "signin" | "signup") => {
+    const result =
+      mode === "signin"
+        ? await signIntoCloud(cloudEmail, cloudPassword)
+        : await createCloudAccount(cloudEmail, cloudPassword);
+    setMessage(result.message);
+    setConnectedEmail(result.session?.user.email ?? "");
+    if (result.ok) {
+      appendAudit("cloud_connect", `Connected hosted sync for ${cloudEmail}.`);
+      try {
+        const profile = await getCloudProfile();
+        setBillingProfile(profile.billingProfile);
+      } catch {
+        // Profile sync can wait until Supabase SQL is installed.
+      }
+    }
+  };
+
+  const refreshProfile = async () => {
+    try {
+      const profile = await getCloudProfile();
+      setBillingProfile(profile.billingProfile);
+      setMessage("Account plan refreshed from hosted sync.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to refresh account plan.");
+    }
+  };
+
+  const uploadCloud = async () => {
+    try {
+      await cloudRequest("/api/cloud-state", { method: "PUT", body: JSON.stringify(currentState()) });
+      setMessage("Uploaded this device's ClassLoop workspace to hosted sync.");
+      appendAudit("cloud_upload", "Uploaded workspace to hosted sync.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Cloud upload failed.");
+    }
+  };
+
+  const downloadCloud = async () => {
+    try {
+      const state = await cloudRequest<Partial<SharedState> | null>("/api/cloud-state");
+      if (!state) {
+        setMessage("No hosted workspace has been saved yet.");
+        return;
+      }
+      applyCloudState(state);
+      setMessage("Downloaded hosted workspace to this device.");
+      appendAudit("cloud_download", "Downloaded workspace from hosted sync.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Cloud download failed.");
+    }
+  };
+
+  const startCheckout = async (tier: Exclude<PlanTier, "free">) => {
+    try {
+      const checkout = await createCheckoutSession(tier);
+      window.location.href = checkout.url;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Stripe Checkout is not configured yet.");
+    }
+  };
+
+  const disconnect = async () => {
+    await signOutCloud();
+    setConnectedEmail("");
+    setMessage("Hosted sync disconnected on this device.");
+  };
+
+  return (
+    <div className="page-stack">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Sync & billing</span>
+          <h2>Make ClassLoop available across devices.</h2>
+          <p>Use hosted sync for teacher/student access on the web, and Stripe Checkout for paid account features.</p>
+        </div>
+        <button className="ghost-button" onClick={() => navigate("privacy")}>
+          <ShieldCheck size={17} />
+          Privacy controls
+        </button>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title="Hosted backend" icon={RefreshCw}>
+          <div className="settings-stack">
+            <div className="integration-card">
+              <strong>{backendStatus.supabaseConfigured ? "Supabase ready" : "Supabase keys needed"}</strong>
+              <p>
+                {backendStatus.supabaseConfigured
+                  ? "Cloud accounts can sync the same workspace across browser and desktop."
+                  : "Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable hosted login."}
+              </p>
+            </div>
+            <label className="field compact">
+              <span>Cloud email</span>
+              <input value={cloudEmail} onChange={(event) => setCloudEmail(event.target.value)} placeholder="you@school.org" />
+            </label>
+            <label className="field compact">
+              <span>Cloud password</span>
+              <input type="password" value={cloudPassword} onChange={(event) => setCloudPassword(event.target.value)} />
+            </label>
+            <div className="button-row">
+              <button className="primary-button" type="button" onClick={() => connectCloud("signin")}>
+                Sign in
+              </button>
+              <button className="ghost-button" type="button" onClick={() => connectCloud("signup")}>
+                Create cloud account
+              </button>
+            </div>
+            {connectedEmail && <p className="settings-message success">Connected as {connectedEmail}</p>}
+            <div className="button-row">
+              <button className="ghost-button" type="button" onClick={uploadCloud} disabled={!connectedEmail}>
+                Upload this device
+              </button>
+              <button className="ghost-button" type="button" onClick={downloadCloud} disabled={!connectedEmail}>
+                Download cloud copy
+              </button>
+              <button className="text-button" type="button" onClick={disconnect} disabled={!connectedEmail}>
+                Disconnect
+              </button>
+              <button className="text-button" type="button" onClick={refreshProfile} disabled={!connectedEmail}>
+                Refresh plan
+              </button>
+            </div>
+            {message && <p className="settings-message">{message}</p>}
+          </div>
+        </Panel>
+
+        <Panel title="Freemium plans" icon={ShieldCheck}>
+          <div className="plan-stack">
+            {planCatalog.map((plan) => (
+              <div key={plan.tier} className="plan-row">
+                <strong>
+                  {plan.name} <span>{plan.price}</span>
+                </strong>
+                <span>{plan.detail}</span>
+                {plan.tier === "free" ? (
+                  <small>
+                    Current usage: {sessionCount}/{plan.sessionLimit} sessions.
+                  </small>
+                ) : (
+                  <button className="text-button" type="button" onClick={() => startCheckout(plan.tier)}>
+                    Start {plan.name}
+                    <ChevronRight size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="integration-card">
+            <strong>Current account</strong>
+            <p>
+              {billingProfile.tier.toUpperCase()} · {billingProfile.status}
+            </p>
+            {!isPaidPlan(billingProfile) && (
+              <button
+                className="ghost-button full"
+                type="button"
+                onClick={() => setBillingProfile({ tier: "free", status: "not_configured" })}
+              >
+                Keep local Free plan
+              </button>
+            )}
+          </div>
+        </Panel>
+      </section>
+    </div>
+  );
+}
+
+function PrivacyControlsPage({
+  auth,
+  sessions,
+  accounts,
+  privacySettings,
+  setPrivacySettings,
+  auditLog,
+  appendAudit,
+  clearClassData,
+}: {
+  auth: AuthSession;
+  sessions: Session[];
+  accounts: Account[];
+  privacySettings: PrivacySettings;
+  setPrivacySettings: (settings: PrivacySettings) => void;
+  auditLog: AuditLogEntry[];
+  appendAudit: (action: string, detail: string) => void;
+  clearClassData: () => void;
+}) {
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackNote, setFeedbackNote] = useState("");
+  const [message, setMessage] = useState("");
+
+  const updatePrivacy = (changes: Partial<PrivacySettings>) => {
+    const next = { ...privacySettings, ...changes };
+    setPrivacySettings(next);
+    appendAudit("privacy_update", "Updated privacy controls.");
+  };
+
+  const exportData = () => {
+    downloadTextFile(
+      `classloop-export-${new Date().toISOString().slice(0, 10)}.json`,
+      JSON.stringify({ exportedAt: new Date().toISOString(), accounts, sessions, privacySettings, auditLog }, null, 2),
+      "application/json",
+    );
+    appendAudit("export_data", "Exported workspace data.");
+  };
+
+  const deleteData = () => {
+    if (!window.confirm("Delete this teacher workspace's sessions and current draft from this device?")) return;
+    clearClassData();
+    appendAudit("delete_class_data", "Deleted class sessions and current draft.");
+  };
+
+  const sendFeedback = async () => {
+    try {
+      await cloudRequest("/api/feedback", {
+        method: "POST",
+        body: JSON.stringify({ rating: feedbackRating, note: feedbackNote }),
+      });
+      setMessage("Feedback sent. Thank you.");
+      setFeedbackNote("");
+    } catch {
+      setMessage("Feedback saved locally. Connect hosted sync to send it with your pilot account.");
+    }
+    appendAudit("pilot_feedback", `Pilot feedback rating ${feedbackRating}/5.`);
+  };
+
+  return (
+    <div className="page-stack">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Privacy controls</span>
+          <h2>Keep student data private by default.</h2>
+          <p>Set retention, recording consent, exports, audit history, and data-use preferences before running pilots.</p>
+        </div>
+      </section>
+      <section className="content-grid two-columns align-start">
+        <Panel title="Data controls" icon={ShieldCheck}>
+          <div className="settings-stack">
+            <label className="field compact">
+              <span>Retention days</span>
+              <input
+                type="number"
+                min={30}
+                value={privacySettings.retentionDays}
+                onChange={(event) => updatePrivacy({ retentionDays: Number(event.target.value) || 365 })}
+              />
+            </label>
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.recordingConsentRequired}
+                onChange={(event) => updatePrivacy({ recordingConsentRequired: event.target.checked })}
+              />
+              <span>Require a consent notice before recording or live call capture.</span>
+            </label>
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.allowStudentExport}
+                onChange={(event) => updatePrivacy({ allowStudentExport: event.target.checked })}
+              />
+              <span>Allow teacher-controlled student data export.</span>
+            </label>
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.auditLogEnabled}
+                onChange={(event) => updatePrivacy({ auditLogEnabled: event.target.checked })}
+              />
+              <span>Keep audit history for sign-ins, publishing, exports, deletes, and privacy changes.</span>
+            </label>
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.noTrainingOnStudentData}
+                onChange={(event) => updatePrivacy({ noTrainingOnStudentData: event.target.checked })}
+              />
+              <span>No training on student data unless you explicitly allow it.</span>
+            </label>
+            <button className="primary-button full" type="button" onClick={exportData}>
+              Export workspace
+            </button>
+            <button className="ghost-button full danger-soft" type="button" onClick={deleteData}>
+              Delete class data
+            </button>
+          </div>
+        </Panel>
+
+        <Panel title="Pilot feedback" icon={MessageSquare}>
+          <div className="settings-stack">
+            <label className="field compact">
+              <span>How useful was this flow?</span>
+              <select value={feedbackRating} onChange={(event) => setFeedbackRating(Number(event.target.value))}>
+                {[5, 4, 3, 2, 1].map((rating) => (
+                  <option key={rating} value={rating}>
+                    {rating}/5
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field compact">
+              <span>What would make this better?</span>
+              <textarea value={feedbackNote} onChange={(event) => setFeedbackNote(event.target.value)} />
+            </label>
+            <button className="primary-button full" type="button" onClick={sendFeedback}>
+              Send feedback
+            </button>
+            {message && <p className="settings-message">{message}</p>}
+          </div>
+        </Panel>
+      </section>
+
+      <Panel title="Audit log" icon={ClipboardCheck}>
+        <div className="audit-list">
+          {auditLog.length ? (
+            auditLog.slice(0, 12).map((entry) => (
+              <div key={entry.id} className="audit-row">
+                <span>{entry.action.replace(/_/g, " ")}</span>
+                <strong>{entry.detail}</strong>
+                <small>
+                  {entry.actorEmail} · {formatDate(entry.createdAt)}
+                </small>
+              </div>
+            ))
+          ) : (
+            <p className="readable">No audit entries yet.</p>
+          )}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
 function TrendChart({ sessions }: { sessions: Session[] }) {
   const ordered = [...sessions].reverse();
   return (
@@ -2200,10 +2722,14 @@ function ImportSession({
   ownerEmail,
   setDraft,
   onUseDemo,
+  canCreateSession = true,
+  planName = "Free",
 }: {
   ownerEmail: string;
   setDraft: (session: Session) => void;
   onUseDemo: () => void;
+  canCreateSession?: boolean;
+  planName?: string;
 }) {
   const [title, setTitle] = useState("");
   const [template, setTemplate] = useState<SessionType>("General classroom");
@@ -2213,6 +2739,7 @@ function ImportSession({
   const [resources, setResources] = useState("");
   const [fileName, setFileName] = useState("");
   const [templateDetails, setTemplateDetails] = useState<Record<string, string>>({});
+  const [planMessage, setPlanMessage] = useState("");
   const activeTemplateFields = templateDetailFields[template];
 
   const loadSample = () => {
@@ -2237,6 +2764,10 @@ function ImportSession({
   };
 
   const generateDraft = () => {
+    if (!canCreateSession) {
+      setPlanMessage("Your Free plan includes 5 sessions. Upgrade to Pro for unlimited sessions and cloud sync.");
+      return;
+    }
     const detailNotes = activeTemplateFields
       .map((field) => {
         const value = templateDetails[field.id]?.trim();
@@ -2376,6 +2907,12 @@ function ImportSession({
               <Wand2 size={18} />
               Generate draft
             </button>
+            {!canCreateSession && (
+              <button className="ghost-button full" type="button" onClick={() => navigate("billing")}>
+                Upgrade from {planName}
+              </button>
+            )}
+            {planMessage && <small>{planMessage}</small>}
           </div>
         </aside>
       </section>

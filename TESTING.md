@@ -62,14 +62,15 @@
 **Expected**: All assertions pass, no errors
 
 **Browser Smoke**: `npm run test:browser`
-**Expected**: Playwright passes desktop and mobile checks for sign-in, import, preview/publish, roster CSV import/export, report exports, student access, analytics hiding, and responsive layout.
+**Expected**: Playwright passes desktop and mobile checks for account creation, password reset, profile settings, speaker resolution, template details, import, draft editing, participation approval controls, roster CSV import/export, student account linking, publish preview, student-facing task/resource edits, publishing, report downloads, student completion/detail flows, analytics hiding, teacher analytics, appearance settings, tutorial controls, sync/billing fallback states, privacy controls, workspace export, audit log entries, and responsive layout.
 
 ## Test Maintenance
 
 **When Adding Features**:
-1. Add test case to `import-flow.test.ts` first
-2. Update parser logic in `src/data.ts`
-3. Verify tests pass
+1. Add parser/data coverage to `import-flow.test.ts` when the feature touches import, matching, generated sessions, or exports.
+2. Add browser coverage to `tests/browser/classloop.spec.ts` when the feature changes a user-facing workflow, role gate, persistence state, download/upload, or responsive control.
+3. Update parser/UI logic.
+4. Verify the relevant focused test first, then run the full test command.
 
 **When Fixing Bugs**:
 1. Add failing test case reproducing the bug

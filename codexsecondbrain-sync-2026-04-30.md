@@ -294,3 +294,34 @@ Make the code changes and then summarize exactly what changed and how you verifi
   - `npm run test:browser` passed 6/6 across desktop and mobile
   - `node -c desktop/main.cjs` passed
   - `git diff --check` passed
+
+## 2026-05-09 Backend / Freemium / Privacy Update
+
+- Added a real hosted backend scaffold on `main` and `codex/audio-session-improvements` without making the local desktop app depend on paid services.
+- Backend pieces:
+  - Supabase Auth and `api/cloud-state.js` for multi-device workspace sync.
+  - `api/profile.js` for server-owned account/billing profile reads.
+  - Stripe Checkout in `api/billing/checkout.js`.
+  - Stripe subscription webhooks in `api/billing/webhook.js`.
+  - Pilot feedback in `api/feedback.js`.
+  - RLS-backed tables in `supabase/schema.sql`.
+  - Vercel browser deployment config in `vercel.json`.
+- Freemium MVP:
+  - Free: `$0`, 5 sessions/month, CSV import/export, student preview, local desktop storage.
+  - Pro: `$9/month`, unlimited sessions, hosted sync, delivery logs, privacy exports, advanced reports.
+  - School pilot: `$49/month`, shared pilot workspace, longer retention, audit-ready exports, priority onboarding.
+- Added teacher-only Sync & billing and Privacy controls to both branches.
+- Added `AGENT.md` operational memory at repo root.
+- `codex/audio-session-improvements` keeps richer features: live audio notes, Gmail/SMTP delivery, class manager, publish audit, and submitted/reviewed student workflow.
+- Recap email delivery on the improvement branch is now server-authoritative: send requests use a published `sessionId` and owner email instead of trusting a client-provided draft session.
+- Verification passed on both branches: `npm run build`, `npm run test:import`, `node -c desktop/main.cjs`, `node --check api/*.js api/billing/*.js`, `npm run test:browser`, and `git diff --check`.
+
+## 2026-05-09 Skills Added From Backend Rollout
+
+Created three reusable ClassLoop skills:
+
+- `classloop-hosted-deployment`: Vercel/Supabase/Stripe hosted deployment setup, env vars, RLS, API routes, webhooks, and live multi-device sync verification.
+- `classloop-entitlement-gates`: Free/Pro/School plan limits, Stripe subscription state, webhook-owned entitlements, paid feature gating, and anti-client-bypass review.
+- `classloop-dual-branch-rollout`: applies shared ClassLoop changes to both `main` and `codex/audio-session-improvements` while preserving branch boundaries and verifying both branches.
+
+All three validate with `quick_validate.py`.
