@@ -1,5 +1,7 @@
 node_modules
 .test-build
+.env.local
+.env.*.local
 dist/assets/index-*.js
 dist/assets/index-*.css
 .classloop-data.json

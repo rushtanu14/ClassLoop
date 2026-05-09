@@ -2851,6 +2851,12 @@ th {
   gap: 12px;
 }
 
+.roster-manager-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .roster-row {
   display: grid;
   grid-template-columns:
@@ -3639,5 +3645,34 @@ th {
   .primary-button,
   .ghost-button {
     width: 100%;
+  }
+}
+
+@media print {
+  body,
+  .app-shell {
+    background: #ffffff !important;
+  }
+
+  .sidebar,
+  .topbar,
+  .report-actions,
+  .logout-button {
+    display: none !important;
+  }
+
+  .app-shell {
+    display: block;
+  }
+
+  .main-area {
+    width: 100%;
+  }
+
+  .panel,
+  .report-hero,
+  .metric-card {
+    box-shadow: none !important;
+    break-inside: avoid;
   }
 }

@@ -16,8 +16,9 @@
 - **Metadata Filtering**: Skip teacher names, headers
 
 ### Regression Tests
-- **Format Variations**: Comma-sep, pipe-sep, tabular rosters
-- **Naming Inconsistencies**: Aliases, case variations
+- **Format Variations**: Comma-sep, pipe-sep, tabular rosters, Google Classroom-style CSV rows
+- **Transcript Variations**: Zoom VTT captions, Teams transcript blocks, Google Meet-style speaker captions
+- **Naming Inconsistencies**: Aliases, case variations, first-name-plus-last-initial speakers such as `Jalen T`
 - **Edge Cases**: Missing roster, malformed transcript
 
 ## Test Data Sources
@@ -59,6 +60,9 @@
 **Build First**: `tsc -p tsconfig.test.json`
 **Run Tests**: `node --experimental-specifier-resolution=node .test-build/tests/import-flow.test.js`
 **Expected**: All assertions pass, no errors
+
+**Browser Smoke**: `npm run test:browser`
+**Expected**: Playwright passes desktop and mobile checks for sign-in, import, preview/publish, roster CSV import/export, report exports, student access, analytics hiding, and responsive layout.
 
 ## Test Maintenance
 

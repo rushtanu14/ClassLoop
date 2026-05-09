@@ -39,8 +39,28 @@ The launcher installs missing dependencies when needed, then opens ClassLoop in 
 - Teacher and student sign-in screens.
 - Teacher-side session dashboard, import flow, AI review draft, session report, and analytics.
 - Student-side dashboard and session detail views.
+- Publish preview showing the student-facing recap, tasks, resources, and why a follow-up is assigned.
+- Roster manager inside draft review with CSV import/export for local roster cleanup.
+- Import parser handles compressed rosters, Google Classroom-style CSV rows, Zoom VTT captions, Teams transcript blocks, and Google Meet-style captions.
+- Session report actions for print-friendly sharing plus JSON and CSV exports.
 - Explicit sample accounts and sample session data for demonstrations.
 - Checked-in app build under `dist/`, wrapped by the desktop launcher.
+
+## Branch Split
+
+- `main`: stable white/green classroom app with transcript paste/upload, publish preview, roster CSV cleanup, report exports, parser hardening, and browser QA.
+- `codex/audio-session-improvements`: branch-only experiments for live audio notes, optional Gmail/SMTP recap delivery, class/course manager, publish-audit data model, and submitted/reviewed student workflow.
+
+## Testing
+
+```bash
+npm run build
+npm run test:import
+npm run test:browser
+node -c desktop/main.cjs
+```
+
+Playwright browser tests run on a dedicated Vite port so they do not accidentally connect to another local app.
 
 ## Sample Accounts
 
@@ -82,14 +102,14 @@ Core MVP promise:
 
 1. Make the import-to-review moment stronger: add a clearer “before and after” transformation from transcript text to recap, tasks, resources, and student follow-ups.
 2. Add teacher edit affordances directly to student follow-up cards so judges immediately see that the teacher stays in control before publishing.
-3. Add a lightweight “publish preview” step showing exactly what each student will see.
-4. Add completion check-in states that feel real: “not started,” “working,” “submitted,” and “teacher reviewed.”
-5. Add a simple class roster manager so the product feels reusable across multiple sessions, not just one import.
-6. Add a privacy/explanation panel written for schools: private teacher signals, no public ranking, student-specific sharing only.
-7. Add export/share actions for reports, because teachers and tutors will expect PDF or email-friendly output later.
+3. Add completion check-in states that feel real: “not started,” “working,” “submitted,” and “teacher reviewed.”
+4. Add a simple class roster manager so the product feels reusable across multiple sessions, not just one import.
+5. Add a privacy/explanation panel written for schools: private teacher signals, no public ranking, student-specific sharing only.
+6. Add local backup/restore so teachers can move their desktop data safely.
+7. Add stronger first-run onboarding for brand-new non-demo accounts.
 
 ## Monetization Direction
 
 - Free: limited sessions per month, basic recap, basic action items.
-- Pro: unlimited sessions, student dashboards, analytics, exports, and saved rosters.
+- Pro: unlimited sessions, local transcript processing, student dashboards, analytics, exports, and saved rosters.
 - Future school/team plan: admin dashboards, roster sync, privacy controls, and team reporting.

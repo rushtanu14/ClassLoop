@@ -272,3 +272,25 @@ After fixing, verify and report:
 
 Make the code changes and then summarize exactly what changed and how you verified it.
 ```
+
+## 2026-05-09 Main Branch Resolution
+
+- `main` is the current stable working branch target.
+- Promoted into `main`:
+  - roster CSV import/export inside the existing draft review roster manager
+  - JSON, CSV, and print actions on the session report
+  - parser hardening for Google Classroom-style CSV rosters, Zoom VTT captions, Teams transcript blocks, Google Meet-style speaker captions, and first-name-plus-last-initial speakers
+  - linked roster email matching for student dashboard/session visibility
+  - Playwright browser QA covering teacher import/preview/publish, roster CSV, report exports, student access, analytics hiding, and phone-width layout
+- Kept on `codex/audio-session-improvements`:
+  - live audio notes / browser speech-recognition capture
+  - optional Gmail/SMTP recap sending and integration configuration docs
+  - full class/course manager
+  - publish-audit data model/UI
+  - submitted/reviewed student completion workflow
+- Verification on `main`:
+  - `npm run build` passed
+  - `npm run test:import` passed
+  - `npm run test:browser` passed 6/6 across desktop and mobile
+  - `node -c desktop/main.cjs` passed
+  - `git diff --check` passed

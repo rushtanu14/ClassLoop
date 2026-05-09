@@ -254,13 +254,14 @@ Tests validate:
 4. **String formatting**: Date strings are ISO 8601 (YYYY-MM-DD). Names are lowercase-slugified for IDs.
 5. **Error handling**: Parser is defensive (unmatched names flagged but don't break import). UI shows warnings clearly.
 6. **Accessibility**: Icons from lucide-react (semantic naming). Enough contrast for education-friendly green theme.
+7. **Browser QA**: Keep Playwright installed. `npm install` runs `playwright install chromium`; run `npm run test:browser` for login/import/publish/student/analytics/responsive/export coverage.
 
 ## High-Value Next Work
 
-1. **Teacher edit UI**: Add inline edits to recap, questions, action items before publish (not just form views).
-2. **Publish preview**: Show each student exactly what they'll see before distributing.
-3. **Completion check-ins**: Real task states: not started → working → submitted → reviewed. Hook up student submissions.
-4. **Roster manager**: Reuse rosters across multiple sessions without re-pasting.
+1. **Completion check-ins**: Real task states: not started → working → submitted → reviewed. Hook up student submissions.
+2. **Roster manager**: Reuse rosters across multiple sessions without re-pasting.
+3. **First-run onboarding**: Guide brand-new teacher accounts through import, review, preview, and publish.
+4. **Local backup/restore**: Let teachers move desktop data safely without adding paid backend dependencies.
 5. **External sync later**: Consider Classroom, Canvas, or Schoology only if the user accepts external integration setup.
 6. **Privacy dashboard**: Explain to schools how student data is handled (no rankings, teacher-only signals, student-specific sharing).
 

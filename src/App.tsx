@@ -311,6 +311,15 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function studentAccessEmails(student: Student) {
+  return uniqueText([student.linkedAccountEmail, student.email].map((email) => normalizeEmail(email ?? "")).filter(Boolean));
+}
+
+function studentMatchesEmail(student: Student, email: string) {
+  const normalizedEmail = normalizeEmail(email);
+  return studentAccessEmails(student).includes(normalizedEmail);
+}
+
 function makeAccountId(role: AuthRole) {
   return `${role}-${crypto.randomUUID()}`;
 }
@@ -355,11 +364,10 @@ function teacherSessionsFor(sessions: Session[], email: string) {
 }
 
 function studentSessionsFor(sessions: Session[], email: string) {
-  const normalizedEmail = normalizeEmail(email);
   return sessions.filter(
     (session) =>
       session.status === "published" &&
-      session.students.some((student) => normalizeEmail(student.email) === normalizedEmail),
+      session.students.some((student) => studentMatchesEmail(student, email)),
   );
 }
 
@@ -374,13 +382,13 @@ function publishedRoster(sessions: Session[]) {
       sessions
         .filter((session) => session.status === "published")
         .flatMap((session) => session.students)
-        .map((student) => [student.email.toLowerCase(), student]),
+        .map((student) => [student.id, student]),
     ).values(),
   );
 }
 
 function findStudentByEmail(sessions: Session[], email: string) {
-  return publishedRoster(sessions).find((student) => normalizeEmail(student.email) === normalizeEmail(email));
+  return publishedRoster(sessions).find((student) => studentMatchesEmail(student, email));
 }
 
 function studentById(id: string, roster: Student[] = []) {
@@ -648,6 +656,110 @@ function safeBackgroundUrl(value: string) {
   }
   const sanitized = trimmed.replace(/["\\\n\r]/g, "");
   return `url("${sanitized}")`;
+}
+
+function csvEscape(value: string) {
+  const clean = value ?? "";
+  return /[",\n]/.test(clean) ? `"${clean.replace(/"/g, '""')}"` : clean;
+}
+
+function parseCsvRows(text: string) {
+  const rows: string[][] = [];
+  let current = "";
+  let row: string[] = [];
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      row.push(current.trim());
+      current = "";
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && next === "\n") index += 1;
+      row.push(current.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  row.push(current.trim());
+  if (row.some(Boolean)) rows.push(row);
+  return rows;
+}
+
+function rosterStudentsFromCsv(text: string) {
+  const rows = parseCsvRows(text);
+  if (!rows.length) return [];
+  const header = rows[0].map((cell) => cell.toLowerCase().replace(/\s+/g, ""));
+  const hasHeader = header.some((cell) => ["firstname", "lastname", "name", "studentname", "email", "emailaddress"].includes(cell));
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+  const nameIndex = header.findIndex((cell) => cell === "name" || cell === "studentname" || cell === "student");
+  const firstIndex = header.findIndex((cell) => cell === "firstname" || cell === "first");
+  const lastIndex = header.findIndex((cell) => cell === "lastname" || cell === "last");
+  const emailIndex = header.findIndex((cell) => cell === "email" || cell === "emailaddress");
+  const aliasesIndex = header.findIndex((cell) => cell === "aliases" || cell === "zoomnames" || cell === "nickname");
+
+  return dataRows
+    .map((row, index) => {
+      const email = normalizeEmail(emailIndex >= 0 ? row[emailIndex] ?? "" : row.find((cell) => /@/.test(cell)) ?? "");
+      const name =
+        nameIndex >= 0
+          ? row[nameIndex] ?? ""
+          : [firstIndex >= 0 ? row[firstIndex] : row[0], lastIndex >= 0 ? row[lastIndex] : row[1]]
+              .filter(Boolean)
+              .join(" ");
+      const aliases = aliasesIndex >= 0 ? (row[aliasesIndex] ?? "").split(/[;,]/).map((item) => item.trim()).filter(Boolean) : [];
+      return makeRosterStudent(name, email, index, aliases);
+    })
+    .filter((student) => student.name.trim() && student.email.includes("@"));
+}
+
+function rosterToCsv(students: Student[]) {
+  return [
+    ["Name", "Email", "Aliases"].map(csvEscape).join(","),
+    ...students.map((student) =>
+      [student.name, student.email, uniqueText(student.aliases ?? []).join("; ")].map(csvEscape).join(","),
+    ),
+  ].join("\n");
+}
+
+function downloadTextFile(filename: string, contents: string, type = "text/plain") {
+  const blob = new Blob([contents], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function sessionFollowThroughCsv(session: Session) {
+  return [
+    ["Student", "Email", "Attendance", "Status", "Readiness", "Due date", "Reminder"].map(csvEscape).join(","),
+    ...session.followUps.map((followUp) => {
+      const student = studentById(followUp.studentId, session.students);
+      return [
+        student.name,
+        student.email,
+        attendanceLabel(session.attendance[student.id] ?? "present"),
+        statusLabel(followUp.status),
+        String(followUp.score),
+        followUp.dueDate,
+        followUp.reminder,
+      ]
+        .map(csvEscape)
+        .join(",");
+    }),
+  ].join("\n");
 }
 
 function App() {
@@ -2619,6 +2731,7 @@ function RosterManager({
   onStudentsChange: (students: Student[]) => void;
   onAttendanceChange: (studentId: string, status: AttendanceStatus) => void;
 }) {
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
   const updateStudent = (studentId: string, changes: Partial<Student>) => {
     onStudentsChange(students.map((student) => (student.id === studentId ? { ...student, ...changes } : student)));
   };
@@ -2637,10 +2750,37 @@ function RosterManager({
     window.open(`mailto:${email}?subject=${subject}&body=${body}`);
     updateStudent(student.id, { inviteSentAt: new Date().toISOString() });
   };
+  const importCsv = async (file?: File) => {
+    if (!file) return;
+    const importedStudents = rosterStudentsFromCsv(await file.text());
+    if (importedStudents.length) onStudentsChange(importedStudents);
+    if (csvInputRef.current) csvInputRef.current.value = "";
+  };
 
   return (
     <Panel title="Roster manager" icon={Users}>
       <div className="roster-manager">
+        <div className="roster-manager-actions">
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(event) => importCsv(event.target.files?.[0])}
+            hidden
+          />
+          <button className="ghost-button" type="button" onClick={() => csvInputRef.current?.click()}>
+            <UploadCloud size={17} />
+            Import CSV
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => downloadTextFile(`${slugify(sessionTitle, "classloop-roster")}.csv`, rosterToCsv(students), "text/csv")}
+          >
+            <ArrowUpRight size={17} />
+            Export CSV
+          </button>
+        </div>
         {students.map((student, index) => (
           <article key={student.id} className="roster-row">
             <Avatar student={student} />
@@ -2972,6 +3112,36 @@ function SessionReport({
             <Settings2 size={17} />
             Edit draft
           </button>
+          <button
+            className="ghost-button"
+            onClick={() =>
+              downloadTextFile(
+                `${slugify(session.title, "classloop-session")}.json`,
+                JSON.stringify(session, null, 2),
+                "application/json",
+              )
+            }
+          >
+            <ArrowUpRight size={17} />
+            Export JSON
+          </button>
+          <button
+            className="ghost-button"
+            onClick={() =>
+              downloadTextFile(
+                `${slugify(session.title, "classloop-follow-through")}.csv`,
+                sessionFollowThroughCsv(session),
+                "text/csv",
+              )
+            }
+          >
+            <FileText size={17} />
+            Export CSV
+          </button>
+          <button className="ghost-button" onClick={() => window.print()}>
+            <ClipboardCheck size={17} />
+            Print report
+          </button>
           <button className="primary-button" onClick={() => navigate("student")}>
             <GraduationCap size={17} />
             View student dashboard
@@ -3087,7 +3257,7 @@ function StudentDashboard({
   const published = sessions.filter((session) => session.status === "published");
   const visibleSessions =
     auth.role === "student"
-      ? published.filter((session) => session.students.some((student) => normalizeEmail(student.email) === auth.email))
+      ? published.filter((session) => session.students.some((student) => studentMatchesEmail(student, auth.email)))
       : published;
 
   if (!visibleSessions.length) {
@@ -3122,7 +3292,7 @@ function StudentDashboard({
   }
 
   const matchedStudent =
-    auth.role === "student" ? roster.find((item) => normalizeEmail(item.email) === auth.email) : undefined;
+    auth.role === "student" ? roster.find((item) => studentMatchesEmail(item, auth.email)) : undefined;
   const activeStudentId = matchedStudent?.id ?? (roster.some((student) => student.id === selectedStudentId) ? selectedStudentId : roster[0].id);
   const student = studentById(activeStudentId, roster);
   const latestFollowUp = latest?.followUps.find((followUp) => followUp.studentId === activeStudentId);
@@ -3254,7 +3424,7 @@ function StudentSessionDetail({
   const session = sessions.find((item) => item.id === sessionId) ?? sessions[0];
   const roster = session?.students ?? [];
   const emailMatchedStudent =
-    auth.role === "student" ? roster.find((student) => normalizeEmail(student.email) === auth.email) : undefined;
+    auth.role === "student" ? roster.find((student) => studentMatchesEmail(student, auth.email)) : undefined;
   const activeStudentId = emailMatchedStudent?.id ?? (roster.some((student) => student.id === selectedStudentId)
     ? selectedStudentId
     : roster[0]?.id ?? selectedStudentId);

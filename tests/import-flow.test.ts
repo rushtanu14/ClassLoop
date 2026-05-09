@@ -125,13 +125,47 @@ Jalen Thompson | jthompson@cs4all.nyc`,
 2\tDanny Reyes\tdreyes@cs4all.nyc
 3\tJalen Thompson\tjthompson@cs4all.nyc`,
   },
+  {
+    name: "Google Classroom CSV export",
+    roster: `First Name,Last Name,Email
+Aaliyah,Carter,acarter@cs4all.nyc
+Danny,Reyes,dreyes@cs4all.nyc
+Jalen,Thompson,jthompson@cs4all.nyc`,
+  },
 ];
 
 const speakerFormatTranscript = `Mr. Agrawal: Teacher instructions should not become a student.
 Learner (Aaliyah Carter): I can explain the steps.
 Speaker - Danny Reyes: I think directions are an algorithm.
-Jalen Thompson: Is the worksheet due Thursday?
+Jalen T: Is the worksheet due Thursday?
 Resource: https://www.youtube.com/watch?v=6hfOvs8pY1k`;
+
+const zoomVttTranscript = `WEBVTT
+
+00:00:01.000 --> 00:00:04.000
+<v Student (Aaliyah Carter)>Do we write this in a doc?
+
+00:00:04.000 --> 00:00:06.000
+<v Ms. Rivera>Yes, use the shared document.
+
+00:00:06.000 --> 00:00:09.000
+<v Student (Danny Reyes)>The recipe is an algorithm.`;
+
+const teamsTranscript = `Aaliyah Carter
+4/28/2026, 10:01 AM
+I can explain the steps.
+
+Danny Reyes
+4/28/2026, 10:02 AM
+Directions are a sequence.
+
+Ms. Rivera
+4/28/2026, 10:03 AM
+Good examples.`;
+
+const googleMeetTranscript = `Aaliyah Carter: I think an algorithm is a list of steps.
+Danny Reyes: Is the worksheet due Thursday?
+Jalen T: The map is data, not the algorithm.`;
 
 const expectedStudents = [
   ["Aaliyah Carter", "acarter@cs4all.nyc"],
@@ -215,6 +249,26 @@ rosterFormatVariants.forEach((variant) => {
   assertEqual(variantSession.unmatchedParticipants?.length ?? 0, 0, `${variant.name} should match known speaker variants`);
   assert(variantSession.participationEvents.length > 0, `${variant.name} should generate participation events`);
   assertEqual(variantSession.resources.length, 1, `${variant.name} should preserve transcript URL extraction`);
+});
+
+[
+  ["Zoom VTT captions", zoomVttTranscript],
+  ["Teams transcript blocks", teamsTranscript],
+  ["Google Meet captions", googleMeetTranscript],
+].forEach(([name, transcript]) => {
+  const transcriptSession = createGeneratedSession({
+    title: `Transcript robustness check: ${name}`,
+    template: "CS workshop",
+    transcript,
+    notes: "",
+    roster: `Aaliyah Carter, acarter@cs4all.nyc
+Danny Reyes, dreyes@cs4all.nyc
+Jalen Thompson, jthompson@cs4all.nyc`,
+    resources: "",
+  });
+  assertEqual(transcriptSession.students.length, 3, `${name} should preserve roster parsing`);
+  assertEqual(transcriptSession.unmatchedParticipants?.length ?? 0, 0, `${name} should match roster speakers`);
+  assert(transcriptSession.participationEvents.length > 0, `${name} should create participation events`);
 });
 
 const transcriptFile =
