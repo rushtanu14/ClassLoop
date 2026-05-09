@@ -4860,7 +4860,7 @@ function StudentDashboard({
   const published = sessions.filter((session) => session.status === "published");
   const visibleSessions =
     auth.role === "student"
-      ? published.filter((session) => session.students.some((student) => normalizeEmail(student.email) === auth.email))
+      ? published.filter((session) => session.students.some((student) => studentMatchesEmail(student, auth.email)))
       : published;
 
   if (!visibleSessions.length) {
@@ -4895,7 +4895,7 @@ function StudentDashboard({
   }
 
   const matchedStudent =
-    auth.role === "student" ? roster.find((item) => normalizeEmail(item.email) === auth.email) : undefined;
+    auth.role === "student" ? roster.find((item) => studentMatchesEmail(item, auth.email)) : undefined;
   const activeStudentId = matchedStudent?.id ?? (roster.some((student) => student.id === selectedStudentId) ? selectedStudentId : roster[0].id);
   const student = studentById(activeStudentId, roster);
   const latestFollowUp = latest?.followUps.find((followUp) => followUp.studentId === activeStudentId);
@@ -5045,7 +5045,7 @@ function StudentSessionDetail({
   const session = sessions.find((item) => item.id === sessionId) ?? sessions[0];
   const roster = session?.students ?? [];
   const emailMatchedStudent =
-    auth.role === "student" ? roster.find((student) => normalizeEmail(student.email) === auth.email) : undefined;
+    auth.role === "student" ? roster.find((student) => studentMatchesEmail(student, auth.email)) : undefined;
   const activeStudentId = emailMatchedStudent?.id ?? (roster.some((student) => student.id === selectedStudentId)
     ? selectedStudentId
     : roster[0]?.id ?? selectedStudentId);
