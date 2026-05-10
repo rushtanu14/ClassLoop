@@ -24,6 +24,8 @@ ClassLoop is a desktop classroom follow-up platform (Electron + React) that tran
 **Demo Accounts**:
 - Teacher: `teacher@classloop.demo` / `classloop-teacher`
 - Student: `maya@classloop.demo` / `classloop-student`
+- Hosted Vercel demo should use sample accounts only. Do not enable custom account creation in the hosted demo; users create durable accounts in the downloaded desktop app.
+- Sample/demo account changes must be ephemeral and clearly bannered as unsaved demo data.
 
 ## Architecture
 

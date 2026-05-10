@@ -456,6 +456,8 @@ All three validate with `quick_validate.py`.
 
 - The hosted Vercel root route `/` now serves a public ClassLoop landing page with a Codex-style first impression, download call to action, and web demo entry point.
 - The actual app remains at `/#/dashboard`; Electron still opens `/#/dashboard` directly, so the desktop workflow is unchanged.
+- The hosted web demo is sample-account-only. Visitors can use the sample teacher/student credentials, but they can only create their own account and keep saved data in the downloaded desktop app.
+- Demo-account state is ephemeral: sample teacher/student changes are not written to the normal persistence path, demo-owned state is stripped before storage, and a top demo banner reminds users to download the app to save data.
 - `VITE_CLASSLOOP_MAC_DOWNLOAD_URL` can point the landing-page download button at a signed macOS desktop installer when packaging is ready. Until then, the page tells visitors to use the web demo.
 - `/api/config` now returns a safe config version plus hosted backend booleans. If live Vercel still returns `stripeSchoolConfigured`, the deployed app is stale and must redeploy latest `main`.
 - Current active freemium model: Free is 1 generated session per day; Pro is `$9/month` with unlimited sessions, live capture modes, multi-device cloud sync, delivery logs, privacy exports, and advanced reports. School pilot UI/env keys remain removed/deferred.

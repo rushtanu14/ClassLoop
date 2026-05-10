@@ -104,7 +104,9 @@ The local desktop app still works without paid services or cloud credentials. Fo
 Hosted route behavior:
 
 - `https://your-domain.com/` shows the public ClassLoop landing page.
-- `https://your-domain.com/#/dashboard` opens the app/demo sign-in flow.
+- `https://your-domain.com/#/dashboard` opens the safe web demo sign-in flow.
+- The hosted web demo uses sample teacher/student accounts only. Account creation and durable personal workspaces belong in the downloaded desktop app.
+- Sample account changes are ephemeral and should not be treated as saved data.
 - `https://your-domain.com/api/config` returns safe booleans that confirm whether server-only Supabase and Stripe env vars were picked up by Vercel.
 - Set `VITE_CLASSLOOP_MAC_DOWNLOAD_URL` to a signed release asset when the desktop installer is ready. Until then, the landing page directs visitors to the web demo.
 

@@ -377,6 +377,20 @@ const secureLocalKeys = {
   billingProfile: "classloop:secure:billing:v1",
 };
 
+const legacyLocalKeys = {
+  accounts: "classloop:accounts:v1",
+  sessions: "classloop:sessions:v3",
+  draft: "classloop:draft:v3",
+  demoLoaded: "classloop:demo-loaded:v1",
+  classGroups: "classloop:class-groups:v1",
+  rosterTemplates: "classloop:roster-templates:v1",
+  privacySettings: "classloop:privacy:v1",
+  auditLog: "classloop:audit:v1",
+  billingProfile: "classloop:billing:v1",
+};
+
+const localPreferenceKeys = ["classloop:selected-student", "classloop:local-storage-key:v1"];
+
 const themePresets: Record<
   ThemeKey,
   {
@@ -459,6 +473,15 @@ function isLandingHash() {
   );
 }
 
+function isPublicHostedDemo() {
+  const hostname = window.location.hostname;
+  return Boolean(hostname && !["localhost", "127.0.0.1", "::1"].includes(hostname));
+}
+
+function isDemoOnlyOverride() {
+  return new URLSearchParams(window.location.search).get("demoOnly") === "1" || getParam("demoOnly") === "1";
+}
+
 function getParam(name: string): string | null {
   const hash = window.location.hash.replace(/^#\/?/, "");
   const query = hash.split("?")[1] ?? "";
@@ -480,6 +503,11 @@ async function hashSecret(value: string) {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function isDemoEmail(email: string) {
+  const normalized = normalizeEmail(email);
+  return normalized === normalizeEmail(demoTeacherEmail) || normalized === normalizeEmail(demoStudentEmail);
 }
 
 function studentAccessEmails(student: Student) {
@@ -928,19 +956,6 @@ function classParticipationRate(session: Session) {
   return Math.round((activeIds.size / present) * 100);
 }
 
-function usePersistentState<T>(key: string, initialValue: T) {
-  const [value, setValue] = useState<T>(() => {
-    const stored = localStorage.getItem(key);
-    return stored ? (JSON.parse(stored) as T) : initialValue;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(value));
-  }, [key, value]);
-
-  return [value, setValue] as const;
-}
-
 function bytesToBase64(bytes: Uint8Array) {
   let binary = "";
   bytes.forEach((byte) => {
@@ -1017,49 +1032,95 @@ async function writeSecureLocalJson(key: string, value: unknown) {
 
 async function readLocalStateFallback(): Promise<SharedState> {
   return normalizeSharedState({
-    accounts: await readSecureLocalJson<Account[]>(secureLocalKeys.accounts, "classloop:accounts:v1", []),
-    sessions: await readSecureLocalJson<Session[]>(secureLocalKeys.sessions, "classloop:sessions:v3", []),
-    draft: await readSecureLocalJson<Session | null>(secureLocalKeys.draft, "classloop:draft:v3", null),
-    demoLoaded: await readSecureLocalJson<boolean>(secureLocalKeys.demoLoaded, "classloop:demo-loaded:v1", false),
-    classGroups: await readSecureLocalJson<ClassGroup[]>(secureLocalKeys.classGroups, "classloop:class-groups:v1", []),
+    accounts: await readSecureLocalJson<Account[]>(secureLocalKeys.accounts, legacyLocalKeys.accounts, []),
+    sessions: await readSecureLocalJson<Session[]>(secureLocalKeys.sessions, legacyLocalKeys.sessions, []),
+    draft: await readSecureLocalJson<Session | null>(secureLocalKeys.draft, legacyLocalKeys.draft, null),
+    demoLoaded: await readSecureLocalJson<boolean>(secureLocalKeys.demoLoaded, legacyLocalKeys.demoLoaded, false),
+    classGroups: await readSecureLocalJson<ClassGroup[]>(secureLocalKeys.classGroups, legacyLocalKeys.classGroups, []),
     rosterTemplates: await readSecureLocalJson<RosterTemplate[]>(
       secureLocalKeys.rosterTemplates,
-      "classloop:roster-templates:v1",
+      legacyLocalKeys.rosterTemplates,
       [],
     ),
     privacySettings: await readSecureLocalJson<PrivacySettings>(
       secureLocalKeys.privacySettings,
-      "classloop:privacy:v1",
+      legacyLocalKeys.privacySettings,
       defaultPrivacySettings,
     ),
-    auditLog: await readSecureLocalJson<AuditLogEntry[]>(secureLocalKeys.auditLog, "classloop:audit:v1", []),
+    auditLog: await readSecureLocalJson<AuditLogEntry[]>(secureLocalKeys.auditLog, legacyLocalKeys.auditLog, []),
     billingProfile: await readSecureLocalJson<BillingProfile>(
       secureLocalKeys.billingProfile,
-      "classloop:billing:v1",
+      legacyLocalKeys.billingProfile,
       defaultBillingProfile,
     ),
   });
 }
 
+function clearClassLoopLocalPersistence() {
+  [...Object.values(secureLocalKeys), ...Object.values(legacyLocalKeys), ...localPreferenceKeys].forEach((key) => {
+    localStorage.removeItem(key);
+  });
+}
+
+function persistableSharedState(
+  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "classGroups" | "rosterTemplates" | "privacySettings" | "auditLog" | "billingProfile">,
+) {
+  const demoOwner = normalizeEmail(demoTeacherEmail);
+  const isDemoOwnedSession = (session: Session | null) =>
+    Boolean(session?.isDemo) || normalizeEmail(session?.ownerEmail ?? "") === demoOwner;
+
+  return {
+    accounts: state.accounts.filter((account) => !account.demo && !isDemoEmail(account.email)),
+    sessions: state.sessions.filter((session) => !isDemoOwnedSession(session)),
+    draft: isDemoOwnedSession(state.draft) ? null : state.draft,
+    demoLoaded: false,
+    classGroups: state.classGroups.filter((group) => normalizeEmail(group.ownerEmail) !== demoOwner),
+    rosterTemplates: state.rosterTemplates.filter((template) => normalizeEmail(template.ownerEmail) !== demoOwner),
+    privacySettings: state.privacySettings,
+    auditLog: state.auditLog.filter((entry) => !isDemoEmail(entry.actorEmail)),
+    billingProfile: state.billingProfile,
+  };
+}
+
+function hasPersistableUserData(state: ReturnType<typeof persistableSharedState>) {
+  const privacyChanged = JSON.stringify(state.privacySettings) !== JSON.stringify(defaultPrivacySettings);
+  const billingChanged = JSON.stringify(state.billingProfile) !== JSON.stringify(defaultBillingProfile);
+  return Boolean(
+    state.accounts.length ||
+      state.sessions.length ||
+      state.draft ||
+      state.classGroups.length ||
+      state.rosterTemplates.length ||
+      state.auditLog.length ||
+      privacyChanged ||
+      billingChanged,
+  );
+}
+
 async function writeLocalStateFallback(
   state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "classGroups" | "rosterTemplates" | "privacySettings" | "auditLog" | "billingProfile">,
 ) {
+  const persistable = persistableSharedState(state);
+  if (!hasPersistableUserData(persistable)) {
+    clearClassLoopLocalPersistence();
+    return;
+  }
   await Promise.all([
-    writeSecureLocalJson(secureLocalKeys.accounts, state.accounts),
-    writeSecureLocalJson(secureLocalKeys.sessions, state.sessions),
-    writeSecureLocalJson(secureLocalKeys.draft, state.draft),
-    writeSecureLocalJson(secureLocalKeys.demoLoaded, state.demoLoaded),
-    writeSecureLocalJson(secureLocalKeys.classGroups, state.classGroups),
-    writeSecureLocalJson(secureLocalKeys.rosterTemplates, state.rosterTemplates),
-    writeSecureLocalJson(secureLocalKeys.privacySettings, state.privacySettings),
-    writeSecureLocalJson(secureLocalKeys.auditLog, state.auditLog),
-    writeSecureLocalJson(secureLocalKeys.billingProfile, state.billingProfile),
+    writeSecureLocalJson(secureLocalKeys.accounts, persistable.accounts),
+    writeSecureLocalJson(secureLocalKeys.sessions, persistable.sessions),
+    writeSecureLocalJson(secureLocalKeys.draft, persistable.draft),
+    writeSecureLocalJson(secureLocalKeys.demoLoaded, persistable.demoLoaded),
+    writeSecureLocalJson(secureLocalKeys.classGroups, persistable.classGroups),
+    writeSecureLocalJson(secureLocalKeys.rosterTemplates, persistable.rosterTemplates),
+    writeSecureLocalJson(secureLocalKeys.privacySettings, persistable.privacySettings),
+    writeSecureLocalJson(secureLocalKeys.auditLog, persistable.auditLog),
+    writeSecureLocalJson(secureLocalKeys.billingProfile, persistable.billingProfile),
   ]);
 }
 
 function normalizeSharedState(data: Partial<SharedState>): SharedState {
-  return {
-    accounts: mergeAccounts(Array.isArray(data.accounts) ? data.accounts : []),
+  const normalized = persistableSharedState({
+    accounts: Array.isArray(data.accounts) ? data.accounts : [],
     sessions: Array.isArray(data.sessions) ? data.sessions : [],
     draft: data.draft ?? null,
     demoLoaded: Boolean(data.demoLoaded),
@@ -1068,6 +1129,11 @@ function normalizeSharedState(data: Partial<SharedState>): SharedState {
     privacySettings: { ...defaultPrivacySettings, ...(data.privacySettings ?? {}) },
     auditLog: Array.isArray(data.auditLog) ? data.auditLog : [],
     billingProfile: { ...defaultBillingProfile, ...(data.billingProfile ?? {}) },
+  });
+
+  return {
+    ...normalized,
+    accounts: mergeAccounts(normalized.accounts),
     updatedAt: data.updatedAt,
   };
 }
@@ -1276,7 +1342,7 @@ function App() {
   const [accounts, setAccounts] = useState<Account[]>(demoAccounts);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [draft, setDraft] = useState<Session | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = usePersistentState<string>("classloop:selected-student", "maya");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(() => localStorage.getItem("classloop:selected-student") ?? "maya");
   const [auth, setAuth] = useState<AuthSession | null>(null);
   const [theme, setTheme] = useState<ThemeSettings>(defaultTheme);
   const [demoLoaded, setDemoLoaded] = useState(false);
@@ -1291,13 +1357,15 @@ function App() {
   const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const [walkthroughStepIndex, setWalkthroughStepIndex] = useState(0);
   const [landingMode, setLandingMode] = useState(isLandingHash);
+  const [publicDemoOnly] = useState(() => isPublicHostedDemo() || isDemoOnlyOverride());
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connecting");
   const [passwordResetCodes, setPasswordResetCodes] = useState<Record<string, PasswordResetRecord>>({});
   const serverSyncRef = useRef(false);
+  const demoSessionRef = useRef(false);
   const isSavingRef = useRef(false);
   const writeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSharedJsonRef = useRef(
-    sharedStateJson({
+    sharedStateJson(persistableSharedState({
       accounts: demoAccounts,
       sessions: [],
       draft: null,
@@ -1307,7 +1375,7 @@ function App() {
       privacySettings: defaultPrivacySettings,
       auditLog: [],
       billingProfile: defaultBillingProfile,
-    }),
+    })),
   );
   const lastServerUpdatedAtRef = useRef<string | undefined>(undefined);
 
@@ -1321,6 +1389,37 @@ function App() {
 
   useEffect(() => {
     let active = true;
+    if (publicDemoOnly) {
+      clearClassLoopLocalPersistence();
+      setAccounts(demoAccounts);
+      setSessions([]);
+      setDraft(null);
+      setDemoLoaded(false);
+      setClassGroups([]);
+      setRosterTemplates([]);
+      setSelectedStudentId("maya");
+      setPrivacySettings(defaultPrivacySettings);
+      setAuditLog([]);
+      setBillingProfile(defaultBillingProfile);
+      lastSharedJsonRef.current = sharedStateJson(persistableSharedState({
+        accounts: demoAccounts,
+        sessions: [],
+        draft: null,
+        demoLoaded: false,
+        classGroups: [],
+        rosterTemplates: [],
+        privacySettings: defaultPrivacySettings,
+        auditLog: [],
+        billingProfile: defaultBillingProfile,
+      }));
+      serverSyncRef.current = false;
+      setSyncStatus("local");
+      setSharedReady(true);
+      return () => {
+        active = false;
+      };
+    }
+
     fetch("/api/state")
       .then(async (response) => {
         const contentType = response.headers.get("content-type") ?? "";
@@ -1368,16 +1467,33 @@ function App() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [publicDemoOnly]);
+
+  useEffect(() => {
+    if (publicDemoOnly || auth?.demo) return;
+    localStorage.setItem("classloop:selected-student", selectedStudentId);
+  }, [auth?.demo, publicDemoOnly, selectedStudentId]);
 
   useEffect(() => {
     if (!sharedReady) return;
+    if (publicDemoOnly || auth?.demo || demoSessionRef.current) return;
+    const persistableState = persistableSharedState({
+      accounts,
+      sessions,
+      draft,
+      demoLoaded,
+      classGroups,
+      rosterTemplates,
+      privacySettings,
+      auditLog,
+      billingProfile,
+    });
     if (!serverSyncRef.current) {
-      void writeLocalStateFallback({ accounts, sessions, draft, demoLoaded, classGroups, rosterTemplates, privacySettings, auditLog, billingProfile });
+      void writeLocalStateFallback(persistableState);
       return;
     }
 
-    const nextJson = sharedStateJson({ accounts, sessions, draft, demoLoaded, classGroups, rosterTemplates, privacySettings, auditLog, billingProfile });
+    const nextJson = sharedStateJson(persistableState);
     if (nextJson === lastSharedJsonRef.current) return;
 
     if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
@@ -1401,7 +1517,7 @@ function App() {
           writeTimerRef.current = null;
         });
     }, 300);
-  }, [accounts, auditLog, billingProfile, classGroups, demoLoaded, draft, privacySettings, rosterTemplates, sessions, sharedReady]);
+  }, [accounts, auditLog, auth?.demo, billingProfile, classGroups, demoLoaded, draft, privacySettings, publicDemoOnly, rosterTemplates, sessions, sharedReady]);
 
   useEffect(() => {
     if (!sharedReady || !serverSyncRef.current) return;
@@ -1493,6 +1609,7 @@ function App() {
 
   const appendAudit = (action: string, detail: string, actor: AuthSession | null = auth) => {
     if (!actor || !privacySettings.auditLogEnabled) return;
+    if (actor.demo) return;
     setAuditLog((current) => [
       {
         id: `audit-${Date.now().toString(36)}-${current.length}`,
@@ -1535,7 +1652,7 @@ function App() {
   const handleThemeChange: React.Dispatch<React.SetStateAction<ThemeSettings>> = (value) => {
     setTheme((current) => {
       const nextTheme = typeof value === "function" ? value(current) : value;
-      if (auth) {
+      if (auth && !auth.demo) {
         setAccounts((accountsCurrent) =>
           accountsCurrent.map((account) =>
             account.id === auth.accountId
@@ -1681,11 +1798,34 @@ function App() {
     setClassGroups((current) => current.filter((group) => group.id !== groupId));
   };
 
+  const resetDemoWorkspaceAfterUse = () => {
+    setSessions((current) => current.filter((session) => sessionOwnerEmail(session) !== normalizeEmail(demoTeacherEmail)));
+    setDraft((current) => (current && sessionOwnerEmail(current) === normalizeEmail(demoTeacherEmail) ? null : current));
+    setClassGroups((current) => current.filter((group) => normalizeEmail(group.ownerEmail) !== normalizeEmail(demoTeacherEmail)));
+    setRosterTemplates((current) => current.filter((template) => normalizeEmail(template.ownerEmail) !== normalizeEmail(demoTeacherEmail)));
+    setRosterPromptSession(null);
+    setDemoLoaded(false);
+    if (publicDemoOnly) {
+      setAccounts(demoAccounts);
+      setPrivacySettings(defaultPrivacySettings);
+      setAuditLog([]);
+      setBillingProfile(defaultBillingProfile);
+    }
+  };
+
   const ensureDemoSession = () => {
     const demoSession = createDemoSession();
     setSessions((current) =>
-      current.some((session) => session.id === demoSession.id) ? current : [demoSession, ...current],
+      [
+        demoSession,
+        ...current.filter(
+          (session) => session.id !== demoSession.id && sessionOwnerEmail(session) !== normalizeEmail(demoTeacherEmail),
+        ),
+      ],
     );
+    setDraft((current) => (current && sessionOwnerEmail(current) === normalizeEmail(demoTeacherEmail) ? null : current));
+    setClassGroups((current) => current.filter((group) => normalizeEmail(group.ownerEmail) !== normalizeEmail(demoTeacherEmail)));
+    setRosterTemplates((current) => current.filter((template) => normalizeEmail(template.ownerEmail) !== normalizeEmail(demoTeacherEmail)));
     setDemoLoaded(true);
     return demoSession;
   };
@@ -1748,6 +1888,11 @@ function App() {
     setAuthLoading(true);
     try {
       await wait(420);
+      if (publicDemoOnly && !account.demo) {
+        return { ok: false, message: "The web demo uses the sample accounts only. Download the app to create your own account." };
+      }
+
+      if (account.demo) demoSessionRef.current = true;
       const demoSession = account.demo ? ensureDemoSession() : undefined;
 
       if (role === "teacher") {
@@ -1799,6 +1944,10 @@ function App() {
   };
 
   const handleCreateAccount = async (role: AuthRole, name: string, email: string, password: string) => {
+    if (publicDemoOnly) {
+      return { ok: false, message: "Account creation is available in the desktop app. Use the sample accounts in the web demo." };
+    }
+
     const normalizedEmail = normalizeEmail(email);
     const trimmedName = name.trim();
 
@@ -1858,8 +2007,8 @@ function App() {
     ) {
       return { ok: false, message: "Another account already uses that email." };
     }
-    if (auth.demo && (nextEmail !== normalizeEmail(account.email) || settings.newPassword)) {
-      return { ok: false, message: "Sample account sign-in details stay fixed. Create your own account to change them." };
+    if (auth.demo && (nextName !== account.name || nextEmail !== normalizeEmail(account.email) || settings.newPassword)) {
+      return { ok: false, message: "Sample account settings reset after the demo. Download the app to save your own profile." };
     }
 
     let passwordHash = account.passwordHash;
@@ -1954,7 +2103,10 @@ function App() {
   };
 
   const logout = () => {
+    const wasDemo = Boolean(auth?.demo);
     appendAudit("logout", "Signed out.");
+    if (wasDemo) resetDemoWorkspaceAfterUse();
+    demoSessionRef.current = false;
     setAuth(null);
     setTheme(defaultTheme);
     navigate("dashboard");
@@ -1982,6 +2134,7 @@ function App() {
         onCreateAccount={handleCreateAccount}
         onRequestPasswordReset={handleRequestPasswordReset}
         onCompletePasswordReset={handleCompletePasswordReset}
+        demoOnly={publicDemoOnly}
       />
     );
   }
@@ -1990,6 +2143,7 @@ function App() {
     <div className="app-shell">
       <Sidebar route={effectiveRoute} auth={auth} onLogout={logout} showDemoCard={Boolean(auth.demo && demoLoaded)} />
       <main className="main-area">
+        {auth.demo && <DemoAccountBanner />}
         <Topbar
           route={effectiveRoute}
           latestSession={latestPublished}
@@ -2309,6 +2463,7 @@ function LoginPage({
   onCreateAccount,
   onRequestPasswordReset,
   onCompletePasswordReset,
+  demoOnly,
 }: {
   onLogin: (role: AuthRole, email: string, password: string) => Promise<{ ok: boolean; message?: string }>;
   onCreateAccount: (
@@ -2327,12 +2482,13 @@ function LoginPage({
     code: string,
     newPassword: string,
   ) => Promise<{ ok: boolean; message?: string }>;
+  demoOnly: boolean;
 }) {
   const [mode, setMode] = useState<"signin" | "create">("signin");
   const [role, setRole] = useState<AuthRole>("teacher");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(demoOnly ? demoTeacherEmail : "");
+  const [password, setPassword] = useState(demoOnly ? "classloop-teacher" : "");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -2348,6 +2504,12 @@ function LoginPage({
   const demoEmail = role === "teacher" ? demoTeacherEmail : demoStudentEmail;
   const demoPassword = role === "teacher" ? "classloop-teacher" : "classloop-student";
 
+  useEffect(() => {
+    if (!demoOnly || mode !== "signin") return;
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+  }, [demoEmail, demoOnly, demoPassword, mode]);
+
   const chooseRole = (nextRole: AuthRole) => {
     setRole(nextRole);
     setError("");
@@ -2356,6 +2518,10 @@ function LoginPage({
   };
 
   const chooseMode = (nextMode: "signin" | "create") => {
+    if (demoOnly && nextMode === "create") {
+      setError("Download the app to create your own account and save data. The web demo uses sample accounts only.");
+      return;
+    }
     setMode(nextMode);
     setError("");
     setNotice("");
@@ -2470,10 +2636,11 @@ function LoginPage({
         </div>
         <div className="login-copy">
           <span className="eyebrow">Welcome back</span>
-          <h1>Sign in to ClassLoop.</h1>
+          <h1>{demoOnly ? "Try ClassLoop with sample accounts." : "Sign in to ClassLoop."}</h1>
           <p>
-            Keep class follow-ups organized in one place. Teachers publish updates when they are ready, and students see
-            the work meant for them.
+            {demoOnly
+              ? "The web demo resets sample work. Download the desktop app when you are ready to create your own account and save data."
+              : "Keep class follow-ups organized in one place. Teachers publish updates when they are ready, and students see the work meant for them."}
           </p>
         </div>
         <form className="login-form" onSubmit={submit}>
@@ -2481,10 +2648,21 @@ function LoginPage({
             <button type="button" className={mode === "signin" ? "active" : ""} onClick={() => chooseMode("signin")}>
               Sign in
             </button>
-            <button type="button" className={mode === "create" ? "active" : ""} onClick={() => chooseMode("create")}>
+            <button
+              type="button"
+              className={mode === "create" ? "active" : ""}
+              onClick={() => chooseMode("create")}
+              disabled={demoOnly}
+              title={demoOnly ? "Create your own account in the downloaded desktop app." : undefined}
+            >
               Create account
             </button>
           </div>
+          {demoOnly && (
+            <p className="demo-login-note">
+              Web demo mode uses sample credentials only. Your changes will reset and will not be saved.
+            </p>
+          )}
           <div className="role-tabs" role="tablist" aria-label="Choose account type">
             <button type="button" className={role === "teacher" ? "active" : ""} onClick={() => chooseRole("teacher")}>
               <UserRound size={17} />
@@ -2526,7 +2704,7 @@ function LoginPage({
               </button>
             </div>
           </label>
-          {mode === "signin" && (
+          {mode === "signin" && !demoOnly && (
             <button
               type="button"
               className="text-button forgot-password-link"
@@ -2568,9 +2746,10 @@ function LoginPage({
           </button>
         </form>
         <div className="login-help">
-          <strong>Sample accounts</strong>
+          <strong>{demoOnly ? "Web demo accounts" : "Sample accounts"}</strong>
           <span>Teacher: {demoTeacherEmail} / classloop-teacher</span>
           <span>Student: {demoStudentEmail} / classloop-student</span>
+          {demoOnly && <span>Download the app to create an account and keep your own workspace.</span>}
           <button type="button" className="text-button sample-account-button" onClick={fillDemo}>
             Use sample {role} account
             <ChevronRight size={16} />
@@ -2960,6 +3139,17 @@ function Sidebar({
         Sign out
       </button>
     </aside>
+  );
+}
+
+function DemoAccountBanner() {
+  return (
+    <div className="demo-account-banner" role="status">
+      <div>
+        <strong>You are on a demo account.</strong>
+        <span>Please download the app to create your own account, save data, and keep your classroom workspace.</span>
+      </div>
+    </div>
   );
 }
 

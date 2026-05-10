@@ -42,6 +42,31 @@ test("public root shows landing page and can enter the app demo", async ({ page 
   await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
 });
 
+test("hosted demo mode uses sample accounts only and does not persist demo workspace data", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.goto("/?demoOnly=1#/dashboard");
+
+  await expect(page.getByRole("heading", { name: /try classloop with sample accounts/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /create account/i })).toBeDisabled();
+  await expect(page.getByText(/web demo mode uses sample credentials only/i)).toBeVisible();
+  await expect(page.getByPlaceholder("name@example.com")).toHaveValue(teacherEmail);
+  await expect(page.getByPlaceholder("Enter password")).toHaveValue(teacherPassword);
+
+  await page.locator("form.login-form button[type='submit']").click();
+  await expect(page.getByText(/You are on a demo account/i)).toBeVisible();
+  await expect(page.getByText(/Please download the app to create your own account/i)).toBeVisible();
+  await page.waitForTimeout(500);
+  const persistedSessions = await page.evaluate(() => localStorage.getItem("classloop:secure:sessions:v3"));
+  expect(persistedSessions).toBeNull();
+
+  await page.getByRole("button", { name: /sign out/i }).click();
+  await expect(page.getByRole("heading", { name: /try classloop with sample accounts/i })).toBeVisible();
+});
+
 async function publishGeometrySample(page: Page) {
   await page.getByRole("button", { name: /new session/i }).first().click();
   await expect(page.getByText(/session template/i)).toBeVisible();
@@ -142,7 +167,7 @@ test("teacher can log in, import a sample, preview publishing, publish, open stu
     secureAccounts: localStorage.getItem("classloop:secure:accounts:v1"),
   }));
   expect(storageState.legacyAccounts).toBeNull();
-  expect(storageState.secureAccounts).toContain('"encrypted":true');
+  expect(storageState.secureAccounts).toBeNull();
 
   await publishGeometrySample(page);
   const reportActionHeights = await page
@@ -260,7 +285,7 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   const workspaceDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: /export workspace data/i }).click();
   await expectDownloaded(workspaceDownload, /classloop-export-.*\.json/i);
-  await expect(page.getByText(/export data/i)).toBeVisible();
+  await expect(page.getByText(/You are on a demo account/i)).toBeVisible();
 });
 
 test("live capture modes are visible but Pro-gated for Free accounts", async ({ page }) => {
@@ -316,7 +341,8 @@ test("students cannot access analytics but can save appearance while logged in, 
   await page.getByPlaceholder("name@example.com").fill("maya@classloop.demo");
   await page.getByPlaceholder("Enter password").fill("classloop-student");
   await page.locator("form.login-form button[type='submit']").click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "graphite");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "classroom");
+  await expect(page.getByText(/You are on a demo account/i)).toBeVisible();
 });
 
 test("core controls remain usable on a phone-sized viewport", async ({ page }) => {

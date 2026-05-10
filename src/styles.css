@@ -685,6 +685,17 @@ a {
   gap: 14px;
 }
 
+.demo-login-note {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 14px;
+  color: #0f3d39;
+  background: #e7faf6;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .login-help {
   grid-column: 2;
 }
@@ -715,6 +726,12 @@ a {
 .auth-switch button.active {
   color: var(--heading);
   background: var(--primary-soft);
+}
+
+.auth-switch button:disabled {
+  color: #8a94a3;
+  background: transparent;
+  opacity: 0.75;
 }
 
 .role-tabs {
@@ -991,6 +1008,35 @@ a {
   justify-content: space-between;
   gap: 20px;
   margin-bottom: 24px;
+}
+
+.demo-account-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 18px;
+  color: #0f3d39;
+  background: linear-gradient(135deg, rgba(223, 248, 244, 0.96), rgba(255, 250, 229, 0.94));
+  box-shadow: 0 16px 42px rgba(15, 118, 110, 0.08);
+}
+
+.demo-account-banner div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.demo-account-banner strong {
+  color: #0b4f49;
+}
+
+.demo-account-banner span {
+  color: #36585a;
+  font-weight: 700;
 }
 
 .topbar h1,
