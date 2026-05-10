@@ -1332,6 +1332,117 @@ button.account-pill {
   transform: translateY(-1px);
 }
 
+.checkin-celebration {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.checkin-button.completed {
+  background: linear-gradient(135deg, #059669, #14b8a6);
+  box-shadow: 0 16px 32px rgba(5, 150, 105, 0.24);
+}
+
+.checkin-celebration.is-celebrating .checkin-button {
+  animation: checkinSuccessPop 560ms cubic-bezier(0.2, 0.9, 0.25, 1.25);
+}
+
+.confetti-burst {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.confetti-piece {
+  --x: 0px;
+  --y: -70px;
+  --spin: 180deg;
+  position: absolute;
+  width: 8px;
+  height: 14px;
+  border-radius: 3px;
+  background: #facc15;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  animation: confettiBurst 1100ms cubic-bezier(0.15, 0.8, 0.2, 1) forwards;
+}
+
+.confetti-piece:nth-child(2n) {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #38bdf8;
+}
+
+.confetti-piece:nth-child(3n) {
+  background: #34d399;
+}
+
+.confetti-piece:nth-child(4n) {
+  background: #fb7185;
+}
+
+.confetti-piece:nth-child(5n) {
+  background: #a78bfa;
+}
+
+.confetti-piece:nth-child(1) { --x: -92px; --y: -44px; --spin: -220deg; animation-delay: 0ms; }
+.confetti-piece:nth-child(2) { --x: -72px; --y: -82px; --spin: 190deg; animation-delay: 30ms; }
+.confetti-piece:nth-child(3) { --x: -42px; --y: -108px; --spin: -160deg; animation-delay: 60ms; }
+.confetti-piece:nth-child(4) { --x: -10px; --y: -94px; --spin: 260deg; animation-delay: 20ms; }
+.confetti-piece:nth-child(5) { --x: 24px; --y: -118px; --spin: -240deg; animation-delay: 70ms; }
+.confetti-piece:nth-child(6) { --x: 58px; --y: -88px; --spin: 210deg; animation-delay: 40ms; }
+.confetti-piece:nth-child(7) { --x: 88px; --y: -52px; --spin: -190deg; animation-delay: 10ms; }
+.confetti-piece:nth-child(8) { --x: -98px; --y: 10px; --spin: 170deg; animation-delay: 80ms; }
+.confetti-piece:nth-child(9) { --x: -56px; --y: 26px; --spin: -280deg; animation-delay: 100ms; }
+.confetti-piece:nth-child(10) { --x: -20px; --y: 44px; --spin: 230deg; animation-delay: 50ms; }
+.confetti-piece:nth-child(11) { --x: 20px; --y: 40px; --spin: -210deg; animation-delay: 90ms; }
+.confetti-piece:nth-child(12) { --x: 54px; --y: 24px; --spin: 180deg; animation-delay: 65ms; }
+.confetti-piece:nth-child(13) { --x: 94px; --y: 6px; --spin: -260deg; animation-delay: 35ms; }
+.confetti-piece:nth-child(14) { --x: 72px; --y: -28px; --spin: 240deg; animation-delay: 110ms; }
+
+@keyframes checkinSuccessPop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.08) rotate(-1deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes confettiBurst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+  }
+  14% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1) rotate(var(--spin));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkin-celebration.is-celebrating .checkin-button,
+  .confetti-piece {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+  }
+}
+
 .ghost-button {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.72);

@@ -402,7 +402,7 @@ When using the ClassLoop testing script, also verify:
 - New Session can load a saved class roster as well as a saved roster template.
 - Saved roster and class pages support CSV import/export.
 - Publish preview and session report show publish audit evidence.
-- Student can submit a follow-up check-in, and teacher can mark it reviewed.
+- Student can submit a follow-up check-in, see the button text change to "Completed!", and get a celebratory confetti animation; teacher can mark it reviewed.
 - Session report exposes JSON export, CSV export, and print actions.
 
 ## 2026-05-09 Backend / Freemium / Privacy Update

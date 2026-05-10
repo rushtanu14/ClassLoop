@@ -6613,6 +6613,21 @@ function StudentSessionDetail({
   const student = studentById(activeStudentId, roster);
   const followUp = session?.followUps.find((item) => item.studentId === activeStudentId);
   const events = session?.participationEvents.filter((event) => event.studentId === activeStudentId && event.approved) ?? [];
+  const isFollowUpCompleted = ["submitted", "reviewed", "complete"].includes(followUp?.status ?? "");
+  const [isCelebratingCheckIn, setIsCelebratingCheckIn] = useState(false);
+
+  useEffect(() => {
+    if (!isCelebratingCheckIn) return;
+    const celebrationTimer = window.setTimeout(() => setIsCelebratingCheckIn(false), 1800);
+    return () => window.clearTimeout(celebrationTimer);
+  }, [isCelebratingCheckIn]);
+
+  const handleCompleteCheckIn = () => {
+    if (!session) return;
+    markFollowUpComplete(session.id, activeStudentId);
+    setIsCelebratingCheckIn(false);
+    window.setTimeout(() => setIsCelebratingCheckIn(true), 0);
+  };
 
   if (!session || !followUp) {
     return (
@@ -6638,10 +6653,25 @@ function StudentSessionDetail({
           <h2>{session.title}</h2>
           <p>{followUp.catchUp}</p>
         </div>
-        <button className="primary-button" onClick={() => markFollowUpComplete(session.id, activeStudentId)}>
-          <CheckCircle2 size={17} />
-          Complete check-in
-        </button>
+        <div
+          className={isCelebratingCheckIn ? "checkin-celebration is-celebrating" : "checkin-celebration"}
+          aria-live="polite"
+        >
+          <button
+            className={isFollowUpCompleted ? "primary-button checkin-button completed" : "primary-button checkin-button"}
+            onClick={handleCompleteCheckIn}
+          >
+            <CheckCircle2 size={17} />
+            {isFollowUpCompleted ? "Completed!" : "Complete check-in"}
+          </button>
+          {isCelebratingCheckIn && (
+            <span className="confetti-burst" aria-hidden="true">
+              {Array.from({ length: 14 }).map((_, index) => (
+                <span key={index} className="confetti-piece" />
+              ))}
+            </span>
+          )}
+        </div>
       </section>
 
       {auth.role === "teacher" && updateSession && (
