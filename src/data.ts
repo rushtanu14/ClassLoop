@@ -448,6 +448,23 @@ function extractAssignment(text: string) {
   return line || "Review the session recap and complete the assigned follow-up check.";
 }
 
+function stripCaptureMetadata(text: string) {
+  return text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter((line) => {
+      const normalized = cleanLine(line);
+      return (
+        normalized &&
+        !/^(capture method|captured duration|audio capture consent|student voice identification|online meeting capture|live transcript|no live transcript)/i.test(
+          normalized,
+        )
+      );
+    })
+    .join("\n")
+    .trim();
+}
+
 function extractRecapSummary(text: string, template: SessionType, topics: string[], assignment: string, resourcesCount: number) {
   const lower = text.toLowerCase();
   const hasActivity = /peanut butter and jelly|pb&j|sandwich.*robot|robot.*sandwich/i.test(lower);
@@ -644,17 +661,21 @@ function findUnmatchedParticipants(sessionText: string, roster: Student[], hasEx
 
 export function createGeneratedSession(input: ImportDraftInput): Session {
   const suffix = Date.now().toString(36);
-  const sessionText = `${input.transcript}\n${input.notes}`.trim();
+  const rawSessionText = `${input.transcript}\n${input.notes}`.trim();
+  const sessionText = stripCaptureMetadata(rawSessionText);
+  const hasSubstantiveSessionText = Boolean(sessionText.trim());
   const sessionTitle = input.title || `${input.template} session`;
   const roster = parseRoster(input.roster, input.transcript);
   const hasExplicitRoster = Boolean(input.roster.trim());
   const unmatchedParticipants = findUnmatchedParticipants(sessionText, roster, hasExplicitRoster);
   const topics = extractTopics(sessionTitle, sessionText, input.template);
-  const assignment = extractAssignment(sessionText);
+  const assignment = hasSubstantiveSessionText ? extractAssignment(sessionText) : "Confirm the student follow-up task before publishing.";
   const dueDate = nextFriday();
   const lines = sessionText.split(/\n+/).map((line) => line.trim()).filter(Boolean);
   const resources = parseResources(input.resources, sessionText, topics[0] ?? input.template);
-  const recap = extractRecapSummary(sessionText, input.template, topics, assignment, resources.length);
+  const recap = hasSubstantiveSessionText
+    ? extractRecapSummary(sessionText, input.template, topics, assignment, resources.length)
+    : `This ${input.template.toLowerCase()} draft was created from a recorded session without enough transcript text yet. Add the main takeaways, assignments, and any student-specific context before publishing.`;
   const essentialQuestions = generateEssentialQuestions(sessionText, topics, dueDate);
   const speakerLines = extractTranscriptSpeakers(sessionText);
 
@@ -777,7 +798,9 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     {
       id: `task-class-${suffix}`,
       title: assignment.length > 72 ? "Complete assigned follow-up work" : assignment,
-      description: `Class-level follow-up generated from the imported ${input.template.toLowerCase()} record.`,
+      description: hasSubstantiveSessionText
+        ? `Class-level follow-up generated from the imported ${input.template.toLowerCase()} record.`
+        : "No reliable transcript text was available, so confirm the actual student task before publishing.",
       dueDate,
       status: "todo",
       source: "Detected from transcript, notes, or your session details.",

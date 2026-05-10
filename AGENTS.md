@@ -8,6 +8,8 @@ ClassLoop is a desktop classroom follow-up platform (Electron + React) that tran
 
 **Tech Stack**: Electron (desktop), React 18, TypeScript, Vite (build), Vitest (tests).
 
+**Branch policy**: `main` is the only active product branch. The former `codex/audio-session-improvements` work has been promoted into `main` and should not be treated as a separate active branch unless the user explicitly creates a new branch.
+
 ## Quick Commands
 
 | Task | Command |
@@ -127,7 +129,7 @@ Keep external services free-first and narrow:
 - Email should work with a Gmail account the user owns, including a no-reply-like account such as `classloop.noreply@gmail.com`. Do not imply ClassLoop can generate Gmail accounts or send from unauthenticated domains.
 - Do not add paid API-key features to the working app.
 - Do not show Google Classroom OAuth posting, LMS posting, OpenAI transcription, or custom transcription-service hooks unless the user explicitly asks to reintroduce external integrations.
-- Audio capture should use browser live speech recognition when available; transcript paste/upload must remain the reliable free path.
+- Audio capture should use free browser capabilities only: in-person microphone capture and browser tab/window capture for online meetings when available. Transcript paste/upload must remain the reliable free path, and live capture should create reviewable unknown speaker segments instead of claiming biometric voice identification.
 
 ## Hosted Backend / Freemium Notes
 

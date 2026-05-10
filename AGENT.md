@@ -4,10 +4,10 @@ Use this alongside `AGENTS.md` when working in this repository.
 
 ## Branch Discipline
 
-- `main` is the stable product branch. Preserve the original white/green classroom UI.
-- `codex/audio-session-improvements` is the richer product branch for audio notes, Gmail delivery, class manager, delivery logs, and deeper follow-through workflows.
-- Do not port image-heavy or abyssal UI work into `main`.
-- Shared fixes that should exist on both branches: parser correctness, launch reliability, security/privacy controls, backend scaffolding, documentation, and automated tests.
+- `main` is now the only active product branch.
+- The old `codex/audio-session-improvements` branch has been promoted into `main` and should be treated as historical.
+- Preserve the classroom product direction unless the user explicitly asks for a redesign.
+- Do not reintroduce image-heavy or abyssal UI work into `main` unless the user specifically requests that visual direction.
 
 ## Current Product Direction
 
@@ -28,7 +28,7 @@ Use this alongside `AGENTS.md` when working in this repository.
 ## Privacy Defaults
 
 - No training on student data unless explicitly allowed.
-- Recording/live capture should require consent notice.
+- Recording/live capture should require consent notice and should label unknown voice segments for teacher review rather than claiming automatic biometric student identification.
 - Keep retention settings, export/delete student data, and audit logs visible to teachers.
 - Avoid public rankings or student shaming.
 

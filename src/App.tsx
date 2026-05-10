@@ -6,6 +6,7 @@ import {
   BrainCircuit,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   CircleAlert,
   ClipboardCheck,
@@ -240,7 +241,7 @@ const navItems: NavItem[] = [
   { route: "report", label: "Session report", icon: ClipboardCheck },
   { route: "student", label: "Student view", icon: GraduationCap },
   { route: "analytics", label: "Analytics", icon: BarChart3 },
-  { route: "billing", label: "Sync & billing", icon: RefreshCw },
+  { route: "billing", label: "Plan options", icon: RefreshCw },
   { route: "tutorial", label: "How it works", icon: BookOpen },
   { route: "appearance", label: "Appearance", icon: Palette },
   { route: "privacy", label: "Privacy", icon: ShieldCheck },
@@ -250,6 +251,18 @@ const studentNavItems: NavItem[] = [
   { route: "student", label: "My portal", icon: GraduationCap },
   { route: "tutorial", label: "How it works", icon: BookOpen },
   { route: "appearance", label: "Appearance", icon: Palette },
+];
+
+const teacherNavSections: Array<{ label: string; items: NavItem[] }> = [
+  { label: "Classroom", items: navItems.filter((item) => ["dashboard", "new-session", "review", "report"].includes(item.route)) },
+  { label: "Manage", items: navItems.filter((item) => ["classes", "rosters"].includes(item.route)) },
+  { label: "Insights", items: navItems.filter((item) => ["student", "analytics"].includes(item.route)) },
+  { label: "Settings", items: navItems.filter((item) => ["billing", "appearance", "privacy", "tutorial"].includes(item.route)) },
+];
+
+const studentNavSections: Array<{ label: string; items: NavItem[] }> = [
+  { label: "Portal", items: studentNavItems.filter((item) => item.route === "student") },
+  { label: "Settings", items: studentNavItems.filter((item) => item.route !== "student") },
 ];
 
 const studentRoutes = new Set<RouteKey>(["student", "student-session", "tutorial", "appearance"]);
@@ -317,6 +330,17 @@ const templateDetailFields: Record<SessionType, Array<{ id: string; label: strin
     { id: "practiceGoals", label: "Practice goals", placeholder: "Timed practice, explain one solution, review flashcards" },
   ],
 };
+
+const loadingTips = [
+  "Tip: paste the roster once, then save it as a class so future sessions preload faster.",
+  "Tip: review the student preview before publishing so each learner sees the right follow-up.",
+  "Tip: platform transcripts are still the most reliable source after online meetings.",
+  "Tip: use aliases when a Zoom display name is different from a roster name.",
+];
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 const defaultTheme: ThemeSettings = {
   key: "classroom",
@@ -398,7 +422,7 @@ const routeLabels: Record<RouteKey, string> = {
   classes: "Class manager",
   rosters: "Roster manager",
   analytics: "Teacher analytics",
-  billing: "Sync & billing",
+  billing: "Plan options",
   tutorial: "How it works",
   appearance: "Appearance",
   privacy: "Privacy controls",
@@ -1237,6 +1261,9 @@ function App() {
   const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
   const [billingProfile, setBillingProfile] = useState<BillingProfile>(defaultBillingProfile);
   const [sharedReady, setSharedReady] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+  const [walkthroughStepIndex, setWalkthroughStepIndex] = useState(0);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connecting");
   const [passwordResetCodes, setPasswordResetCodes] = useState<Record<string, PasswordResetRecord>>({});
   const serverSyncRef = useRef(false);
@@ -1393,6 +1420,13 @@ function App() {
     if (auth?.role === "student" && !studentRoutes.has(route)) {
       navigate("student");
     }
+  }, [auth, route]);
+
+  useEffect(() => {
+    if (!auth || route !== "tutorial") return;
+    setWalkthroughStepIndex(0);
+    setWalkthroughOpen(true);
+    navigate(auth.role === "teacher" ? "dashboard" : "student");
   }, [auth, route]);
 
   const sortedSessions = useMemo(
@@ -1678,51 +1712,57 @@ function App() {
       return { ok: false, message: "Email or password is incorrect." };
     }
 
-    const demoSession = account.demo ? ensureDemoSession() : undefined;
+    setAuthLoading(true);
+    try {
+      await wait(420);
+      const demoSession = account.demo ? ensureDemoSession() : undefined;
 
-    if (role === "teacher") {
+      if (role === "teacher") {
+        setTheme(account.theme ?? defaultTheme);
+        setAuth({
+          accountId: account.id,
+          role: "teacher",
+          email: normalizedEmail,
+          name: account.name,
+          demo: account.demo,
+        });
+        appendAudit("login", "Teacher signed in.", {
+          accountId: account.id,
+          role: "teacher",
+          email: normalizedEmail,
+          name: account.name,
+          demo: account.demo,
+        });
+        navigate("dashboard");
+        return { ok: true };
+      }
+
+      const availableSessions = demoSession ? [demoSession, ...sortedSessions] : sortedSessions;
+      const student = findStudentByEmail(studentSessionsFor(availableSessions, normalizedEmail), normalizedEmail);
+
+      if (student) setSelectedStudentId(student.id);
       setTheme(account.theme ?? defaultTheme);
       setAuth({
         accountId: account.id,
-        role: "teacher",
+        role: "student",
         email: normalizedEmail,
-        name: account.name,
+        name: student?.name ?? account.name,
+        studentId: student?.id,
         demo: account.demo,
       });
-      appendAudit("login", "Teacher signed in.", {
+      appendAudit("login", "Student signed in.", {
         accountId: account.id,
-        role: "teacher",
+        role: "student",
         email: normalizedEmail,
-        name: account.name,
+        name: student?.name ?? account.name,
+        studentId: student?.id,
         demo: account.demo,
       });
-      navigate("dashboard");
+      navigate("student");
       return { ok: true };
+    } finally {
+      setAuthLoading(false);
     }
-
-    const availableSessions = demoSession ? [demoSession, ...sortedSessions] : sortedSessions;
-    const student = findStudentByEmail(studentSessionsFor(availableSessions, normalizedEmail), normalizedEmail);
-
-    if (student) setSelectedStudentId(student.id);
-    setTheme(account.theme ?? defaultTheme);
-    setAuth({
-      accountId: account.id,
-      role: "student",
-      email: normalizedEmail,
-      name: student?.name ?? account.name,
-      studentId: student?.id,
-      demo: account.demo,
-    });
-    appendAudit("login", "Student signed in.", {
-      accountId: account.id,
-      role: "student",
-      email: normalizedEmail,
-      name: student?.name ?? account.name,
-      studentId: student?.id,
-      demo: account.demo,
-    });
-    navigate("student");
-    return { ok: true };
   };
 
   const handleCreateAccount = async (role: AuthRole, name: string, email: string, password: string) => {
@@ -1742,20 +1782,26 @@ function App() {
       return { ok: false, message: "An account with that email already exists for this role." };
     }
 
-    const account: Account = {
-      id: makeAccountId(role),
-      role,
-      email: normalizedEmail,
-      name: trimmedName,
-      passwordHash: await hashSecret(password),
-      createdAt: new Date().toISOString(),
-      theme: defaultTheme,
-    };
-    setAccounts((current) => mergeAccounts([...current, account]));
-    setTheme(defaultTheme);
-    setAuth({ accountId: account.id, role, email: normalizedEmail, name: trimmedName });
-    navigate(role === "teacher" ? "dashboard" : "student");
-    return { ok: true };
+    setAuthLoading(true);
+    try {
+      await wait(420);
+      const account: Account = {
+        id: makeAccountId(role),
+        role,
+        email: normalizedEmail,
+        name: trimmedName,
+        passwordHash: await hashSecret(password),
+        createdAt: new Date().toISOString(),
+        theme: defaultTheme,
+      };
+      setAccounts((current) => mergeAccounts([...current, account]));
+      setTheme(defaultTheme);
+      setAuth({ accountId: account.id, role, email: normalizedEmail, name: trimmedName });
+      navigate(role === "teacher" ? "dashboard" : "student");
+      return { ok: true };
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   const handleUpdateAccount = async (settings: AccountSettingsInput) => {
@@ -1881,6 +1927,10 @@ function App() {
     navigate("dashboard");
   };
 
+  if (!sharedReady || authLoading) {
+    return <AppLoader message={authLoading ? "Opening your workspace" : "Loading ClassLoop"} />;
+  }
+
   if (!auth) {
     return (
       <LoginPage
@@ -1903,7 +1953,7 @@ function App() {
           syncStatus={syncStatus}
           onUpdateAccount={handleUpdateAccount}
         />
-        {effectiveRoute === "dashboard" && <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} />}
+        {effectiveRoute === "dashboard" && <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} billingProfile={billingProfile} />}
         {effectiveRoute === "classes" && auth.role === "teacher" && (
           <ClassGroupsPage
             groups={teacherClassGroups}
@@ -1911,6 +1961,22 @@ function App() {
             sessions={teacherSessions}
             ownerEmail={auth.email}
             onCreateFromTemplate={createClassGroupFromTemplate}
+            onCreateTemplateFromGroup={(group) => {
+              const now = new Date().toISOString();
+              setRosterTemplates((current) => [
+                {
+                  id: `roster-template-${Date.now().toString(36)}`,
+                  ownerEmail: auth.email,
+                  name: `${group.name} roster`,
+                  sessionType: group.defaultSessionType,
+                  students: group.students,
+                  createdAt: now,
+                  updatedAt: now,
+                },
+                ...current,
+              ]);
+              appendAudit("create_roster_template", `Saved ${group.name} as a reusable roster.`);
+            }}
             onCreateBlank={(group) => {
               setClassGroups((current) => [group, ...current]);
               appendAudit("create_class_group", `Created class group ${group.name}.`);
@@ -1971,6 +2037,15 @@ function App() {
               setDraft({ ...session, ownerEmail: auth.email, status: "draft" });
               navigate("review");
             }}
+            deleteSession={(session) => {
+              if (!window.confirm(`Delete "${session.title}"? This removes the session report and student follow-ups from this workspace.`)) {
+                return;
+              }
+              setSessions((current) => current.filter((item) => item.id !== session.id));
+              setDraft((current) => (current?.id === session.id ? null : current));
+              appendAudit("delete_session", `Deleted session ${session.title}.`);
+              navigate("dashboard");
+            }}
           />
         )}
         {effectiveRoute === "student" && (
@@ -2003,7 +2078,18 @@ function App() {
             sessionCount={teacherSessions.length}
           />
         )}
-        {effectiveRoute === "tutorial" && <TutorialPage auth={auth} />}
+        {effectiveRoute === "tutorial" &&
+          (auth.role === "teacher" ? (
+            <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} billingProfile={billingProfile} />
+          ) : (
+            <StudentDashboard
+              sessions={studentPortalSessions}
+              selectedStudentId={auth.studentId ?? selectedStudentId}
+              setSelectedStudentId={setSelectedStudentId}
+              markFollowUpComplete={markFollowUpComplete}
+              auth={auth}
+            />
+          ))}
         {effectiveRoute === "appearance" && <DesignSystemPage theme={activeTheme} setTheme={handleThemeChange} />}
         {effectiveRoute === "privacy" && auth.role === "teacher" && (
           <PrivacyControlsPage
@@ -2031,6 +2117,17 @@ function App() {
             setRosterPromptSession(null);
           }}
           onSkip={() => setRosterPromptSession(null)}
+        />
+      )}
+      {walkthroughOpen && (
+        <GuidedWalkthroughOverlay
+          auth={auth}
+          stepIndex={walkthroughStepIndex}
+          setStepIndex={setWalkthroughStepIndex}
+          onClose={() => {
+            setWalkthroughOpen(false);
+            navigate(auth.role === "teacher" ? "dashboard" : "student");
+          }}
         />
       )}
     </div>
@@ -2404,6 +2501,132 @@ function LockIcon() {
   return <KeyRound size={22} />;
 }
 
+function AppLoader({ message }: { message: string }) {
+  const tip = loadingTips[Math.floor(Date.now() / 1000) % loadingTips.length];
+  return (
+    <main className="app-loader" aria-live="polite">
+      <div className="loader-card">
+        <span className="loader-ring">
+          <BrainCircuit size={30} />
+        </span>
+        <span className="eyebrow">ClassLoop</span>
+        <h1>{message}</h1>
+        <p>{tip}</p>
+        <div className="loader-track" aria-hidden="true">
+          <i />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function MeetingCaptureHelpModal({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="meeting-capture-title">
+      <section className="password-reset-modal capture-help-modal">
+        <div className="modal-header">
+          <div>
+            <span className="eyebrow">Online meeting capture</span>
+            <h2 id="meeting-capture-title">Share the meeting tab or window with audio.</h2>
+            <p>
+              Your browser will ask what to capture. Choose the tab or window where Zoom, Meet, or Teams is running, enable audio sharing if it appears, then keep ClassLoop open.
+            </p>
+          </div>
+          <button className="icon-button" type="button" onClick={onClose} aria-label="Close meeting capture help">
+            <CircleAlert size={18} />
+          </button>
+        </div>
+        <ol className="tutorial-steps">
+          <li>
+            <strong>Click Start capture</strong>
+            <span>ClassLoop will request screen or tab audio if your browser supports it.</span>
+          </li>
+          <li>
+            <strong>Pick the meeting source</strong>
+            <span>Select the meeting tab/window and turn on shared audio when prompted.</span>
+          </li>
+          <li>
+            <strong>Paste the platform transcript after class</strong>
+            <span>Live capture is useful for notes, but the meeting transcript is still the most reliable source.</span>
+          </li>
+        </ol>
+        <div className="modal-actions">
+          <button className="ghost-button" type="button" onClick={onClose}>
+            Not now
+          </button>
+          <button className="primary-button" type="button" onClick={onStart}>
+            <PlayCircle size={17} />
+            Start capture
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function GuidedWalkthroughOverlay({
+  auth,
+  stepIndex,
+  setStepIndex,
+  onClose,
+}: {
+  auth: AuthSession;
+  stepIndex: number;
+  setStepIndex: (value: number | ((current: number) => number)) => void;
+  onClose: () => void;
+}) {
+  const homeRoute = auth.role === "teacher" ? "dashboard" : "student";
+  const steps =
+    auth.role === "teacher"
+      ? [
+          { title: "Start on the dashboard", detail: "This is your daily home base. Click New session when you have a transcript, notes, or recording.", route: "dashboard" as RouteKey, position: "top-left" },
+          { title: "Create the session", detail: "Pick a template, preload a class roster, then choose transcript, in-person capture, or online meeting capture.", route: "new-session" as RouteKey, position: "top-right" },
+          { title: "Review before publishing", detail: "Check speaker matches, edit the recap, and preview what each student will see.", route: "review" as RouteKey, position: "center" },
+          { title: "Track follow-through", detail: "After publishing, analytics and reports show completion, quiet flags, and support needs.", route: "analytics" as RouteKey, position: "bottom-right" },
+        ]
+      : [
+          { title: "Open your portal", detail: "Your dashboard shows the latest recap, assigned tasks, and resources from your teacher.", route: "student" as RouteKey, position: "top-left" },
+          { title: "Check the session detail", detail: "Open a class to see what changed, what is due, and which resources to use.", route: "student-session" as RouteKey, position: "center" },
+          { title: "Mark progress", detail: "Update your task status so your teacher can see what still needs support.", route: "student" as RouteKey, position: "bottom-right" },
+        ];
+  const activeStep = steps[stepIndex] ?? steps[0];
+  const isLast = stepIndex >= steps.length - 1;
+
+  return (
+    <div className="guided-tour" role="dialog" aria-modal="true" aria-label="ClassLoop guided walkthrough">
+      <div className={`tour-highlight ${activeStep.position}`} aria-hidden="true" />
+      <section className={`tour-popover ${activeStep.position}`}>
+        <span className="eyebrow">Step {stepIndex + 1} of {steps.length}</span>
+        <h2>{activeStep.title}</h2>
+        <p>{activeStep.detail}</p>
+        <div className="walkthrough-progress-bar" aria-label={`Walkthrough progress ${Math.round(((stepIndex + 1) / steps.length) * 100)}%`}>
+          <i style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }} />
+        </div>
+        <div className="tour-actions">
+          <button className="ghost-button" type="button" onClick={onClose}>
+            Skip
+          </button>
+          <button className="text-button" type="button" onClick={() => navigate(activeStep.route)}>
+            Go to this area
+            <ChevronRight size={16} />
+          </button>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => (isLast ? onClose() : setStepIndex((current) => Math.min(steps.length - 1, current + 1)))}
+          >
+            {isLast ? "Finish" : "Next"}
+            <ChevronRight size={16} />
+          </button>
+        </div>
+        <button className="text-button walkthrough-skip" type="button" onClick={() => navigate(homeRoute)}>
+          Return home
+        </button>
+      </section>
+    </div>
+  );
+}
+
 function Sidebar({
   route,
   auth,
@@ -2415,7 +2638,7 @@ function Sidebar({
   onLogout: () => void;
   showDemoCard: boolean;
 }) {
-  const visibleNav = auth.role === "teacher" ? navItems : studentNavItems;
+  const visibleNavSections = auth.role === "teacher" ? teacherNavSections : studentNavSections;
   return (
     <aside className="sidebar">
       <button
@@ -2432,16 +2655,21 @@ function Sidebar({
         </span>
       </button>
       <nav className="nav-list" aria-label="Primary">
-        {visibleNav.map((item) => {
-          const Icon = item.icon;
-          const active = route === item.route;
-          return (
-            <button key={item.route} className={active ? "nav-item active" : "nav-item"} onClick={() => navigate(item.route)}>
-              <Icon size={19} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
+        {visibleNavSections.map((section) => (
+          <div className="nav-section" key={section.label}>
+            <span className="nav-section-label">{section.label}</span>
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              const active = route === item.route;
+              return (
+                <button key={item.route} className={active ? "nav-item active" : "nav-item"} onClick={() => navigate(item.route)}>
+                  <Icon size={19} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
       {showDemoCard && (
         <section className="sidebar-panel">
@@ -2625,7 +2853,15 @@ function ProfileMenu({
   );
 }
 
-function TeacherDashboard({ sessions, draft }: { sessions: Session[]; draft: Session | null }) {
+function TeacherDashboard({
+  sessions,
+  draft,
+  billingProfile,
+}: {
+  sessions: Session[];
+  draft: Session | null;
+  billingProfile: BillingProfile;
+}) {
   const latest = sessions[0];
   const published = sessions.filter((session) => session.status === "published");
   const hasSessions = sessions.length > 0;
@@ -2784,10 +3020,20 @@ function TeacherDashboard({ sessions, draft }: { sessions: Session[]; draft: Ses
             />
           )}
         </Panel>
-        <Panel title="Plan options" icon={ShieldCheck}>
+        <Panel title="Current plan" icon={ShieldCheck} action="View options" onAction={() => navigate("billing")}>
           <div className="plan-stack">
-            <PlanRow tier="Free" detail="Limited sessions, basic recaps, and class action items." />
-            <PlanRow tier="Pro" detail="Unlimited sessions, transcript processing, student dashboards, analytics, exports." />
+            <PlanRow
+              tier={billingProfile.tier === "school" ? "School pilot" : billingProfile.tier === "pro" ? "Pro" : "Free"}
+              detail={
+                isPaidPlan(billingProfile)
+                  ? "Paid features are active for this account. You can change or downgrade from plan options."
+                  : "Free includes core imports, draft review, student preview, and CSV roster tools."
+              }
+            />
+            <button className="ghost-button full" type="button" onClick={() => navigate("billing")}>
+              <ShieldCheck size={17} />
+              View plan options
+            </button>
           </div>
         </Panel>
       </section>
@@ -2983,11 +3229,23 @@ function SyncBillingPage({
 
   const startCheckout = async (tier: Exclude<PlanTier, "free">) => {
     try {
+      if (!backendStatus.webReady || !connectedEmail) {
+        setBillingProfile({ tier, status: "active" });
+        setMessage(`${tier === "school" ? "School pilot" : "Pro"} enabled on this device for local testing. Connect hosted sync and Stripe to make billing server-owned.`);
+        appendAudit("plan_switch_local", `Switched local plan to ${tier}.`);
+        return;
+      }
       const checkout = await createCheckoutSession(tier);
       window.location.href = checkout.url;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Stripe Checkout is not configured yet.");
     }
+  };
+
+  const downgradeToFree = () => {
+    setBillingProfile({ tier: "free", status: "not_configured" });
+    setMessage("Downgraded this device to the Free plan. Hosted subscriptions should also be canceled in Stripe when billing is connected.");
+    appendAudit("plan_downgrade", "Downgraded account to Free.");
   };
 
   const disconnect = async () => {
@@ -3000,9 +3258,9 @@ function SyncBillingPage({
     <div className="page-stack">
       <section className="review-banner">
         <div>
-          <span className="eyebrow">Sync & billing</span>
-          <h2>Make ClassLoop available across devices.</h2>
-          <p>Use hosted sync for teacher/student access on the web, and Stripe Checkout for paid account features.</p>
+          <span className="eyebrow">Plan options</span>
+          <h2>Choose how ClassLoop works for you.</h2>
+          <p>Stay on the local Free plan, connect hosted sync for access across devices, or unlock paid account features when billing is configured.</p>
         </div>
         <button className="ghost-button" onClick={() => navigate("privacy")}>
           <ShieldCheck size={17} />
@@ -3056,7 +3314,7 @@ function SyncBillingPage({
           </div>
         </Panel>
 
-        <Panel title="Freemium plans" icon={ShieldCheck}>
+        <Panel title="Plan options" icon={ShieldCheck}>
           <div className="plan-stack">
             {planCatalog.map((plan) => (
               <div key={plan.tier} className="plan-row">
@@ -3070,7 +3328,7 @@ function SyncBillingPage({
                   </small>
                 ) : (
                   <button className="text-button" type="button" onClick={() => startCheckout(plan.tier)}>
-                    Start {plan.name}
+                    {billingProfile.tier === plan.tier && isPaidPlan(billingProfile) ? "Current plan" : `Switch to ${plan.name}`}
                     <ChevronRight size={16} />
                   </button>
                 )}
@@ -3084,15 +3342,13 @@ function SyncBillingPage({
                 {billingProfile.tier.toUpperCase()} · {billingProfile.status}
               </small>
             </span>
-            {!isPaidPlan(billingProfile) && (
-              <button
-                className="ghost-button full"
-                type="button"
-                onClick={() => setBillingProfile({ tier: "free", status: "not_configured" })}
-              >
-                Keep local Free plan
-              </button>
-            )}
+            <button
+              className={isPaidPlan(billingProfile) ? "ghost-button danger full" : "ghost-button full"}
+              type="button"
+              onClick={downgradeToFree}
+            >
+              {isPaidPlan(billingProfile) ? "Downgrade to Free" : "Keep Free plan"}
+            </button>
           </div>
         </Panel>
       </section>
@@ -3181,9 +3437,14 @@ function ImportSession({
   const [captureMessage, setCaptureMessage] = useState("");
   const [planMessage, setPlanMessage] = useState("");
   const [recordedSeconds, setRecordedSeconds] = useState(0);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState("");
+  const [recordedAudioLabel, setRecordedAudioLabel] = useState("");
+  const [showMeetingHelp, setShowMeetingHelp] = useState(false);
   const [transcriptionAvailable, setTranscriptionAvailable] = useState(true);
   const [recordingConsent, setRecordingConsent] = useState(!recordingConsentRequired);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<BlobPart[]>([]);
   const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const captureTimerRef = useRef<number | null>(null);
   const captureStartedAtRef = useRef<number | null>(null);
@@ -3213,6 +3474,10 @@ function ImportSession({
   }, [rosterTemplates, template]);
 
   const stopCapture = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
     speechRecognitionRef.current?.stop();
     speechRecognitionRef.current = null;
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -3303,6 +3568,31 @@ function ImportSession({
             : "In-person class capture is running. Place the device where discussion is clear and keep ClassLoop open.";
       }
 
+      if (recordedAudioUrl) {
+        URL.revokeObjectURL(recordedAudioUrl);
+        setRecordedAudioUrl("");
+        setRecordedAudioLabel("");
+      }
+      recordedChunksRef.current = [];
+      if (typeof MediaRecorder !== "undefined") {
+        const audioTracks = stream.getAudioTracks();
+        const recorderStream = audioTracks.length ? new MediaStream(audioTracks) : stream;
+        const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+        const recorder = new MediaRecorder(recorderStream, mimeType ? { mimeType } : undefined);
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) recordedChunksRef.current.push(event.data);
+        };
+        recorder.onstop = () => {
+          if (!recordedChunksRef.current.length) return;
+          const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+          const nextUrl = URL.createObjectURL(blob);
+          setRecordedAudioUrl(nextUrl);
+          setRecordedAudioLabel(`${captureModeLabels[mode]} · ${Math.max(1, recordedSeconds || 1)}s`);
+        };
+        recorder.start();
+        mediaRecorderRef.current = recorder;
+      }
+
       mediaStreamRef.current = stream;
       captureStartedAtRef.current = Date.now();
       setRecordedSeconds(0);
@@ -3324,11 +3614,15 @@ function ImportSession({
 
   useEffect(() => {
     return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
       speechRecognitionRef.current?.stop();
       mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
       if (captureTimerRef.current) window.clearInterval(captureTimerRef.current);
+      if (recordedAudioUrl) URL.revokeObjectURL(recordedAudioUrl);
     };
-  }, []);
+  }, [recordedAudioUrl]);
 
   const loadSample = () => {
     setTitle("Geometry Review: Similar Triangles + Algebra");
@@ -3465,21 +3759,47 @@ function ImportSession({
               <span>Session title</span>
               <input value={title} onChange={(event) => setTitle(event.target.value)} />
             </label>
-            <div className="field wide">
+            <label className="field wide">
               <span>Session template</span>
-              <div className="template-grid">
+              <select value={template} onChange={(event) => chooseTemplate(event.target.value as SessionType)}>
                 {templateOptions.map((option) => (
-                  <button
-                    key={option}
-                    className={template === option ? "template-card selected" : "template-card"}
-                    onClick={() => chooseTemplate(option)}
-                  >
-                    <strong>{option}</strong>
-                    <small>{templateDescriptions[option]}</small>
-                  </button>
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
                 ))}
+              </select>
+              <small className="field-helper">{templateDescriptions[template]}</small>
+            </label>
+            {(matchingRosterTemplates.length > 0 || matchingClassGroups.length > 0) && (
+              <div className="saved-roster-row wide">
+                {matchingClassGroups.length > 0 && (
+                  <label className="field compact">
+                    <span>Preload class roster</span>
+                    <select value={loadedClassGroupId} onChange={(event) => useClassGroup(event.target.value)}>
+                      <option value="">Choose a saved class</option>
+                      {matchingClassGroups.map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.name} · {group.students.length} students
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {matchingRosterTemplates.length > 0 && (
+                  <label className="field compact">
+                    <span>Preload saved roster</span>
+                    <select value={loadedRosterTemplateId} onChange={(event) => useSavedRoster(event.target.value)}>
+                      <option value="">Choose a saved roster</option>
+                      {matchingRosterTemplates.map((templateItem) => (
+                        <option key={templateItem.id} value={templateItem.id}>
+                          {templateItem.name} · {templateItem.students.length} students
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </div>
-            </div>
+            )}
             {activeTemplateFields.length > 0 && (
               <div className="template-detail-card wide">
                 <div>
@@ -3499,31 +3819,6 @@ function ImportSession({
                   ))}
                 </div>
               </div>
-            )}
-            {matchingRosterTemplates.length > 0 && (
-              <label className="field compact">
-                <span>Saved roster</span>
-                <select value={loadedRosterTemplateId} onChange={(event) => useSavedRoster(event.target.value)}>
-                  {matchingRosterTemplates.map((templateItem) => (
-                    <option key={templateItem.id} value={templateItem.id}>
-                      {templateItem.name} · {templateItem.students.length} students
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {matchingClassGroups.length > 0 && (
-              <label className="field compact">
-                <span>Saved class</span>
-                <select value={loadedClassGroupId} onChange={(event) => useClassGroup(event.target.value)}>
-                  <option value="">Choose a class roster</option>
-                  {matchingClassGroups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name} · {group.students.length} students
-                    </option>
-                  ))}
-                </select>
-              </label>
             )}
             <div className="capture-panel wide">
               <div>
@@ -3555,7 +3850,10 @@ function ImportSession({
                 <button
                   type="button"
                   className={captureMode === "online_meeting" ? "capture-mode-card active" : "capture-mode-card"}
-                  onClick={() => setCaptureMode("online_meeting")}
+                  onClick={() => {
+                    setCaptureMode("online_meeting");
+                    setShowMeetingHelp(true);
+                  }}
                 >
                   <PlayCircle size={18} />
                   <strong>Online meeting</strong>
@@ -3610,6 +3908,15 @@ function ImportSession({
                   </div>
                 </div>
               )}
+              {recordedAudioUrl && (
+                <div className="recording-review">
+                  <div>
+                    <strong>Recording ready</strong>
+                    <small>{recordedAudioLabel || `${captureModeLabels[captureMode]} captured`}</small>
+                  </div>
+                  <audio controls src={recordedAudioUrl} />
+                </div>
+              )}
               {captureMode !== "transcript" && (
                 <div className="capture-guidance">
                   <CheckCircle2 size={17} />
@@ -3624,48 +3931,28 @@ function ImportSession({
               )}
               {captureMessage && <p className="capture-message">{captureMessage}</p>}
             </div>
-            <label className="upload-zone wide">
-              <UploadCloud size={24} />
-              <strong>{fileName || "Upload transcript file"}</strong>
-              <small>Zoom, Meet, text, or VTT file.</small>
-              <input
-                type="file"
-                accept=".txt,.vtt,.srt"
-                onChange={(event) => handleTranscriptFile(event.target.files?.[0])}
-              />
-            </label>
-            <label className="field paste-field large-paste wide">
-              <span>Paste transcript text</span>
-              <textarea
-                value={transcript}
-                onChange={(event) => setTranscript(event.target.value)}
-                placeholder="Paste the raw transcript here..."
-              />
-            </label>
-            <label className="field paste-field wide">
-              <span>Paste meeting notes</span>
-              <textarea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="Paste teacher notes, chat summaries, reminders, and homework here..."
-              />
-            </label>
-            <label className="field paste-field large-paste wide">
-              <span>Bulk roster</span>
-              <textarea
-                value={roster}
-                onChange={(event) => setRoster(event.target.value)}
-                placeholder="Name, email per line"
-              />
-            </label>
-            <label className="field paste-field wide">
-              <span>Resources and links</span>
-              <textarea
-                value={resources}
-                onChange={(event) => setResources(event.target.value)}
-                placeholder="Paste links or resources mentioned in class"
-              />
-            </label>
+            {captureMode === "transcript" && (
+              <>
+                <label className="upload-zone wide">
+                  <UploadCloud size={24} />
+                  <strong>{fileName || "Upload transcript file"}</strong>
+                  <small>Zoom, Meet, text, VTT, or SRT file.</small>
+                  <input
+                    type="file"
+                    accept=".txt,.vtt,.srt"
+                    onChange={(event) => handleTranscriptFile(event.target.files?.[0])}
+                  />
+                </label>
+                <label className="field paste-field large-paste wide">
+                  <span>Paste transcript text</span>
+                  <textarea
+                    value={transcript}
+                    onChange={(event) => setTranscript(event.target.value)}
+                    placeholder="Paste the raw transcript here..."
+                  />
+                </label>
+              </>
+            )}
           </div>
         </div>
 
@@ -3698,9 +3985,44 @@ function ImportSession({
                 </button>
               </>
             )}
+            <div className="summary-fields">
+              <label className="field compact">
+                <span>Meeting notes</span>
+                <textarea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Quick reminders, homework notes, absences"
+                />
+              </label>
+              <label className="field compact">
+                <span>Roster</span>
+                <textarea
+                  value={roster}
+                  onChange={(event) => setRoster(event.target.value)}
+                  placeholder="Name, email per line"
+                />
+              </label>
+              <label className="field compact">
+                <span>Resources</span>
+                <textarea
+                  value={resources}
+                  onChange={(event) => setResources(event.target.value)}
+                  placeholder="Paste links or resources"
+                />
+              </label>
+            </div>
           </div>
         </aside>
       </section>
+      {showMeetingHelp && (
+        <MeetingCaptureHelpModal
+          onClose={() => setShowMeetingHelp(false)}
+          onStart={() => {
+            setShowMeetingHelp(false);
+            void startCapture("online_meeting");
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -4049,6 +4371,7 @@ function RosterManager({
   onAttendanceChange,
   showAttendance = true,
   wrapPanel = true,
+  showCsvActions = true,
 }: {
   students: Student[];
   attendance: Record<string, AttendanceStatus>;
@@ -4058,6 +4381,7 @@ function RosterManager({
   onAttendanceChange: (studentId: string, status: AttendanceStatus) => void;
   showAttendance?: boolean;
   wrapPanel?: boolean;
+  showCsvActions?: boolean;
 }) {
   const csvInputRef = useRef<HTMLInputElement | null>(null);
   const updateStudent = (studentId: string, changes: Partial<Student>) => {
@@ -4087,6 +4411,7 @@ function RosterManager({
 
   const content = (
     <div className="roster-manager">
+        {showCsvActions && (
         <div className="roster-template-actions">
           <input
             ref={csvInputRef}
@@ -4108,6 +4433,7 @@ function RosterManager({
             Export CSV
           </button>
         </div>
+        )}
         {students.map((student, index) => (
           <article key={student.id} className={showAttendance ? "roster-row" : "roster-row without-attendance"}>
             <Avatar student={student} />
@@ -4195,6 +4521,7 @@ function ClassGroupsPage({
   sessions,
   ownerEmail,
   onCreateFromTemplate,
+  onCreateTemplateFromGroup,
   onCreateBlank,
   onUpdate,
   onDelete,
@@ -4204,6 +4531,7 @@ function ClassGroupsPage({
   sessions: Session[];
   ownerEmail: string;
   onCreateFromTemplate: (template: RosterTemplate) => void;
+  onCreateTemplateFromGroup: (group: ClassGroup) => void;
   onCreateBlank: (group: ClassGroup) => void;
   onUpdate: (groupId: string, changes: Partial<ClassGroup>) => void;
   onDelete: (groupId: string) => void;
@@ -4261,7 +4589,7 @@ function ClassGroupsPage({
             Create class
           </button>
         </section>
-        <section className="content-grid two-columns align-start">
+        <section className={rosterTemplates.length > 0 ? "content-grid two-columns align-start" : "class-empty-center"}>
           <EmptyState
             icon={BookOpen}
             title="No classes yet"
@@ -4368,6 +4696,10 @@ function ClassGroupsPage({
                 <Trash2 size={17} />
                 Delete class
               </button>
+              <button className="ghost-button" type="button" onClick={() => onCreateTemplateFromGroup(activeGroup)}>
+                <Save size={17} />
+                Add roster template
+              </button>
             </div>
           </div>
           <RosterManager
@@ -4379,6 +4711,7 @@ function ClassGroupsPage({
             onAttendanceChange={() => undefined}
             showAttendance={false}
             wrapPanel={false}
+            showCsvActions={false}
           />
         </Panel>
       </section>
@@ -4567,6 +4900,7 @@ function RosterTemplatesPage({
             onAttendanceChange={() => undefined}
             showAttendance={false}
             wrapPanel={false}
+            showCsvActions={false}
           />
         </Panel>
       </section>
@@ -5045,11 +5379,14 @@ function SessionReport({
   sessions,
   fallback,
   editSession,
+  deleteSession,
 }: {
   sessions: Session[];
   fallback?: Session;
   editSession: (session: Session) => void;
+  deleteSession: (session: Session) => void;
 }) {
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const sessionId = getParam("session");
   const session = sessions.find((item) => item.id === sessionId) ?? fallback;
 
@@ -5082,35 +5419,67 @@ function SessionReport({
             <Settings2 size={17} />
             Edit draft
           </button>
-          <button
-            className="ghost-button"
-            onClick={() =>
-              downloadTextFile(
-                `${slugify(session.title, "classloop-session")}.json`,
-                JSON.stringify(session, null, 2),
-                "application/json",
-              )
-            }
-          >
-            <ArrowUpRight size={17} />
-            Export JSON
-          </button>
-          <button
-            className="ghost-button"
-            onClick={() =>
-              downloadTextFile(
-                `${slugify(session.title, "classloop-follow-through")}.csv`,
-                sessionFollowThroughCsv(session),
-                "text/csv",
-              )
-            }
-          >
-            <FileText size={17} />
-            Export CSV
-          </button>
-          <button className="ghost-button" onClick={() => window.print()}>
-            <ClipboardCheck size={17} />
-            Print report
+          <div className="report-export">
+            <button
+              className="ghost-button"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={exportMenuOpen}
+              onClick={() => setExportMenuOpen((current) => !current)}
+            >
+              <ArrowUpRight size={17} />
+              Export
+              <ChevronDown size={16} />
+            </button>
+            {exportMenuOpen && (
+              <div className="report-export-menu" role="menu" aria-label="Export options">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    downloadTextFile(
+                      `${slugify(session.title, "classloop-session")}.json`,
+                      JSON.stringify(session, null, 2),
+                      "application/json",
+                    );
+                  }}
+                >
+                  <ArrowUpRight size={16} />
+                  Download JSON
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    downloadTextFile(
+                      `${slugify(session.title, "classloop-follow-through")}.csv`,
+                      sessionFollowThroughCsv(session),
+                      "text/csv",
+                    );
+                  }}
+                >
+                  <FileText size={16} />
+                  Download CSV
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    window.print();
+                  }}
+                >
+                  <ClipboardCheck size={16} />
+                  Print report
+                </button>
+              </div>
+            )}
+          </div>
+          <button className="ghost-button danger" type="button" onClick={() => deleteSession(session)}>
+            <Trash2 size={17} />
+            Delete session
           </button>
           <button className="primary-button" onClick={() => navigate("student")}>
             <GraduationCap size={17} />

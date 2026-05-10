@@ -60,7 +60,8 @@ npm install
 - Teacher-side session dashboard, import flow, AI review draft, session report, and analytics.
 - Student-side dashboard and session detail views.
 - Student and teacher appearance customization, saved only to the signed-in account.
-- Transcript paste/upload plus consent-first in-person and online-meeting capture guidance.
+- Transcript paste/upload plus best-effort in-person microphone capture and browser online-meeting capture when available.
+- Teacher-assisted speaker matching for live capture: ClassLoop creates unknown voice segments for review instead of using biometric voiceprints.
 - Publish preview with one-click recap email delivery through a user-owned Gmail/SMTP sender.
 - Per-student preview differences that explain why each student receives different follow-ups.
 - Saved roster manager with CSV import/export and alias cleanup.
@@ -86,7 +87,7 @@ Removed/deferred because they require paid API keys, school platform credentials
 - OpenAI/custom transcription.
 - Google Classroom OAuth posting.
 - Canvas/LMS posting.
-- Background online-call capture that depends on external transcription.
+- External transcription-dependent online-call capture. ClassLoop uses free browser capture/speech APIs where available and still treats platform transcript paste/upload as the reliable path.
 
 ## Hosted Backend And Freemium MVP
 
@@ -166,7 +167,8 @@ Core MVP promise:
 3. Add a lightweight student inbox showing unread class updates and teacher-reviewed submissions.
 4. Add accessibility settings for font size, reduced motion, and high-contrast classroom mode.
 5. Add a local backup/restore workflow for moving ClassLoop data between devices without a hosted backend.
-6. Add optional school-managed backend sync only if the user later accepts hosting, credentials, and privacy review.
+6. Configure and verify live Supabase, Stripe, and Vercel credentials when the hosted version is ready for a pilot.
+7. Run a real teacher/student pilot and use the feedback endpoint to prioritize the next polish pass.
 
 ## Monetization Direction
 

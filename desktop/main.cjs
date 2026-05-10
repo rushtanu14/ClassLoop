@@ -2,7 +2,19 @@ const { app, BrowserWindow, shell, safeStorage } = require("electron");
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const nodemailer = require("nodemailer");
+let nodemailer;
+
+function getNodemailer() {
+  if (nodemailer) {
+    return nodemailer;
+  }
+  try {
+    nodemailer = require("nodemailer");
+    return nodemailer;
+  } catch (error) {
+    return null;
+  }
+}
 
 const rootDir = path.join(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
@@ -274,7 +286,16 @@ async function sendRecapEmails(session, options = {}) {
     throw error;
   }
 
-  const transporter = nodemailer.createTransport(config.transport);
+  const mailer = getNodemailer();
+  if (!mailer) {
+    const error = new Error(
+      "Email delivery is currently unavailable because the mailer dependency is not installed. Run `npm install` and restart ClassLoop.",
+    );
+    error.statusCode = 503;
+    throw error;
+  }
+
+  const transporter = mailer.createTransport(config.transport);
   const recipients = [];
   const failed = [];
   const onlyEmails = new Set(

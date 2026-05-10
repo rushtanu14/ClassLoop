@@ -306,8 +306,8 @@ Feature checks:
    - Sign back in and confirm the student's saved theme returns.
 10. Teacher appearance settings remain teacher-account scoped.
 11. Image backdrop URL updates the live preview and app background when a safe HTTPS image URL is used.
-12. Live audio notes require microphone permission confirmation when privacy settings require it.
-13. Paid/API-key/external-platform features are absent from the working app: no OpenAI transcription, custom transcription endpoint, Google Classroom posting, LMS posting, or online-call capture buttons.
+12. Live capture modes require consent confirmation when privacy settings require it.
+13. Paid/API-key/external-platform features are absent from the working app: no OpenAI transcription, custom transcription endpoint, Google Classroom posting, or LMS posting. Browser-only in-person/online-meeting capture is allowed because it uses free local browser capabilities and still treats transcript paste/upload as the reliable path.
 14. Publish preview shows delivery logs after email send actions.
 15. Privacy page is accessible to teachers and exposes retention settings, export, delete class data, consent settings, and audit log.
 16. Account/session/browser roster fallback storage uses secure classloop:secure:* localStorage keys; legacy plain classloop:accounts/session keys should migrate away.
@@ -353,7 +353,7 @@ Playwright is a required dev dependency for ClassLoop browser QA.
 
 - Browser live speech recognition is the only audio-to-text path kept in the working app.
 - Transcript paste/upload is the reliable free fallback.
-- Do not add `/api/transcribe`, OpenAI speech-to-text, custom transcription-provider APIs, or online-call capture unless the user explicitly reopens paid/external integration work.
+- Do not add `/api/transcribe`, OpenAI speech-to-text, custom transcription-provider APIs, or external transcription-dependent online-call capture unless the user explicitly reopens paid/external integration work.
 - Live audio notes should require explicit in-app consent when privacy settings require it.
 
 ## 2026-05-06 Free-First External Services Policy
@@ -361,12 +361,12 @@ Playwright is a required dev dependency for ClassLoop browser QA.
 - The user does not want to pay for integrations during the prototype stage.
 - ClassLoop cannot generate a Gmail account or send from an address the user does not own.
 - Free email path: the user creates/owns a Gmail account such as `classloop.noreply@gmail.com`, enables 2-Step Verification, creates an app password, and configures ClassLoop to send from that mailbox with `CLASSLOOP_REPLY_TO` set to the teacher/support inbox.
-- Remove or hide Google Classroom OAuth posting, LMS posting, OpenAI transcription, custom transcription endpoints, and online-call capture from the working app because they depend on external integration setup or paid API-key paths.
+- Remove or hide Google Classroom OAuth posting, LMS posting, OpenAI transcription, and custom transcription endpoints from the working app because they depend on external integration setup or paid API-key paths. Browser-only online meeting capture is allowed as a free best-effort feature.
 - If no external credentials are configured, ClassLoop must remain useful through transcript paste/upload, local review, publish preview, student portal, roster manager, and analytics.
 
 ## 2026-05-06 Roster Template Notes
 
-- Current improvement branch adds a standalone Rosters sidebar tab for teachers.
+- The consolidated main app includes a standalone Rosters sidebar tab for teachers.
 - Roster templates are saved by teacher account and session type, then offered automatically when creating future sessions with the matching template.
 - Publishing a session with students prompts the teacher to name and save that roster if no saved roster exists for that session type.
 - The import flow should keep the saved roster behavior helpful but unobtrusive: show a saved roster selector only when a matching roster exists.
@@ -374,9 +374,9 @@ Playwright is a required dev dependency for ClassLoop browser QA.
 
 ## 2026-05-07 Branch-Aware Improvement Implementation
 
-- `codex/audio-session-improvements` is the richer free-first product branch.
-- `main` should remain the original clean white/green classroom UI with stable local-first workflows.
-- Improvement branch now includes:
+- This work originally lived on `codex/audio-session-improvements` and has since been promoted into `main`.
+- `main` should remain the active clean classroom UI with stable local-first workflows.
+- Consolidated main now includes:
   - shared `ClassGroup`, `RosterTemplate`, `StudentSubmission`, and `PublishAuditEntry` types in `src/types.ts`
   - Classes sidebar tab for reusable class/course rosters with default session type and linked session history
   - CSV import/export for saved rosters and class groups
@@ -385,7 +385,7 @@ Playwright is a required dev dependency for ClassLoop browser QA.
   - student portal “Since your last visit” evidence based on personalized follow-up differences
   - JSON, CSV, and print report actions on session reports
   - Electron state persistence for class groups
-- The working app still excludes paid/API-key/external-platform workflows: no OpenAI/custom transcription, Google Classroom posting, LMS posting, or online-call capture.
+- The working app still excludes paid/API-key/external-platform workflows: no OpenAI/custom transcription, Google Classroom posting, LMS posting, or external transcription-dependent online-call capture.
 - Verification on the improvement branch:
   - `npm run build` passed
   - `npm run test:import` passed
@@ -407,7 +407,7 @@ When using the ClassLoop testing script, also verify:
 
 ## 2026-05-09 Backend / Freemium / Privacy Update
 
-- Added a real hosted backend scaffold on `main` and `codex/audio-session-improvements` without making the local desktop app depend on paid services.
+- Added a real hosted backend scaffold without making the local desktop app depend on paid services.
 - Backend pieces:
   - Supabase Auth and `api/cloud-state.js` for multi-device workspace sync.
   - `api/profile.js` for server-owned account/billing profile reads.
@@ -420,11 +420,11 @@ When using the ClassLoop testing script, also verify:
   - Free: `$0`, 5 sessions/month, CSV import/export, student preview, local desktop storage.
   - Pro: `$9/month`, unlimited sessions, hosted sync, delivery logs, privacy exports, advanced reports.
   - School pilot: `$49/month`, shared pilot workspace, longer retention, audit-ready exports, priority onboarding.
-- Added teacher-only Sync & billing and Privacy controls to both branches.
+- Added teacher-only Plan options and Privacy controls.
 - Added `AGENT.md` operational memory at repo root.
-- `codex/audio-session-improvements` keeps richer features: live audio notes, Gmail/SMTP delivery, class manager, publish audit, and submitted/reviewed student workflow.
-- Recap email delivery on the improvement branch is now server-authoritative: send requests use a published `sessionId` and owner email instead of trusting a client-provided draft session.
-- Verification passed on both branches: `npm run build`, `npm run test:import`, `node -c desktop/main.cjs`, `node --check api/*.js api/billing/*.js`, `npm run test:browser`, and `git diff --check`.
+- Consolidated `main` keeps the richer features: live audio notes, browser meeting capture, Gmail/SMTP delivery, class manager, publish audit, and submitted/reviewed student workflow.
+- Recap email delivery is server-authoritative: send requests use a published `sessionId` and owner email instead of trusting a client-provided draft session.
+- Verification passed on `main`: `npm run build`, `npm run test:import`, `node -c desktop/main.cjs`, `node --check api/*.js api/billing/*.js`, `npm run test:browser`, and `git diff --check`.
 
 ## 2026-05-09 Main Promotion + UX Smoke Update
 
@@ -445,3 +445,10 @@ Created three reusable ClassLoop skills:
 - `classloop-dual-branch-rollout`: applies shared ClassLoop changes to both `main` and `codex/audio-session-improvements` while preserving branch boundaries and verifying both branches.
 
 All three validate with `quick_validate.py`.
+
+## 2026-05-09 Branch Consolidation
+
+- `codex/audio-session-improvements` is no longer an active product branch.
+- The committed improvement-branch history was already merged into `main`; remaining useful documentation guidance was folded into `main`.
+- Future ClassLoop work should target `main` unless the user explicitly asks to create a new experiment branch.
+- Keep the old `ui-test`/abyssal visual direction separate unless the user explicitly asks to revive it.

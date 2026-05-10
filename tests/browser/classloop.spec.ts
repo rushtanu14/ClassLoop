@@ -33,7 +33,7 @@ async function expectDownloaded(downloadPromise: Promise<Download>, filenamePatt
 async function publishGeometrySample(page: Page) {
   await page.getByRole("button", { name: /new session/i }).first().click();
   await expect(page.getByText(/session template/i)).toBeVisible();
-  await page.getByRole("button", { name: /cs workshop/i }).click();
+  await page.getByLabel(/session template/i).selectOption("CS workshop");
   await expect(page.getByText(/project or repo/i)).toBeVisible();
   await page.getByRole("button", { name: /use geometry sample/i }).click();
   await expect(page.getByText(/practice problems/i)).toBeVisible();
@@ -133,14 +133,22 @@ test("teacher can log in, import a sample, preview publishing, publish, open stu
   expect(storageState.secureAccounts).toContain('"encrypted":true');
 
   await publishGeometrySample(page);
+  const reportActionHeights = await page
+    .locator(".report-actions > button, .report-actions > .report-export > button")
+    .evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height));
+  expect(Math.max(...reportActionHeights)).toBeLessThan(80);
 
   const jsonDownload = page.waitForEvent("download");
-  await page.getByRole("button", { name: /export json/i }).click();
+  await page.getByRole("button", { name: /^export$/i }).click();
+  await expect(page.getByRole("menu", { name: /export options/i })).toBeVisible();
+  await page.getByRole("menuitem", { name: /download json/i }).click();
   await expectDownloaded(jsonDownload, /geometry-review.*\.json/i);
   const csvDownload = page.waitForEvent("download");
-  await page.getByRole("button", { name: /export csv/i }).click();
+  await page.getByRole("button", { name: /^export$/i }).click();
+  await page.getByRole("menuitem", { name: /download csv/i }).click();
   await expectDownloaded(csvDownload, /geometry-review.*\.csv/i);
-  await expect(page.getByRole("button", { name: /print report/i })).toBeVisible();
+  await page.getByRole("button", { name: /^export$/i }).click();
+  await expect(page.getByRole("menuitem", { name: /print report/i })).toBeVisible();
 
   await page.getByRole("button", { name: /rosters/i }).click();
   await expect(page.getByText("Geometry review roster")).toBeVisible();
@@ -158,9 +166,9 @@ test("teacher can log in, import a sample, preview publishing, publish, open stu
   await expect(page.getByText(/published sessions linked to this class/i)).toBeVisible();
 
   await page.getByRole("button", { name: /new session/i }).first().click();
-  await page.getByRole("button", { name: /math review/i }).click();
-  await expect(page.getByLabel(/saved roster/i)).toContainText("Geometry review roster");
-  await expect(page.getByLabel(/saved class/i)).toContainText("Geometry review roster");
+  await page.getByLabel(/session template/i).selectOption("Math review");
+  await expect(page.getByLabel(/preload saved roster/i)).toContainText("Geometry review roster");
+  await expect(page.getByLabel(/preload class roster/i)).toContainText("Geometry review roster");
 
   await page.getByRole("button", { name: /student view/i }).click();
   await expect(page.getByText(/follow-up dashboard/i)).toBeVisible();
@@ -176,12 +184,19 @@ test("teacher can log in, import a sample, preview publishing, publish, open stu
   await expect(page.getByText(/teacher action queue/i)).toBeVisible();
 
   await page.getByRole("button", { name: /session report/i }).click();
-  await expect(page.getByRole("button", { name: /export json/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /export csv/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /print report/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^export$/i })).toBeVisible();
+  await page.getByRole("button", { name: /^export$/i }).click();
+  await expect(page.getByRole("menuitem", { name: /download json/i })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: /download csv/i })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: /print report/i })).toBeVisible();
 
   await page.getByRole("button", { name: /privacy/i }).click();
   await expect(page.getByText(/Manage retention, recording consent/i)).toBeVisible();
+
+  await page.getByRole("button", { name: /session report/i }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: /delete session/i }).click();
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 });
 
 test("privacy, sync billing, appearance, and tutorial controls are usable", async ({ page }) => {
@@ -198,15 +213,17 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   await page.getByRole("button", { name: /^reset$/i }).click();
 
   await page.getByRole("button", { name: /how it works/i }).click();
-  await expect(page.getByText(/interactive walkthrough/i)).toBeVisible();
+  await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /start on the dashboard/i })).toBeVisible();
   await page.getByRole("button", { name: /^next/i }).click();
-  await expect(page.getByRole("heading", { name: /resolve speaker names/i })).toBeVisible();
-  await page.getByRole("button", { name: /^back$/i }).click();
-  await expect(page.getByRole("heading", { name: /create a session/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /create the session/i })).toBeVisible();
+  await page.getByRole("button", { name: /skip/i }).click();
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 
-  await page.getByRole("button", { name: /sync & billing/i }).click();
-  await expect(page.getByText(/freemium plans/i)).toBeVisible();
-  await page.getByRole("button", { name: /keep local free plan/i }).click();
+  await page.getByRole("button", { name: /^plan options$/i }).click();
+  await expect(page.getByRole("heading", { name: /choose how classloop works for you/i })).toBeVisible();
+  await expect(page.getByText(/plan options/i).first()).toBeVisible();
+  await page.getByRole("button", { name: /keep free plan/i }).click();
   await page.getByPlaceholder("you@school.org").fill("teacher@example.edu");
   await page.locator('input[type="password"]').fill("cloud-password");
   await page.getByRole("button", { name: /^sign in$/i }).click();
@@ -240,7 +257,8 @@ test("teacher can choose in-person or online meeting capture without biometric v
 
   await page.getByRole("button", { name: /Online meeting/i }).click();
   await expect(page.getByText(/Start capture when the call begins/i)).toBeVisible();
-  await expect(page.getByText(/platform transcript/i)).toBeVisible();
+  await expect(page.getByRole("dialog", { name: /share the meeting tab or window with audio/i })).toBeVisible();
+  await expect(page.getByText(/Paste the platform transcript after class/i)).toBeVisible();
 });
 
 test("students cannot access analytics but can save appearance while logged in, with default theme restored on logout", async ({ page }) => {
