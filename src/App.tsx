@@ -219,6 +219,13 @@ type SpeechRecognitionWindow = Window & {
   webkitSpeechRecognition?: SpeechRecognitionConstructor;
 };
 
+type TourRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
 type IntegrationStatus = {
   email: {
     configured: boolean;
@@ -1607,6 +1614,13 @@ function App() {
     [theme],
   );
 
+  const startWalkthrough = () => {
+    setWalkthroughStepIndex(0);
+    if (auth) navigate(auth.role === "teacher" ? "dashboard" : "student");
+    setWalkthroughOpen(false);
+    window.setTimeout(() => setWalkthroughOpen(true), 0);
+  };
+
   const appendAudit = (action: string, detail: string, actor: AuthSession | null = auth) => {
     if (!actor || !privacySettings.auditLogEnabled) return;
     if (actor.demo) return;
@@ -1912,6 +1926,7 @@ function App() {
           demo: account.demo,
         });
         navigate("dashboard");
+        if (account.demo) startWalkthrough();
         return { ok: true };
       }
 
@@ -1937,6 +1952,7 @@ function App() {
         demo: account.demo,
       });
       navigate("student");
+      if (account.demo) startWalkthrough();
       return { ok: true };
     } finally {
       setAuthLoading(false);
@@ -1980,6 +1996,7 @@ function App() {
       setTheme(defaultTheme);
       setAuth({ accountId: account.id, role, email: normalizedEmail, name: trimmedName });
       navigate(role === "teacher" ? "dashboard" : "student");
+      startWalkthrough();
       return { ok: true };
     } finally {
       setAuthLoading(false);
@@ -2150,10 +2167,7 @@ function App() {
           auth={auth}
           syncStatus={syncStatus}
           onUpdateAccount={handleUpdateAccount}
-          onStartWalkthrough={() => {
-            setWalkthroughStepIndex(0);
-            setWalkthroughOpen(true);
-          }}
+          onStartWalkthrough={startWalkthrough}
         />
         {effectiveRoute === "dashboard" && <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} billingProfile={billingProfile} />}
         {effectiveRoute === "classes" && auth.role === "teacher" && (
@@ -2982,17 +2996,11 @@ function GuidedWalkthroughOverlay({
         ];
   const activeStep = steps[stepIndex] ?? steps[0];
   const isLast = stepIndex >= steps.length - 1;
-  const [highlightStyle, setHighlightStyle] = useState<CSSProperties | null>(null);
+  const [highlightStyle, setHighlightStyle] = useState<TourRect | null>(null);
   const [popoverStyle, setPopoverStyle] = useState<CSSProperties | null>(null);
 
   useEffect(() => {
     const measureTarget = () => {
-      if (window.innerWidth <= 920) {
-        setHighlightStyle(null);
-        setPopoverStyle(null);
-        return;
-      }
-
       const target = document.querySelector<HTMLElement>(activeStep.target);
       if (!target) {
         setHighlightStyle(null);
@@ -3004,7 +3012,7 @@ function GuidedWalkthroughOverlay({
       const padding = 8;
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      const highlight = {
+      const highlight: TourRect = {
         left: Math.max(12, rect.left - padding),
         top: Math.max(12, rect.top - padding),
         width: Math.min(viewportWidth - 24, rect.width + padding * 2),
@@ -3034,11 +3042,37 @@ function GuidedWalkthroughOverlay({
     };
   }, [activeStep.target]);
 
+  const backdropPieces = highlightStyle
+    ? [
+        { left: 0, top: 0, width: "100vw", height: highlightStyle.top },
+        { left: 0, top: highlightStyle.top, width: highlightStyle.left, height: highlightStyle.height },
+        {
+          left: highlightStyle.left + highlightStyle.width,
+          top: highlightStyle.top,
+          width: `calc(100vw - ${highlightStyle.left + highlightStyle.width}px)`,
+          height: highlightStyle.height,
+        },
+        {
+          left: 0,
+          top: highlightStyle.top + highlightStyle.height,
+          width: "100vw",
+          height: `calc(100vh - ${highlightStyle.top + highlightStyle.height}px)`,
+        },
+      ]
+    : [];
+
   return (
     <div className="guided-tour" role="dialog" aria-modal="true" aria-label="ClassLoop guided walkthrough">
+      {highlightStyle ? (
+        backdropPieces.map((piece, index) => (
+          <div key={index} className="tour-backdrop-piece" style={piece} aria-hidden="true" />
+        ))
+      ) : (
+        <div className="tour-backdrop-full" aria-hidden="true" />
+      )}
       <div
         className={`tour-highlight ${highlightStyle ? "anchored" : activeStep.position}`}
-        style={highlightStyle ?? undefined}
+        style={(highlightStyle as CSSProperties | null) ?? undefined}
         aria-hidden="true"
       />
       <section className={`tour-popover ${popoverStyle ? "anchored" : activeStep.position}`} style={popoverStyle ?? undefined}>

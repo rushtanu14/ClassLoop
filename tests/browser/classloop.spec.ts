@@ -15,7 +15,15 @@ async function resetBrowser(page: Page) {
   await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
 }
 
-async function signIn(page: Page, role: "teacher" | "student", reset = true) {
+async function skipAutoWalkthrough(page: Page) {
+  const dialog = page.getByRole("dialog", { name: /classloop guided walkthrough/i });
+  await dialog.waitFor({ state: "visible", timeout: 5_000 }).catch(() => undefined);
+  if (await dialog.isVisible().catch(() => false)) {
+    await dialog.getByRole("button", { name: /skip/i }).click();
+  }
+}
+
+async function signIn(page: Page, role: "teacher" | "student", reset = true, closeWalkthrough = true) {
   if (reset) await resetBrowser(page);
   if (role === "student") {
     await page.getByRole("button", { name: /student/i }).click();
@@ -23,6 +31,7 @@ async function signIn(page: Page, role: "teacher" | "student", reset = true) {
   await page.getByPlaceholder("name@example.com").fill(role === "teacher" ? teacherEmail : studentEmail);
   await page.getByPlaceholder("Enter password").fill(role === "teacher" ? teacherPassword : studentPassword);
   await page.locator("form.login-form button[type='submit']").click();
+  if (closeWalkthrough) await skipAutoWalkthrough(page);
 }
 
 async function expectDownloaded(downloadPromise: Promise<Download>, filenamePattern: RegExp) {
@@ -57,6 +66,9 @@ test("hosted demo mode uses sample accounts only and does not persist demo works
   await expect(page.getByPlaceholder("Enter password")).toHaveValue(teacherPassword);
 
   await page.locator("form.login-form button[type='submit']").click();
+  await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /start on the dashboard/i })).toBeVisible();
+  await page.getByRole("button", { name: /skip/i }).click();
   await expect(page.getByText(/You are on a demo account/i)).toBeVisible();
   await expect(page.getByText(/Please download the app to create your own account/i)).toBeVisible();
   await page.waitForTimeout(500);
@@ -133,6 +145,8 @@ test("account creation, settings, and password reset work", async ({ page }) => 
   await page.locator('input[placeholder="Enter password"]').fill(originalPassword);
   await page.locator('input[placeholder="Re-enter password"]').fill(originalPassword);
   await page.locator("form.login-form button[type='submit']").click();
+  await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
+  await page.getByRole("button", { name: /skip/i }).click();
   await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 
   await page.getByRole("button", { name: /test teacher/i }).click();
@@ -253,8 +267,13 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   await page.getByRole("button", { name: /open interactive walkthrough/i }).click();
   await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /start on the dashboard/i })).toBeVisible();
+  const tourBackdropFilter = await page
+    .locator(".guided-tour")
+    .evaluate((element) => getComputedStyle(element).backdropFilter);
+  expect(["", "none"].includes(tourBackdropFilter)).toBe(true);
   await page.getByRole("button", { name: /^next/i }).click();
   await expect(page.getByRole("heading", { name: /create the session/i })).toBeVisible();
+  await expect(page.locator(".tour-backdrop-piece")).toHaveCount(4);
   if ((page.viewportSize()?.width ?? 0) > 920) {
     await expect.poll(async () => (await page.locator(".tour-highlight").boundingBox())?.height ?? 999).toBeLessThan(90);
   }
