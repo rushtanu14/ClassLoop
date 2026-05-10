@@ -158,7 +158,7 @@ npm run package:win
 npm run package:linux
 ```
 
-Generated installers are written to `release/` and are not committed. For public distribution, upload signed/notarized release files to GitHub Releases, Vercel Blob, S3, or another trusted download host, then set:
+These scripts build both x64 and arm64 desktop artifacts where Electron Builder supports it. Generated installers are written to `release/` and are not committed. For public distribution, upload signed/notarized release files to GitHub Releases, Vercel Blob, S3, or another trusted download host, then set:
 
 ```bash
 VITE_CLASSLOOP_MAC_DOWNLOAD_URL=

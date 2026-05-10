@@ -2,6 +2,8 @@
   "name": "classloop",
   "version": "0.1.0",
   "private": true,
+  "description": "ClassLoop desktop classroom follow-up platform",
+  "author": "ClassLoop <classloop.donotreply@gmail.com>",
   "type": "module",
   "main": "desktop/main.cjs",
   "scripts": {
@@ -14,9 +16,9 @@
     "test:web": "playwright test -c playwright.web.config.ts",
     "test:all": "npm run test:import && npm run test:browser && npm run test:web",
     "package": "npm run build && electron-builder",
-    "package:mac": "npm run build && electron-builder --mac dmg zip",
-    "package:win": "npm run build && electron-builder --win nsis zip",
-    "package:linux": "npm run build && electron-builder --linux AppImage deb"
+    "package:mac": "npm run build && electron-builder --mac dmg zip --x64 --arm64",
+    "package:win": "npm run build && electron-builder --win nsis zip --x64 --arm64",
+    "package:linux": "npm run build && electron-builder --linux AppImage deb --x64 --arm64"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",

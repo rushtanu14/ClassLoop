@@ -30,7 +30,7 @@ ClassLoop is a desktop classroom follow-up platform (Electron + React) that tran
 - Student: `maya@classloop.demo` / `classloop-student`
 - Hosted Vercel demo should use sample accounts only. Do not enable custom account creation in the hosted demo; users create durable accounts in the downloaded desktop app.
 - Sample/demo account changes must be ephemeral and clearly bannered as unsaved demo data.
-- Public landing downloads support macOS, Windows, and Linux through `VITE_CLASSLOOP_MAC_DOWNLOAD_URL`, `VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL`, and `VITE_CLASSLOOP_LINUX_DOWNLOAD_URL`. If a URL is missing, the UI should say that installer is still being packaged rather than pretending the download works.
+- Public landing downloads support macOS, Windows, and Linux through `VITE_CLASSLOOP_MAC_DOWNLOAD_URL`, `VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL`, and `VITE_CLASSLOOP_LINUX_DOWNLOAD_URL`. If a URL is missing, the UI should say that installer is still being packaged rather than pretending the download works. Packaging scripts target both x64 and arm64 where Electron Builder supports it.
 
 ## Architecture
 
