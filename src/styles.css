@@ -194,6 +194,7 @@ a {
 }
 
 .landing-brand,
+.landing-nav-link,
 .landing-link-button {
   border: 0;
   background: transparent;
@@ -215,6 +216,16 @@ a {
   gap: 30px;
   color: rgba(16, 32, 45, 0.72);
   font-weight: 800;
+}
+
+.landing-nav-link {
+  padding: 0;
+  color: rgba(16, 32, 45, 0.72);
+  font-weight: 800;
+}
+
+.landing-nav-link:hover {
+  color: #0f766e;
 }
 
 .landing-link-button {
@@ -4666,7 +4677,7 @@ th {
     gap: 14px;
   }
 
-  .landing-links a {
+  .landing-nav-link {
     display: none;
   }
 

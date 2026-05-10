@@ -447,7 +447,16 @@ function getRoute(): RouteKey {
 
 function isLandingHash() {
   const hash = window.location.hash.trim();
-  return !hash || hash === "#" || hash === "#/" || hash === "#/home" || hash === "#/landing";
+  return (
+    !hash ||
+    hash === "#" ||
+    hash === "#/" ||
+    hash === "#/home" ||
+    hash === "#/landing" ||
+    hash === "#features" ||
+    hash === "#privacy" ||
+    hash === "#download"
+  );
 }
 
 function getParam(name: string): string | null {
@@ -2191,6 +2200,16 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
     }
     setDownloadMessage("The desktop download is being packaged. You can try the hosted web demo now.");
   };
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (["features", "privacy", "download"].includes(hash)) {
+      window.setTimeout(() => scrollToSection(hash), 80);
+    }
+  }, []);
 
   return (
     <main className="landing-page">
@@ -2202,9 +2221,15 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
           <span>ClassLoop</span>
         </button>
         <div className="landing-links">
-          <a href="#features">Features</a>
-          <a href="#privacy">Privacy</a>
-          <a href="#download">Download</a>
+          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("features")}>
+            Features
+          </button>
+          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("privacy")}>
+            Privacy
+          </button>
+          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("download")}>
+            Download
+          </button>
           <button className="landing-link-button" type="button" onClick={onOpenApp}>
             Open demo
           </button>

@@ -31,6 +31,10 @@ async function expectDownloaded(downloadPromise: Promise<Download>, filenamePatt
 }
 
 test("public root shows landing page and can enter the app demo", async ({ page }) => {
+  await page.goto("/#features");
+  await expect(page.getByRole("heading", { name: /^ClassLoop$/i })).toBeVisible();
+  await expect(page.getByText(/Import class records/i)).toBeVisible();
+
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /^ClassLoop$/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /download for macos/i })).toBeVisible();
