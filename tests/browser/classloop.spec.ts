@@ -267,6 +267,12 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   await page.getByRole("button", { name: /open interactive walkthrough/i }).click();
   await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /start on the dashboard/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /return home/i })).toHaveCount(0);
+  await page.getByRole("button", { name: /go to this area/i }).click();
+  await expect(page.getByRole("button", { name: /go to this area/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /return home/i })).toBeVisible();
+  await page.getByRole("button", { name: /return home/i }).click();
+  await expect(page.getByRole("button", { name: /go to this area/i })).toBeVisible();
   if ((page.viewportSize()?.width ?? 0) > 920) {
     const firstStepTarget = await page.locator('[data-tour="dashboard-hero"]').boundingBox();
     const firstStepPopover = await page.locator(".tour-popover").boundingBox();

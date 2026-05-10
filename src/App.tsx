@@ -3110,6 +3110,11 @@ function GuidedWalkthroughOverlay({
   const isLast = stepIndex >= steps.length - 1;
   const [highlightStyle, setHighlightStyle] = useState<TourRect | null>(null);
   const [popoverStyle, setPopoverStyle] = useState<CSSProperties | null>(null);
+  const [areaVisitStarted, setAreaVisitStarted] = useState(false);
+
+  useEffect(() => {
+    setAreaVisitStarted(false);
+  }, [stepIndex]);
 
   useEffect(() => {
     const measureTarget = () => {
@@ -3277,8 +3282,20 @@ function GuidedWalkthroughOverlay({
           <button className="ghost-button" type="button" onClick={onClose}>
             Skip
           </button>
-          <button className="text-button" type="button" onClick={() => navigate(activeStep.route)}>
-            Go to this area
+          <button
+            className="text-button"
+            type="button"
+            onClick={() => {
+              if (areaVisitStarted) {
+                navigate(homeRoute);
+                setAreaVisitStarted(false);
+                return;
+              }
+              navigate(activeStep.route);
+              setAreaVisitStarted(true);
+            }}
+          >
+            {areaVisitStarted ? "Return home" : "Go to this area"}
             <ChevronRight size={16} />
           </button>
           <button
@@ -3290,9 +3307,6 @@ function GuidedWalkthroughOverlay({
             <ChevronRight size={16} />
           </button>
         </div>
-        <button className="text-button walkthrough-skip" type="button" onClick={() => navigate(homeRoute)}>
-          Return home
-        </button>
       </section>
     </div>
   );
