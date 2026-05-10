@@ -267,6 +267,21 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   await page.getByRole("button", { name: /open interactive walkthrough/i }).click();
   await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /start on the dashboard/i })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) > 920) {
+    const firstStepTarget = await page.locator('[data-tour="dashboard-hero"]').boundingBox();
+    const firstStepPopover = await page.locator(".tour-popover").boundingBox();
+    expect(firstStepTarget).not.toBeNull();
+    expect(firstStepPopover).not.toBeNull();
+    if (firstStepTarget && firstStepPopover) {
+      const overlapsTarget = !(
+        firstStepPopover.x + firstStepPopover.width <= firstStepTarget.x ||
+        firstStepPopover.x >= firstStepTarget.x + firstStepTarget.width ||
+        firstStepPopover.y + firstStepPopover.height <= firstStepTarget.y ||
+        firstStepPopover.y >= firstStepTarget.y + firstStepTarget.height
+      );
+      expect(overlapsTarget).toBe(false);
+    }
+  }
   const tourBackdropFilter = await page
     .locator(".guided-tour")
     .evaluate((element) => getComputedStyle(element).backdropFilter);
