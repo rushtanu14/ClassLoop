@@ -19,6 +19,10 @@ ClassLoop is a desktop classroom follow-up platform (Electron + React) that tran
 | **Build** | `npm run build` |
 | **Test import flow** | `npm run test:import` |
 | **Browser tests** | `npm run test:browser` |
+| **Hosted web test** | `npm run test:web` |
+| **Package macOS app** | `npm run package:mac` |
+| **Package Windows app** | `npm run package:win` |
+| **Package Linux app** | `npm run package:linux` |
 | **Lint/type check** | `tsc` |
 
 **Demo Accounts**:
@@ -26,6 +30,7 @@ ClassLoop is a desktop classroom follow-up platform (Electron + React) that tran
 - Student: `maya@classloop.demo` / `classloop-student`
 - Hosted Vercel demo should use sample accounts only. Do not enable custom account creation in the hosted demo; users create durable accounts in the downloaded desktop app.
 - Sample/demo account changes must be ephemeral and clearly bannered as unsaved demo data.
+- Public landing downloads support macOS, Windows, and Linux through `VITE_CLASSLOOP_MAC_DOWNLOAD_URL`, `VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL`, and `VITE_CLASSLOOP_LINUX_DOWNLOAD_URL`. If a URL is missing, the UI should say that installer is still being packaged rather than pretending the download works.
 
 ## Architecture
 
@@ -44,7 +49,8 @@ ClassLoop
 │   └── import-flow.test.ts  # End-to-end parsing tests
 ├── tests/browser/
 │   └── classloop.spec.ts    # Playwright workflow/access tests
-├── playwright.config.ts     # Browser test config; starts Vite on 127.0.0.1:5177
+├── playwright.config.ts     # Local browser test config; starts Vite on 127.0.0.1:5177
+├── playwright.web.config.ts # Hosted web smoke test config for Vercel/demo URL
 ├── vite.config.ts           # Build config (fingerprinting for prod)
 └── tsconfig*.json           # TypeScript configs (main + test)
 ```

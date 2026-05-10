@@ -2354,19 +2354,39 @@ function App() {
 
 function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
   const [downloadMessage, setDownloadMessage] = useState("");
-  const downloadUrl = (import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL as string | undefined)?.trim();
+  const downloadOptions = [
+    {
+      id: "macos",
+      label: "macOS",
+      helper: "Apple silicon and Intel Macs",
+      url: (import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL as string | undefined)?.trim(),
+    },
+    {
+      id: "windows",
+      label: "Windows",
+      helper: "Windows 10 or newer",
+      url: (import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL as string | undefined)?.trim(),
+    },
+    {
+      id: "linux",
+      label: "Linux",
+      helper: "AppImage or Debian package",
+      url: (import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL as string | undefined)?.trim(),
+    },
+  ];
+  const availableDownloads = downloadOptions.filter((option) => option.url);
   const stats = [
     { value: "1", label: "daily free session" },
     { value: "Pro", label: "unlimited follow-ups" },
     { value: "CSV", label: "roster import/export" },
   ];
 
-  const handleDownload = () => {
-    if (downloadUrl) {
-      window.location.href = downloadUrl;
+  const handleDownload = (option = downloadOptions[0]) => {
+    if (option.url) {
+      window.location.href = option.url;
       return;
     }
-    setDownloadMessage("The desktop download is being packaged. You can try the hosted web demo now.");
+    setDownloadMessage(`${option.label} desktop download is being packaged. You can try the hosted web demo now.`);
   };
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2415,7 +2435,7 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
           and completion check-ins that keep learning moving after class.
         </p>
         <div className="landing-actions">
-          <button className="landing-primary" type="button" onClick={handleDownload}>
+          <button className="landing-primary" type="button" onClick={() => handleDownload(downloadOptions[0])}>
             <Download size={20} />
             Download for macOS
           </button>
@@ -2423,6 +2443,17 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
             <PlayCircle size={20} />
             Open web demo
           </button>
+        </div>
+        <div className="landing-platform-list" aria-label="Desktop download options">
+          {downloadOptions.map((option) => (
+            <button key={option.id} type="button" onClick={() => handleDownload(option)}>
+              <Download size={16} />
+              <span>
+                <strong>{option.label}</strong>
+                <small>{option.url ? "Download ready" : option.helper}</small>
+              </span>
+            </button>
+          ))}
         </div>
         {downloadMessage && <p className="landing-message">{downloadMessage}</p>}
         <div className="landing-stat-row" aria-label="ClassLoop plan highlights">
@@ -2457,12 +2488,22 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
         <div>
           <span className="landing-eyebrow">Try it safely</span>
           <h2>Start with the web demo, then move daily work to the desktop app.</h2>
+          <p>
+            {availableDownloads.length
+              ? `${availableDownloads.length} desktop download ${availableDownloads.length === 1 ? "is" : "are"} connected.`
+              : "Desktop installers are being packaged for macOS, Windows, and Linux."}
+          </p>
         </div>
         <div className="landing-actions compact">
-          <button className="landing-primary" type="button" onClick={handleDownload}>
+          <button className="landing-primary" type="button" onClick={() => handleDownload(downloadOptions[0])}>
             <Download size={18} />
-            Download app
+            Download macOS
           </button>
+          {downloadOptions.slice(1).map((option) => (
+            <button key={option.id} className="landing-secondary" type="button" onClick={() => handleDownload(option)}>
+              {option.label}
+            </button>
+          ))}
           <button className="landing-secondary" type="button" onClick={onOpenApp}>
             Open demo
           </button>

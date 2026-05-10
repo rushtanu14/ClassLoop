@@ -108,7 +108,7 @@ Hosted route behavior:
 - The hosted web demo uses sample teacher/student accounts only. Account creation and durable personal workspaces belong in the downloaded desktop app.
 - Sample account changes are ephemeral and should not be treated as saved data.
 - `https://your-domain.com/api/config` returns safe booleans that confirm whether server-only Supabase and Stripe env vars were picked up by Vercel.
-- Set `VITE_CLASSLOOP_MAC_DOWNLOAD_URL` to a signed release asset when the desktop installer is ready. Until then, the landing page directs visitors to the web demo.
+- Set desktop installer URLs when release assets are ready: `VITE_CLASSLOOP_MAC_DOWNLOAD_URL`, `VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL`, and `VITE_CLASSLOOP_LINUX_DOWNLOAD_URL`. Until then, the landing page clearly says installers are still being packaged and directs visitors to the web demo.
 
 Suggested pricing:
 
@@ -132,11 +132,41 @@ ClassLoop creates Stripe Checkout sessions on the server. The React app does not
 9. Copy the webhook signing secret into `STRIPE_WEBHOOK_SECRET`.
 10. Set `CLASSLOOP_PUBLIC_URL` to your deployed app URL, such as `https://classloop.vercel.app`.
 
+Use Stripe live mode only when you are ready to accept real payments from real teachers. Live mode requires a separate live product/price, live secret key, live webhook endpoint/signing secret, and an activated Stripe account. Do not reuse sandbox/test keys in production Vercel variables. A good rollout is:
+
+1. Finish end-to-end sandbox checkout and webhook testing.
+2. Activate the Stripe account and complete business/banking/tax details.
+3. Toggle Stripe to live mode.
+4. Recreate or copy the `ClassLoop Pro` product and `$9/month` recurring price in live mode.
+5. Replace Vercel production env vars with live `STRIPE_SECRET_KEY`, live `STRIPE_PRO_PRICE_ID`, live `VITE_STRIPE_PRO_PRICE_ID`, and live `STRIPE_WEBHOOK_SECRET`.
+6. Add a live webhook endpoint at `https://your-domain.com/api/billing/webhook` with `checkout.session.completed`, `customer.subscription.updated`, and `customer.subscription.deleted`.
+7. Redeploy and run one low-risk live checkout with your own account, then cancel/refund it from Stripe if needed.
+
 After editing Vercel environment variables, redeploy the latest `main` branch. If `/api/config` still includes old fields such as `stripeSchoolConfigured`, Vercel is serving an older deployment.
 
 Your Stripe publishable key starts with `pk_`. It is safe for browser code, but this current Checkout flow does not require it because the server creates the Checkout session. If ClassLoop later adds Stripe Elements or client-side Stripe.js, add it as `VITE_STRIPE_PUBLISHABLE_KEY` in `.env.local` and Vercel.
 
 For secure production billing, Stripe Pro access should be tied to a hosted Supabase account. The full cloud sync login panel is shown only after Pro is active, but the deployed checkout flow still needs backend auth available so the webhook can attach the subscription to the right account.
+
+### Desktop Packaging And Downloads
+
+ClassLoop can package desktop installers with Electron Builder:
+
+```bash
+npm run package:mac
+npm run package:win
+npm run package:linux
+```
+
+Generated installers are written to `release/` and are not committed. For public distribution, upload signed/notarized release files to GitHub Releases, Vercel Blob, S3, or another trusted download host, then set:
+
+```bash
+VITE_CLASSLOOP_MAC_DOWNLOAD_URL=
+VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL=
+VITE_CLASSLOOP_LINUX_DOWNLOAD_URL=
+```
+
+macOS apps should be signed and notarized before broad distribution to avoid Gatekeeper warnings. Windows builds should eventually use code signing to avoid SmartScreen friction.
 
 ## Privacy And School Readiness
 
@@ -176,7 +206,10 @@ npm install
 npm run build
 npm run test:import
 npm run test:browser
+npm run test:web
 ```
+
+`npm run test:browser` covers the local Vite app. `npm run test:web` checks the deployed hosted web demo. Override the target with `CLASSLOOP_WEB_TEST_URL=https://your-domain.com npm run test:web`.
 
 ## PRD Alignment
 

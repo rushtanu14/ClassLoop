@@ -11,3 +11,4 @@ dist/assets/index-*.css
 *.log
 test-results
 playwright-report
+release

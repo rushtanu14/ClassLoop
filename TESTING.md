@@ -7,6 +7,7 @@
 **Run Commands**:
 - `npm run test:import`
 - `npm run test:browser`
+- `npm run test:web`
 
 ## Test Categories
 
@@ -41,6 +42,12 @@
 - **Report Exports**: Session report exposes JSON, CSV, and print actions.
 - **Appearance**: Students can change appearance while signed in; logout returns the login screen to the default theme; sign-in restores the saved account theme.
 - **Responsive Layout**: Core controls remain visible at phone-sized width without horizontal overflow.
+
+### Hosted Web Smoke Tests
+- **Landing Page**: Hosted root page loads ClassLoop marketing/download UI.
+- **Desktop Downloads**: macOS, Windows, and Linux download controls are visible; missing installer URLs show packaging/demo fallback copy.
+- **Sample-Only Demo**: Hosted demo exposes teacher/student demo choices instead of editable email/password fields.
+- **Demo Walkthrough**: Teacher sample demo starts the guided walkthrough and shows the unsaved demo banner after skip.
 
 ## Test Data Sources
 
@@ -89,8 +96,14 @@ Playwright is installed in the repo through `@playwright/test`.
 **Install browsers**: `npx playwright install chromium`
 **Automated install**: `npm install` runs `playwright install chromium` through `postinstall`.
 **Run browser tests**: `npm run test:browser`
+**Run hosted web smoke**: `npm run test:web`
 
 Playwright starts the Vite dev server on `127.0.0.1:5177` and runs Chromium checks across desktop and mobile-sized projects.
+Hosted web tests use `playwright.web.config.ts` and default to `https://class-loop-ten.vercel.app`. Override with:
+
+```bash
+CLASSLOOP_WEB_TEST_URL=https://your-domain.com npm run test:web
+```
 
 ## Testing Script Response
 
@@ -100,6 +113,7 @@ When the user says "use the testing script," run the saved ClassLoop QA sequence
 - anything not verifiable without the configured Gmail/SMTP sender
 - whether paid/API-key/external-platform features remain absent from the app, except Gmail/SMTP email through a user-owned sender
 - whether class manager, CSV roster import/export, publish audit, student submitted/reviewed states, and report exports are reachable
+- whether the hosted web demo still hides editable login fields and exposes platform download controls
 - concise feedback on how the run went
 - what could be improved
 - feature ideas that would improve user experience

@@ -5,6 +5,7 @@ const baseURL = `http://127.0.0.1:${testPort}`;
 
 export default defineConfig({
   testDir: "./tests/browser",
+  testIgnore: ["**/classloop-web.spec.ts"],
   timeout: 45_000,
   expect: {
     timeout: 8_000,

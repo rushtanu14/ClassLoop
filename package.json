@@ -10,7 +10,13 @@
     "start": "electron .",
     "build": "tsc && vite build",
     "test:import": "tsc -p tsconfig.test.json && node --experimental-specifier-resolution=node .test-build/tests/import-flow.test.js",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "test:web": "playwright test -c playwright.web.config.ts",
+    "test:all": "npm run test:import && npm run test:browser && npm run test:web",
+    "package": "npm run build && electron-builder",
+    "package:mac": "npm run build && electron-builder --mac dmg zip",
+    "package:win": "npm run build && electron-builder --win nsis zip",
+    "package:linux": "npm run build && electron-builder --linux AppImage deb"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
@@ -26,7 +32,43 @@
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^41.3.0",
+    "electron-builder": "^26.8.1",
     "typescript": "^5.7.3",
     "vite": "^6.0.7"
+  },
+  "build": {
+    "appId": "com.classloop.app",
+    "productName": "ClassLoop",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "desktop/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "desktop/main.cjs"
+    },
+    "mac": {
+      "category": "public.app-category.education",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "linux": {
+      "category": "Education",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
   }
 }
