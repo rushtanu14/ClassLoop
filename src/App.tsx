@@ -4586,6 +4586,8 @@ function ImportSession({
                 </button>
               </>
             )}
+          </div>
+          <div className="summary-input-card">
             <div className="summary-fields">
               <label className="field compact">
                 <span>Meeting notes</span>
