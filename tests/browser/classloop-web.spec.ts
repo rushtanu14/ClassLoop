@@ -4,8 +4,8 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /^ClassLoop$/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /download for macos/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /windows/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /linux/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Windows", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Linux", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /open web demo/i })).toBeVisible();
 
   const downloadPromise = page.waitForEvent("download", { timeout: 5_000 }).catch(() => null);
@@ -14,7 +14,7 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   if (download) {
     await download.cancel().catch(() => undefined);
   } else {
-    await expect(page.getByText(/macos desktop download|web demo/i)).toBeVisible();
+    await expect(page.getByText(/macos desktop download is being packaged/i)).toBeVisible();
   }
 
   await page.getByRole("button", { name: /open web demo/i }).click();
