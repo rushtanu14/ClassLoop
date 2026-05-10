@@ -417,9 +417,8 @@ When using the ClassLoop testing script, also verify:
   - RLS-backed tables in `supabase/schema.sql`.
   - Vercel browser deployment config in `vercel.json`.
 - Freemium MVP:
-  - Free: `$0`, 5 sessions/month, CSV import/export, student preview, local desktop storage.
-  - Pro: `$9/month`, unlimited sessions, hosted sync, delivery logs, privacy exports, advanced reports.
-  - School pilot: `$49/month`, shared pilot workspace, longer retention, audit-ready exports, priority onboarding.
+  - Free: `$0`, 1 generated session per day, transcript import, CSV import/export, student portal preview, local desktop storage.
+  - Pro: `$9/month`, unlimited sessions, live in-person/online capture modes, multi-device cloud login/sync, delivery logs, privacy exports, advanced reports.
 - Added teacher-only Plan options and Privacy controls.
 - Added `AGENT.md` operational memory at repo root.
 - Consolidated `main` keeps the richer features: live audio notes, browser meeting capture, Gmail/SMTP delivery, class manager, publish audit, and submitted/reviewed student workflow.
@@ -441,7 +440,7 @@ When using the ClassLoop testing script, also verify:
 Created three reusable ClassLoop skills:
 
 - `classloop-hosted-deployment`: Vercel/Supabase/Stripe hosted deployment setup, env vars, RLS, API routes, webhooks, and live multi-device sync verification.
-- `classloop-entitlement-gates`: Free/Pro/School plan limits, Stripe subscription state, webhook-owned entitlements, paid feature gating, and anti-client-bypass review.
+- `classloop-entitlement-gates`: Free/Pro plan limits, Stripe subscription state, webhook-owned entitlements, paid feature gating, and anti-client-bypass review.
 - `classloop-dual-branch-rollout`: applies shared ClassLoop changes to both `main` and `codex/audio-session-improvements` while preserving branch boundaries and verifying both branches.
 
 All three validate with `quick_validate.py`.
@@ -452,3 +451,12 @@ All three validate with `quick_validate.py`.
 - The committed improvement-branch history was already merged into `main`; remaining useful documentation guidance was folded into `main`.
 - Future ClassLoop work should target `main` unless the user explicitly asks to create a new experiment branch.
 - Keep the old `ui-test`/abyssal visual direction separate unless the user explicitly asks to revive it.
+
+## 2026-05-10 Hosted Landing / Vercel Diagnostics
+
+- The hosted Vercel root route `/` now serves a public ClassLoop landing page with a Codex-style first impression, download call to action, and web demo entry point.
+- The actual app remains at `/#/dashboard`; Electron still opens `/#/dashboard` directly, so the desktop workflow is unchanged.
+- `VITE_CLASSLOOP_MAC_DOWNLOAD_URL` can point the landing-page download button at a signed macOS desktop installer when packaging is ready. Until then, the page tells visitors to use the web demo.
+- `/api/config` now returns a safe config version plus hosted backend booleans. If live Vercel still returns `stripeSchoolConfigured`, the deployed app is stale and must redeploy latest `main`.
+- Current active freemium model: Free is 1 generated session per day; Pro is `$9/month` with unlimited sessions, live capture modes, multi-device cloud sync, delivery logs, privacy exports, and advanced reports. School pilot UI/env keys remain removed/deferred.
+- Verification passed after landing update: `npm run build`, `npm run test:import`, `npm run test:browser` (14/14), `node -c desktop/main.cjs`, `node --check api/*.js api/billing/*.js`, and `git diff --check -- ':!dist/**'`.

@@ -5,7 +5,7 @@ create table if not exists public.classloop_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   role text not null default 'teacher' check (role in ('teacher', 'student')),
-  plan_tier text not null default 'free' check (plan_tier in ('free', 'pro', 'school')),
+  plan_tier text not null default 'free' check (plan_tier in ('free', 'pro')),
   subscription_status text not null default 'not_configured',
   stripe_customer_id text,
   subscription_id text,

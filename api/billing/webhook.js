@@ -61,7 +61,7 @@ export default async function handler(request, response) {
       await upsertSubscriptionProfile({
         customerId: String(session.customer || subscription?.customer || ""),
         userId: session.metadata?.supabaseUserId,
-        tier: session.metadata?.tier === "school" ? "school" : "pro",
+        tier: "pro",
         status: subscription?.status || "active",
         subscriptionId: typeof session.subscription === "string" ? session.subscription : subscription?.id,
         currentPeriodEndIso: subscription ? currentPeriodEnd(subscription) : null,
@@ -73,7 +73,7 @@ export default async function handler(request, response) {
       await upsertSubscriptionProfile({
         customerId: String(subscription.customer || ""),
         userId: subscription.metadata?.supabaseUserId,
-        tier: subscription.metadata?.tier === "school" ? "school" : "pro",
+        tier: "pro",
         status: subscription.status || "canceled",
         subscriptionId: subscription.id,
         currentPeriodEndIso: currentPeriodEnd(subscription),

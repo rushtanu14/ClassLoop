@@ -11,12 +11,14 @@ import {
   CircleAlert,
   ClipboardCheck,
   Clock3,
+  Download,
   Eye,
   EyeOff,
   FileText,
   GraduationCap,
   KeyRound,
   LayoutDashboard,
+  Lightbulb,
   LineChart,
   Link2,
   Link as LinkIcon,
@@ -47,6 +49,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import {
   createGeneratedSession,
   extractTranscriptSpeakers,
@@ -57,6 +60,7 @@ import {
 } from "./data";
 import {
   cloudRequest,
+  createBillingPortalSession,
   createCheckoutSession,
   createCloudAccount,
   getBackendStatus,
@@ -441,6 +445,11 @@ function getRoute(): RouteKey {
     : "dashboard";
 }
 
+function isLandingHash() {
+  const hash = window.location.hash.trim();
+  return !hash || hash === "#" || hash === "#/" || hash === "#/home" || hash === "#/landing";
+}
+
 function getParam(name: string): string | null {
   const hash = window.location.hash.replace(/^#\/?/, "");
   const query = hash.split("?")[1] ?? "";
@@ -496,6 +505,14 @@ function appendCapturedText(current: string, text: string) {
 function liveCaptureSpeakerLabel(mode: SessionCaptureMode, segmentNumber: number) {
   if (mode === "online_meeting") return `Unknown meeting voice ${segmentNumber}`;
   return `Unknown in-person voice ${segmentNumber}`;
+}
+
+function localDayKey(dateInput?: string | Date) {
+  const date = dateInput ? new Date(dateInput) : new Date();
+  if (Number.isNaN(date.getTime())) return "";
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function studentEmailRecipients(session: Session) {
@@ -1264,6 +1281,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const [walkthroughStepIndex, setWalkthroughStepIndex] = useState(0);
+  const [landingMode, setLandingMode] = useState(isLandingHash);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connecting");
   const [passwordResetCodes, setPasswordResetCodes] = useState<Record<string, PasswordResetRecord>>({});
   const serverSyncRef = useRef(false);
@@ -1410,9 +1428,11 @@ function App() {
   }, [sharedReady]);
 
   useEffect(() => {
-    const onHashChange = () => setRoute(getRoute());
+    const onHashChange = () => {
+      setLandingMode(isLandingHash());
+      setRoute(getRoute());
+    };
     window.addEventListener("hashchange", onHashChange);
-    if (!window.location.hash) navigate("dashboard");
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
@@ -1529,8 +1549,12 @@ function App() {
   const visibleDraft = auth?.role === "teacher" && draft && sessionOwnerEmail(draft) === normalizeEmail(auth.email) ? draft : null;
   const latestPublished = teacherSessions.find((session) => session.status === "published") ?? teacherSessions[0];
   const effectiveRoute = auth?.role === "student" && !studentRoutes.has(route) ? "student" : route;
-  const hasPaidAccess = auth?.demo || isPaidPlan(billingProfile);
-  const freeLimitReached = !hasPaidAccess && teacherSessions.length >= 5;
+  const hasPaidAccess = isPaidPlan(billingProfile);
+  const todayKey = localDayKey();
+  const freeSessionsToday =
+    teacherSessions.filter((session) => localDayKey(session.date) === todayKey).length +
+    (visibleDraft && localDayKey(visibleDraft.date) === todayKey ? 1 : 0);
+  const freeLimitReached = !hasPaidAccess && freeSessionsToday >= 1;
 
   const updateSession = (session: Session) => {
     setSessions((current) => {
@@ -1927,6 +1951,17 @@ function App() {
     navigate("dashboard");
   };
 
+  if (landingMode && !auth) {
+    return (
+      <LandingPage
+        onOpenApp={() => {
+          setLandingMode(false);
+          navigate("dashboard");
+        }}
+      />
+    );
+  }
+
   if (!sharedReady || authLoading) {
     return <AppLoader message={authLoading ? "Opening your workspace" : "Loading ClassLoop"} />;
   }
@@ -1952,6 +1987,10 @@ function App() {
           auth={auth}
           syncStatus={syncStatus}
           onUpdateAccount={handleUpdateAccount}
+          onStartWalkthrough={() => {
+            setWalkthroughStepIndex(0);
+            setWalkthroughOpen(true);
+          }}
         />
         {effectiveRoute === "dashboard" && <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} billingProfile={billingProfile} />}
         {effectiveRoute === "classes" && auth.role === "teacher" && (
@@ -2007,7 +2046,9 @@ function App() {
             rosterTemplates={teacherRosterTemplates}
             classGroups={teacherClassGroups}
             canCreateSession={!freeLimitReached}
-            planName={billingProfile.tier === "free" ? "Free" : billingProfile.tier === "school" ? "School pilot" : "Pro"}
+            canUseLiveCapture={hasPaidAccess}
+            dailySessionsUsed={freeSessionsToday}
+            planName={billingProfile.tier === "free" ? "Free" : "Pro"}
           />
         )}
         {effectiveRoute === "processing" && <Processing draft={visibleDraft} />}
@@ -2075,7 +2116,7 @@ function App() {
             currentState={currentState}
             applyCloudState={applyCloudState}
             appendAudit={appendAudit}
-            sessionCount={teacherSessions.length}
+            sessionCount={freeSessionsToday}
           />
         )}
         {effectiveRoute === "tutorial" &&
@@ -2131,6 +2172,110 @@ function App() {
         />
       )}
     </div>
+  );
+}
+
+function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
+  const [downloadMessage, setDownloadMessage] = useState("");
+  const downloadUrl = (import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL as string | undefined)?.trim();
+  const stats = [
+    { value: "1", label: "daily free session" },
+    { value: "Pro", label: "unlimited follow-ups" },
+    { value: "CSV", label: "roster import/export" },
+  ];
+
+  const handleDownload = () => {
+    if (downloadUrl) {
+      window.location.href = downloadUrl;
+      return;
+    }
+    setDownloadMessage("The desktop download is being packaged. You can try the hosted web demo now.");
+  };
+
+  return (
+    <main className="landing-page">
+      <nav className="landing-nav" aria-label="ClassLoop public navigation">
+        <button className="landing-brand" type="button" onClick={onOpenApp}>
+          <span className="brand-mark">
+            <BrainCircuit size={24} />
+          </span>
+          <span>ClassLoop</span>
+        </button>
+        <div className="landing-links">
+          <a href="#features">Features</a>
+          <a href="#privacy">Privacy</a>
+          <a href="#download">Download</a>
+          <button className="landing-link-button" type="button" onClick={onOpenApp}>
+            Open demo
+          </button>
+        </div>
+      </nav>
+
+      <section className="landing-hero">
+        <div className="landing-icon" aria-hidden="true">
+          <Sparkles size={38} />
+        </div>
+        <span className="landing-eyebrow">Classroom continuity</span>
+        <h1>ClassLoop</h1>
+        <p>
+          Turn class transcripts, notes, rosters, and resources into edited recaps, student follow-ups,
+          and completion check-ins that keep learning moving after class.
+        </p>
+        <div className="landing-actions">
+          <button className="landing-primary" type="button" onClick={handleDownload}>
+            <Download size={20} />
+            Download for macOS
+          </button>
+          <button className="landing-secondary" type="button" onClick={onOpenApp}>
+            <PlayCircle size={20} />
+            Open web demo
+          </button>
+        </div>
+        {downloadMessage && <p className="landing-message">{downloadMessage}</p>}
+        <div className="landing-stat-row" aria-label="ClassLoop plan highlights">
+          {stats.map((stat) => (
+            <div className="landing-stat" key={stat.label}>
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-feature-band" id="features" aria-label="ClassLoop features">
+        <article>
+          <BookOpen size={24} />
+          <h2>Import class records</h2>
+          <p>Paste transcripts, upload text files, add meeting notes, and reuse saved rosters.</p>
+        </article>
+        <article>
+          <Users size={24} />
+          <h2>Personalize follow-ups</h2>
+          <p>Review student-specific tasks, resources, questions, and completion states before publishing.</p>
+        </article>
+        <article id="privacy">
+          <ShieldCheck size={24} />
+          <h2>Private by default</h2>
+          <p>The desktop app stays local-first, while hosted Pro sync requires protected account access.</p>
+        </article>
+      </section>
+
+      <section className="landing-download-band" id="download">
+        <div>
+          <span className="landing-eyebrow">Try it safely</span>
+          <h2>Start with the web demo, then move daily work to the desktop app.</h2>
+        </div>
+        <div className="landing-actions compact">
+          <button className="landing-primary" type="button" onClick={handleDownload}>
+            <Download size={18} />
+            Download app
+          </button>
+          <button className="landing-secondary" type="button" onClick={onOpenApp}>
+            Open demo
+          </button>
+        </div>
+      </section>
+    </main>
   );
 }
 
@@ -2579,23 +2724,120 @@ function GuidedWalkthroughOverlay({
   const steps =
     auth.role === "teacher"
       ? [
-          { title: "Start on the dashboard", detail: "This is your daily home base. Click New session when you have a transcript, notes, or recording.", route: "dashboard" as RouteKey, position: "top-left" },
-          { title: "Create the session", detail: "Pick a template, preload a class roster, then choose transcript, in-person capture, or online meeting capture.", route: "new-session" as RouteKey, position: "top-right" },
-          { title: "Review before publishing", detail: "Check speaker matches, edit the recap, and preview what each student will see.", route: "review" as RouteKey, position: "center" },
-          { title: "Track follow-through", detail: "After publishing, analytics and reports show completion, quiet flags, and support needs.", route: "analytics" as RouteKey, position: "bottom-right" },
+          {
+            title: "Start on the dashboard",
+            detail: "This is your daily home base. Click New session when you have a transcript, notes, or recording.",
+            route: "dashboard" as RouteKey,
+            position: "top-left",
+            target: '[data-tour="dashboard-hero"]',
+          },
+          {
+            title: "Create the session",
+            detail: "Pick a template, preload a class roster, then choose transcript, in-person capture, or online meeting capture.",
+            route: "new-session" as RouteKey,
+            position: "top-right",
+            target: '[data-tour="new-session-button"], [data-tour="nav-new-session"]',
+          },
+          {
+            title: "Review before publishing",
+            detail: "Check speaker matches, edit the recap, and preview what each student will see.",
+            route: "review" as RouteKey,
+            position: "center",
+            target: '[data-tour="nav-review"]',
+          },
+          {
+            title: "Track follow-through",
+            detail: "After publishing, analytics and reports show completion, quiet flags, and support needs.",
+            route: "analytics" as RouteKey,
+            position: "bottom-right",
+            target: '[data-tour="nav-analytics"]',
+          },
         ]
       : [
-          { title: "Open your portal", detail: "Your dashboard shows the latest recap, assigned tasks, and resources from your teacher.", route: "student" as RouteKey, position: "top-left" },
-          { title: "Check the session detail", detail: "Open a class to see what changed, what is due, and which resources to use.", route: "student-session" as RouteKey, position: "center" },
-          { title: "Mark progress", detail: "Update your task status so your teacher can see what still needs support.", route: "student" as RouteKey, position: "bottom-right" },
+          {
+            title: "Open your portal",
+            detail: "Your dashboard shows the latest recap, assigned tasks, and resources from your teacher.",
+            route: "student" as RouteKey,
+            position: "top-left",
+            target: '[data-tour="nav-student"], .student-hero',
+          },
+          {
+            title: "Check the session detail",
+            detail: "Open a class to see what changed, what is due, and which resources to use.",
+            route: "student-session" as RouteKey,
+            position: "center",
+            target: ".today-card",
+          },
+          {
+            title: "Mark progress",
+            detail: "Update your task status so your teacher can see what still needs support.",
+            route: "student" as RouteKey,
+            position: "bottom-right",
+            target: ".today-card .primary-button",
+          },
         ];
   const activeStep = steps[stepIndex] ?? steps[0];
   const isLast = stepIndex >= steps.length - 1;
+  const [highlightStyle, setHighlightStyle] = useState<CSSProperties | null>(null);
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties | null>(null);
+
+  useEffect(() => {
+    const measureTarget = () => {
+      if (window.innerWidth <= 920) {
+        setHighlightStyle(null);
+        setPopoverStyle(null);
+        return;
+      }
+
+      const target = document.querySelector<HTMLElement>(activeStep.target);
+      if (!target) {
+        setHighlightStyle(null);
+        setPopoverStyle(null);
+        return;
+      }
+
+      const rect = target.getBoundingClientRect();
+      const padding = 8;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const highlight = {
+        left: Math.max(12, rect.left - padding),
+        top: Math.max(12, rect.top - padding),
+        width: Math.min(viewportWidth - 24, rect.width + padding * 2),
+        height: Math.min(viewportHeight - 24, rect.height + padding * 2),
+      };
+      const popoverWidth = Math.min(430, viewportWidth - 36);
+      const estimatedPopoverHeight = 320;
+      const gap = 18;
+      let left = rect.left;
+      if (left + popoverWidth > viewportWidth - 18) left = viewportWidth - popoverWidth - 18;
+      left = Math.max(18, left);
+
+      let top = rect.bottom + gap;
+      if (top + estimatedPopoverHeight > viewportHeight - 18) top = rect.top - estimatedPopoverHeight - gap;
+      if (top < 18) top = Math.max(18, viewportHeight - estimatedPopoverHeight - 18);
+
+      setHighlightStyle(highlight);
+      setPopoverStyle({ left, top, width: popoverWidth });
+    };
+
+    measureTarget();
+    window.addEventListener("resize", measureTarget);
+    window.addEventListener("scroll", measureTarget, true);
+    return () => {
+      window.removeEventListener("resize", measureTarget);
+      window.removeEventListener("scroll", measureTarget, true);
+    };
+  }, [activeStep.target]);
 
   return (
     <div className="guided-tour" role="dialog" aria-modal="true" aria-label="ClassLoop guided walkthrough">
-      <div className={`tour-highlight ${activeStep.position}`} aria-hidden="true" />
-      <section className={`tour-popover ${activeStep.position}`}>
+      <div
+        className={`tour-highlight ${highlightStyle ? "anchored" : activeStep.position}`}
+        style={highlightStyle ?? undefined}
+        aria-hidden="true"
+      />
+      <section className={`tour-popover ${popoverStyle ? "anchored" : activeStep.position}`} style={popoverStyle ?? undefined}>
         <span className="eyebrow">Step {stepIndex + 1} of {steps.length}</span>
         <h2>{activeStep.title}</h2>
         <p>{activeStep.detail}</p>
@@ -2662,7 +2904,12 @@ function Sidebar({
               const Icon = item.icon;
               const active = route === item.route;
               return (
-                <button key={item.route} className={active ? "nav-item active" : "nav-item"} onClick={() => navigate(item.route)}>
+                <button
+                  key={item.route}
+                  className={active ? "nav-item active" : "nav-item"}
+                  data-tour={`nav-${item.route}`}
+                  onClick={() => navigate(item.route)}
+                >
                   <Icon size={19} />
                   <span>{item.label}</span>
                 </button>
@@ -2697,12 +2944,14 @@ function Topbar({
   auth,
   syncStatus,
   onUpdateAccount,
+  onStartWalkthrough,
 }: {
   route: RouteKey;
   latestSession?: Session;
   auth: AuthSession;
   syncStatus: SyncStatus;
   onUpdateAccount: (settings: AccountSettingsInput) => Promise<{ ok: boolean; message?: string }>;
+  onStartWalkthrough: () => void;
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
   return (
@@ -2729,12 +2978,18 @@ function Topbar({
         </div>
         {auth.role === "teacher" && (
           <>
-            <button className="ghost-button" onClick={() => navigate("student")}>
-              <GraduationCap size={17} />
-              Student preview
+            <button
+              className="icon-button tutorial-button"
+              type="button"
+              onClick={onStartWalkthrough}
+              aria-label="Open interactive walkthrough"
+              title="Open interactive walkthrough"
+            >
+              <Lightbulb size={18} />
             </button>
             <button
               className="primary-button"
+              data-tour="new-session-button"
               onClick={() => navigate("new-session")}
               aria-label={latestSession ? `Create a new session after ${latestSession.title}` : "Create a new session"}
             >
@@ -2870,10 +3125,11 @@ function TeacherDashboard({
   const absentStudents = latest ? Object.entries(latest.attendance).filter(([, status]) => status === "absent") : [];
   const quietStudents = latest?.participationEvents.filter((event) => event.approved && event.type === "quiet") ?? [];
   const hasAttention = absentStudents.length > 0 || quietStudents.length > 0 || overdue.length > 0;
+  const currentPlanTier: PlanTier = isPaidPlan(billingProfile) ? "pro" : "free";
 
   return (
     <div className="page-stack">
-      <section className="dashboard-hero">
+      <section className="dashboard-hero" data-tour="dashboard-hero">
         <div className="hero-copy">
           <span className="eyebrow">Live class follow-up loop</span>
           <h2>Turn messy class records into edited recaps, personal tasks, and completion check-ins.</h2>
@@ -3022,18 +3278,15 @@ function TeacherDashboard({
         </Panel>
         <Panel title="Current plan" icon={ShieldCheck} action="View options" onAction={() => navigate("billing")}>
           <div className="plan-stack">
-            <PlanRow
-              tier={billingProfile.tier === "school" ? "School pilot" : billingProfile.tier === "pro" ? "Pro" : "Free"}
-              detail={
-                isPaidPlan(billingProfile)
-                  ? "Paid features are active for this account. You can change or downgrade from plan options."
-                  : "Free includes core imports, draft review, student preview, and CSV roster tools."
-              }
-            />
-            <button className="ghost-button full" type="button" onClick={() => navigate("billing")}>
-              <ShieldCheck size={17} />
-              View plan options
-            </button>
+            {planCatalog.map((plan) => (
+              <PlanRow
+                key={plan.tier}
+                tier={plan.name}
+                detail={plan.detail}
+                price={plan.price}
+                current={currentPlanTier === plan.tier}
+              />
+            ))}
           </div>
         </Panel>
       </section>
@@ -3145,11 +3398,25 @@ function AttentionItem({
   );
 }
 
-function PlanRow({ tier, detail }: { tier: string; detail: string }) {
+function PlanRow({
+  tier,
+  detail,
+  price,
+  current,
+}: {
+  tier: string;
+  detail: string;
+  price?: string;
+  current?: boolean;
+}) {
   return (
-    <div className="plan-row">
-      <strong>{tier}</strong>
+    <div className={current ? "plan-row current" : "plan-row"}>
+      <strong>
+        {tier}
+        {price && <span>{price}</span>}
+      </strong>
       <span>{detail}</span>
+      {current && <small>Current plan</small>}
     </div>
   );
 }
@@ -3174,6 +3441,8 @@ function SyncBillingPage({
   const [cloudPassword, setCloudPassword] = useState("");
   const [message, setMessage] = useState("");
   const [connectedEmail, setConnectedEmail] = useState("");
+  const currentPlanTier: PlanTier = isPaidPlan(billingProfile) ? "pro" : "free";
+  const hasPro = currentPlanTier === "pro";
 
   useEffect(() => {
     getCloudSession().then((session) => setConnectedEmail(session?.user.email ?? ""));
@@ -3231,7 +3500,7 @@ function SyncBillingPage({
     try {
       if (!backendStatus.webReady || !connectedEmail) {
         setBillingProfile({ tier, status: "active" });
-        setMessage(`${tier === "school" ? "School pilot" : "Pro"} enabled on this device for local testing. Connect hosted sync and Stripe to make billing server-owned.`);
+        setMessage("Pro enabled on this device for local testing. Connect hosted sync and Stripe to make billing server-owned.");
         appendAudit("plan_switch_local", `Switched local plan to ${tier}.`);
         return;
       }
@@ -3239,6 +3508,19 @@ function SyncBillingPage({
       window.location.href = checkout.url;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Stripe Checkout is not configured yet.");
+    }
+  };
+
+  const openBillingPortal = async () => {
+    try {
+      if (!backendStatus.webReady || !connectedEmail) {
+        setMessage("Stripe billing management appears after Pro is connected to a cloud account and Stripe Checkout is complete.");
+        return;
+      }
+      const portal = await createBillingPortalSession();
+      window.location.href = portal.url;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Stripe Billing Portal is not configured yet.");
     }
   };
 
@@ -3259,76 +3541,111 @@ function SyncBillingPage({
       <section className="review-banner">
         <div>
           <span className="eyebrow">Plan options</span>
-          <h2>Choose how ClassLoop works for you.</h2>
-          <p>Stay on the local Free plan, connect hosted sync for access across devices, or unlock paid account features when billing is configured.</p>
+          <h2>Save time on every class follow-up.</h2>
+          <p>
+            Free is for trying the workflow. Pro is for teachers who want unlimited follow-ups, live capture, multi-device
+            access, delivery logs, and reusable reports without rebuilding the same class record again.
+          </p>
         </div>
-        <button className="ghost-button" onClick={() => navigate("privacy")}>
-          <ShieldCheck size={17} />
-          Privacy controls
-        </button>
       </section>
 
       <section className="content-grid two-columns align-start">
-        <Panel title="Hosted backend" icon={RefreshCw}>
-          <div className="settings-stack">
-            <div className="integration-card">
-              <strong>{backendStatus.supabaseConfigured ? "Supabase ready" : "Supabase keys needed"}</strong>
-              <small>
-                {backendStatus.supabaseConfigured
-                  ? "Cloud accounts can sync the same workspace across browser and desktop."
-                  : "Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable hosted login."}
-              </small>
+        {hasPro ? (
+          <Panel title="Pro cloud sync" icon={RefreshCw}>
+            <div className="settings-stack">
+              <div className="integration-card">
+                <strong>{backendStatus.supabaseConfigured ? "Cloud sync ready" : "Cloud keys needed"}</strong>
+                <small>
+                  {backendStatus.supabaseConfigured
+                    ? "Sign in here to use the same ClassLoop workspace across browser, desktop, and another device."
+                    : "Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable multi-device Pro login."}
+                </small>
+              </div>
+              <div className="integration-card soft-note">
+                <strong>Normal login vs cloud email</strong>
+                <small>
+                  Normal login opens the account saved on this device. Cloud email is the hosted Pro account that syncs
+                  the same workspace across devices and keeps paid access tied to the account.
+                </small>
+              </div>
+              <label className="field compact">
+                <span>Cloud email</span>
+                <input value={cloudEmail} onChange={(event) => setCloudEmail(event.target.value)} placeholder="you@school.org" />
+              </label>
+              <label className="field compact">
+                <span>Cloud password</span>
+                <input type="password" value={cloudPassword} onChange={(event) => setCloudPassword(event.target.value)} />
+              </label>
+              <div className="button-row">
+                <button className="primary-button" type="button" onClick={() => connectCloud("signin")}>
+                  Sign in
+                </button>
+                <button className="ghost-button" type="button" onClick={() => connectCloud("signup")}>
+                  Create cloud account
+                </button>
+              </div>
+              {connectedEmail && <p className="settings-message success">Connected as {connectedEmail}</p>}
+              <div className="button-row">
+                <button className="ghost-button" type="button" onClick={uploadCloud} disabled={!connectedEmail}>
+                  Upload this device
+                </button>
+                <button className="ghost-button" type="button" onClick={downloadCloud} disabled={!connectedEmail}>
+                  Download cloud copy
+                </button>
+                <button className="text-button" type="button" onClick={refreshProfile} disabled={!connectedEmail}>
+                  Refresh plan
+                </button>
+                <button className="text-button" type="button" onClick={disconnect} disabled={!connectedEmail}>
+                  Disconnect
+                </button>
+                <button className="text-button" type="button" onClick={openBillingPortal}>
+                  Manage billing
+                </button>
+              </div>
+              {message && <p className="settings-message">{message}</p>}
             </div>
-            <label className="field compact">
-              <span>Cloud email</span>
-              <input value={cloudEmail} onChange={(event) => setCloudEmail(event.target.value)} placeholder="you@school.org" />
-            </label>
-            <label className="field compact">
-              <span>Cloud password</span>
-              <input type="password" value={cloudPassword} onChange={(event) => setCloudPassword(event.target.value)} />
-            </label>
-            <div className="button-row">
-              <button className="primary-button" type="button" onClick={() => connectCloud("signin")}>
-                Sign in
-              </button>
-              <button className="ghost-button" type="button" onClick={() => connectCloud("signup")}>
-                Create cloud account
-              </button>
+          </Panel>
+        ) : (
+          <Panel title="Why teachers upgrade" icon={Clock3}>
+            <div className="settings-stack">
+              <div className="integration-card active">
+                <strong>Save the repeat work</strong>
+                <small>Generate more than one class follow-up per day, reuse rosters, and avoid rebuilding student tasks manually.</small>
+              </div>
+              <div className="integration-card">
+                <strong>Capture class moments faster</strong>
+                <small>Unlock in-person and online meeting capture so you can draft from live class notes when transcript files are not ready.</small>
+              </div>
+              <div className="integration-card">
+                <strong>Work from more than one device</strong>
+                <small>Cloud login appears with Pro so your workspace can sync between desktop and browser.</small>
+              </div>
+              {message && <p className="settings-message">{message}</p>}
             </div>
-            {connectedEmail && <p className="settings-message success">Connected as {connectedEmail}</p>}
-            <div className="button-row">
-              <button className="ghost-button" type="button" onClick={uploadCloud} disabled={!connectedEmail}>
-                Upload this device
-              </button>
-              <button className="ghost-button" type="button" onClick={downloadCloud} disabled={!connectedEmail}>
-                Download cloud copy
-              </button>
-              <button className="text-button" type="button" onClick={refreshProfile} disabled={!connectedEmail}>
-                Refresh plan
-              </button>
-              <button className="text-button" type="button" onClick={disconnect} disabled={!connectedEmail}>
-                Disconnect
-              </button>
-            </div>
-            {message && <p className="settings-message">{message}</p>}
-          </div>
-        </Panel>
+          </Panel>
+        )}
 
         <Panel title="Plan options" icon={ShieldCheck}>
           <div className="plan-stack">
             {planCatalog.map((plan) => (
-              <div key={plan.tier} className="plan-row">
+              <div key={plan.tier} className={currentPlanTier === plan.tier ? "plan-row current" : "plan-row"}>
                 <strong>
                   {plan.name} <span>{plan.price}</span>
                 </strong>
                 <span>{plan.detail}</span>
                 {plan.tier === "free" ? (
-                  <small>
-                    Current usage: {sessionCount}/{plan.sessionLimit} sessions.
-                  </small>
+                  <>
+                    <small>Today: {Math.min(sessionCount, 1)}/1 Free session used.</small>
+                    {isPaidPlan(billingProfile) && (
+                      <button className="text-button" type="button" onClick={downgradeToFree}>
+                        Downgrade to Free
+                        <ChevronRight size={16} />
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <button className="text-button" type="button" onClick={() => startCheckout(plan.tier)}>
-                    {billingProfile.tier === plan.tier && isPaidPlan(billingProfile) ? "Current plan" : `Switch to ${plan.name}`}
+                    {currentPlanTier === plan.tier && isPaidPlan(billingProfile) ? "Current plan" : `Upgrade to ${plan.name}`}
                     <ChevronRight size={16} />
                   </button>
                 )}
@@ -3339,16 +3656,9 @@ function SyncBillingPage({
             <span>
               <strong>Current account</strong>
               <small>
-                {billingProfile.tier.toUpperCase()} · {billingProfile.status}
+                {currentPlanTier.toUpperCase()} · {billingProfile.status}
               </small>
             </span>
-            <button
-              className={isPaidPlan(billingProfile) ? "ghost-button danger full" : "ghost-button full"}
-              type="button"
-              onClick={downgradeToFree}
-            >
-              {isPaidPlan(billingProfile) ? "Downgrade to Free" : "Keep Free plan"}
-            </button>
           </div>
         </Panel>
       </section>
@@ -3413,6 +3723,8 @@ function ImportSession({
   rosterTemplates,
   classGroups,
   canCreateSession,
+  canUseLiveCapture,
+  dailySessionsUsed,
   planName,
 }: {
   ownerEmail: string;
@@ -3422,6 +3734,8 @@ function ImportSession({
   rosterTemplates: RosterTemplate[];
   classGroups: ClassGroup[];
   canCreateSession: boolean;
+  canUseLiveCapture: boolean;
+  dailySessionsUsed: number;
   planName: string;
 }) {
   const [title, setTitle] = useState("");
@@ -3536,6 +3850,10 @@ function ImportSession({
   };
 
   const startCapture = async (mode: SessionCaptureMode) => {
+    if ((mode === "in_person" || mode === "audio" || mode === "online_meeting") && !canUseLiveCapture) {
+      setPlanMessage("Live in-person and online meeting capture are Pro features. Upgrade to Pro to unlock them.");
+      return;
+    }
     if (recordingConsentRequired && !recordingConsent) {
       setCaptureMessage("Confirm recording/capture permission before starting.");
       return;
@@ -3650,7 +3968,12 @@ function ImportSession({
 
   const generateDraft = () => {
     if (!canCreateSession) {
-      setPlanMessage(`${planName} has reached the free session limit. Upgrade to keep generating new sessions.`);
+      setPlanMessage(
+        `${planName} lets you generate 1 session per day. You have used ${Math.min(
+          dailySessionsUsed,
+          1,
+        )}/1 today. Upgrade to Pro for unlimited sessions, or come back after midnight.`,
+      );
       return;
     }
     setPlanMessage("");
@@ -3840,17 +4163,40 @@ function ImportSession({
                 </button>
                 <button
                   type="button"
-                  className={captureMode === "in_person" || captureMode === "audio" ? "capture-mode-card active" : "capture-mode-card"}
-                  onClick={() => setCaptureMode("in_person")}
+                  className={[
+                    "capture-mode-card",
+                    captureMode === "in_person" || captureMode === "audio" ? "active" : "",
+                    canUseLiveCapture ? "" : "locked",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onClick={() => {
+                    if (!canUseLiveCapture) {
+                      setPlanMessage("In-person live capture is available with Pro.");
+                      return;
+                    }
+                    setCaptureMode("in_person");
+                  }}
                 >
                   <Mic2 size={18} />
                   <strong>In-person class</strong>
                   <small>Use the device microphone for live notes during classroom discussion.</small>
+                  {!canUseLiveCapture && <small className="pro-lock-note">Pro only</small>}
                 </button>
                 <button
                   type="button"
-                  className={captureMode === "online_meeting" ? "capture-mode-card active" : "capture-mode-card"}
+                  className={[
+                    "capture-mode-card",
+                    captureMode === "online_meeting" ? "active" : "",
+                    canUseLiveCapture ? "" : "locked",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   onClick={() => {
+                    if (!canUseLiveCapture) {
+                      setPlanMessage("Online meeting capture is available with Pro.");
+                      return;
+                    }
                     setCaptureMode("online_meeting");
                     setShowMeetingHelp(true);
                   }}
@@ -3858,6 +4204,7 @@ function ImportSession({
                   <PlayCircle size={18} />
                   <strong>Online meeting</strong>
                   <small>Capture a tab or window with audio when the browser supports it.</small>
+                  {!canUseLiveCapture && <small className="pro-lock-note">Pro only</small>}
                 </button>
               </div>
               {captureMode !== "transcript" && (
@@ -3973,13 +4320,18 @@ function ImportSession({
               <PlayCircle size={18} />
               Use geometry sample
             </button>
-            <button className="primary-button full" onClick={generateDraft}>
+            <button className="primary-button full" onClick={generateDraft} disabled={!canCreateSession}>
               <Wand2 size={18} />
               Generate draft
             </button>
-            {planMessage && (
+            {!canCreateSession && !planMessage && (
+              <p className="settings-message">
+                Free accounts can generate 1 session per day. This unlocks again after midnight, or you can upgrade to Pro.
+              </p>
+            )}
+            {(planMessage || !canCreateSession) && (
               <>
-                <p className="settings-message">{planMessage}</p>
+                {planMessage && <p className="settings-message">{planMessage}</p>}
                 <button className="ghost-button full" type="button" onClick={() => navigate("billing")}>
                   View plan options
                 </button>

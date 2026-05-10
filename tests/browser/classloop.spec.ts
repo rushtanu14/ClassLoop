@@ -30,6 +30,14 @@ async function expectDownloaded(downloadPromise: Promise<Download>, filenamePatt
   expect(download.suggestedFilename()).toMatch(filenamePattern);
 }
 
+test("public root shows landing page and can enter the app demo", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /^ClassLoop$/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /download for macos/i })).toBeVisible();
+  await page.getByRole("button", { name: /open web demo/i }).click();
+  await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
+});
+
 async function publishGeometrySample(page: Page) {
   await page.getByRole("button", { name: /new session/i }).first().click();
   await expect(page.getByText(/session template/i)).toBeVisible();
@@ -212,18 +220,28 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   await page.getByRole("button", { name: /remove image/i }).click();
   await page.getByRole("button", { name: /^reset$/i }).click();
 
-  await page.getByRole("button", { name: /how it works/i }).click();
+  await expect(page.locator(".topbar-actions").getByRole("button", { name: /student preview/i })).toHaveCount(0);
+  await page.getByRole("button", { name: /open interactive walkthrough/i }).click();
   await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /start on the dashboard/i })).toBeVisible();
   await page.getByRole("button", { name: /^next/i }).click();
   await expect(page.getByRole("heading", { name: /create the session/i })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) > 920) {
+    await expect.poll(async () => (await page.locator(".tour-highlight").boundingBox())?.height ?? 999).toBeLessThan(90);
+  }
   await page.getByRole("button", { name: /skip/i }).click();
   await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 
   await page.getByRole("button", { name: /^plan options$/i }).click();
-  await expect(page.getByRole("heading", { name: /choose how classloop works for you/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /save time on every class follow-up/i })).toBeVisible();
   await expect(page.getByText(/plan options/i).first()).toBeVisible();
-  await page.getByRole("button", { name: /keep free plan/i }).click();
+  await expect(page.getByText(/why teachers upgrade/i)).toBeVisible();
+  await expect(page.getByPlaceholder("you@school.org")).toHaveCount(0);
+  await expect(page.getByText(/school pilot/i)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /keep free/i })).toHaveCount(0);
+  await page.getByRole("button", { name: /upgrade to pro/i }).click();
+  await expect(page.getByRole("button", { name: /downgrade to free/i })).toBeVisible();
+  await expect(page.getByText(/normal login vs cloud email/i)).toBeVisible();
   await page.getByPlaceholder("you@school.org").fill("teacher@example.edu");
   await page.locator('input[type="password"]').fill("cloud-password");
   await page.getByRole("button", { name: /^sign in$/i }).click();
@@ -241,7 +259,7 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   await expect(page.getByText(/export data/i)).toBeVisible();
 });
 
-test("teacher can choose in-person or online meeting capture without biometric voice ID", async ({ page }) => {
+test("live capture modes are visible but Pro-gated for Free accounts", async ({ page }) => {
   await signIn(page, "teacher");
   await page.getByRole("button", { name: /new session/i }).first().click();
 
@@ -249,7 +267,15 @@ test("teacher can choose in-person or online meeting capture without biometric v
   await expect(page.getByRole("button", { name: /Transcript\s*Upload or paste/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /In-person class/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /Online meeting/i })).toBeVisible();
+  await expect(page.getByText(/Pro only/i).first()).toBeVisible();
 
+  await page.getByRole("button", { name: /In-person class/i }).click();
+  await expect(page.getByText(/In-person live capture is available with Pro/i)).toBeVisible();
+
+  await page.getByRole("button", { name: /^plan options$/i }).click();
+  await page.getByRole("button", { name: /upgrade to pro/i }).click();
+  await page.getByRole("button", { name: /new session/i }).first().click();
+  await expect(page.getByText(/Pro only/i)).toHaveCount(0);
   await page.getByRole("button", { name: /In-person class/i }).click();
   await expect(page.getByText(/No voiceprints are created/i)).toBeVisible();
   await expect(page.getByText(/unknown voice segments/i)).toBeVisible();

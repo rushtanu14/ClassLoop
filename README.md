@@ -96,17 +96,45 @@ The local desktop app still works without paid services or cloud credentials. Fo
 - Supabase Auth for hosted teacher/student accounts.
 - Supabase workspace state sync for browser/desktop continuity.
 - Row Level Security SQL in `supabase/schema.sql` so each account can only read and write its own ClassLoop state.
-- Stripe Checkout for Pro and School pilot subscriptions.
+- Stripe Checkout for Pro subscriptions.
 - Stripe webhook endpoint for server-owned subscription status updates.
 - Pilot feedback endpoint for collecting early user feedback.
+- A Vercel landing page at `/` with download/demo calls to action.
+
+Hosted route behavior:
+
+- `https://your-domain.com/` shows the public ClassLoop landing page.
+- `https://your-domain.com/#/dashboard` opens the app/demo sign-in flow.
+- `https://your-domain.com/api/config` returns safe booleans that confirm whether server-only Supabase and Stripe env vars were picked up by Vercel.
+- Set `VITE_CLASSLOOP_MAC_DOWNLOAD_URL` to a signed release asset when the desktop installer is ready. Until then, the landing page directs visitors to the web demo.
 
 Suggested pricing:
 
-- Free: `$0`, 5 sessions/month, CSV import/export, student preview, local desktop storage.
-- Pro: `$9/month`, unlimited sessions, hosted sync, email delivery logs, privacy exports, and advanced reports.
-- School pilot: `$49/month`, shared pilot workspace, longer retention controls, audit-ready exports, and priority onboarding.
+- Free: `$0`, 1 generated session per day, transcript import, draft review, student portal preview, CSV roster tools, and local desktop storage.
+- Pro: `$9/month`, unlimited sessions, live in-person/online capture modes, multi-device cloud login, email delivery logs, privacy exports, and advanced reports.
 
 Configure hosted mode from `.env.example`. Public Vite variables are safe for the browser build; `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, and `STRIPE_WEBHOOK_SECRET` must only live in Vercel/server environment variables.
+
+### Stripe Setup
+
+ClassLoop creates Stripe Checkout sessions on the server. The React app does not need to embed a checkout form like Stripe's starter example; it calls `/api/billing/checkout`, receives a Checkout URL, and redirects the teacher there.
+
+1. In Stripe, stay in **Test mode** while setting this up.
+2. Go to **Product catalog** and create `ClassLoop Pro`.
+3. Add a recurring monthly price, recommended `$9/month`.
+4. Copy the recurring price ID that starts with `price_`.
+5. Put that same price ID in both `VITE_STRIPE_PRO_PRICE_ID` and `STRIPE_PRO_PRICE_ID`.
+6. Copy your Stripe secret key into `STRIPE_SECRET_KEY`. Never commit it.
+7. Add a webhook endpoint for `https://your-domain.com/api/billing/webhook`.
+8. Subscribe the webhook to `checkout.session.completed`, `customer.subscription.updated`, and `customer.subscription.deleted`.
+9. Copy the webhook signing secret into `STRIPE_WEBHOOK_SECRET`.
+10. Set `CLASSLOOP_PUBLIC_URL` to your deployed app URL, such as `https://classloop.vercel.app`.
+
+After editing Vercel environment variables, redeploy the latest `main` branch. If `/api/config` still includes old fields such as `stripeSchoolConfigured`, Vercel is serving an older deployment.
+
+Your Stripe publishable key starts with `pk_`. It is safe for browser code, but this current Checkout flow does not require it because the server creates the Checkout session. If ClassLoop later adds Stripe Elements or client-side Stripe.js, add it as `VITE_STRIPE_PUBLISHABLE_KEY` in `.env.local` and Vercel.
+
+For secure production billing, Stripe Pro access should be tied to a hosted Supabase account. The full cloud sync login panel is shown only after Pro is active, but the deployed checkout flow still needs backend auth available so the webhook can attach the subscription to the right account.
 
 ## Privacy And School Readiness
 
@@ -172,6 +200,6 @@ Core MVP promise:
 
 ## Monetization Direction
 
-- Free: limited sessions per month, basic recap, basic action items.
-- Pro: unlimited sessions, local transcript processing, student dashboards, analytics, exports.
-- Future school/team plan: admin dashboards, roster sync, privacy controls, and team reporting.
+- Free: 1 generated session per day, transcript import, draft review, student portal preview, CSV roster tools, and local desktop storage.
+- Pro: `$9/month` for unlimited sessions, live capture modes, multi-device cloud login/sync, delivery logs, privacy exports, and advanced reports.
+- School/team features stay future-only until the product has real pilot demand and a privacy/legal review path.

@@ -1,6 +1,6 @@
 import { createClient, type Session as SupabaseSession, type SupabaseClient } from "@supabase/supabase-js";
 
-export type PlanTier = "free" | "pro" | "school";
+export type PlanTier = "free" | "pro";
 
 export type BillingProfile = {
   tier: PlanTier;
@@ -33,21 +33,14 @@ export const planCatalog = [
     tier: "free" as const,
     name: "Free",
     price: "$0",
-    detail: "5 sessions each month, CSV import/export, student preview, and local desktop storage.",
-    sessionLimit: 5,
+    detail: "1 generated session per day, transcript import, draft review, student portal preview, and CSV roster tools.",
+    sessionLimit: 1,
   },
   {
     tier: "pro" as const,
     name: "Pro",
     price: "$9/mo",
-    detail: "Unlimited sessions, multi-device cloud sync, email delivery logs, privacy exports, and advanced reports.",
-    sessionLimit: Number.POSITIVE_INFINITY,
-  },
-  {
-    tier: "school" as const,
-    name: "School pilot",
-    price: "$49/mo",
-    detail: "Shared pilot workspace, longer retention controls, audit-ready exports, and priority onboarding.",
+    detail: "Unlimited sessions, live capture modes, multi-device cloud sync, email delivery logs, privacy exports, and advanced reports.",
     sessionLimit: Number.POSITIVE_INFINITY,
   },
 ];
@@ -59,7 +52,7 @@ let supabaseClient: SupabaseClient | null = null;
 
 export function getBackendStatus(): BackendStatus {
   const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
-  const stripeConfigured = Boolean(import.meta.env.VITE_STRIPE_PRO_PRICE_ID || import.meta.env.VITE_STRIPE_SCHOOL_PRICE_ID);
+  const stripeConfigured = Boolean(import.meta.env.VITE_STRIPE_PRO_PRICE_ID);
   return {
     supabaseConfigured,
     stripeConfigured,
@@ -78,7 +71,7 @@ export function planForTier(tier: PlanTier) {
 }
 
 export function isPaidPlan(profile?: BillingProfile | null) {
-  return Boolean(profile && ["pro", "school"].includes(profile.tier) && ["active", "trialing"].includes(profile.status));
+  return Boolean(profile && profile.tier === "pro" && ["active", "trialing"].includes(profile.status));
 }
 
 export async function getCloudSession() {
@@ -131,6 +124,10 @@ export async function createCheckoutSession(tier: Exclude<PlanTier, "free">) {
     method: "POST",
     body: JSON.stringify({ tier }),
   });
+}
+
+export async function createBillingPortalSession() {
+  return cloudRequest<{ url: string }>("/api/billing/portal", { method: "POST" });
 }
 
 export async function getCloudProfile() {

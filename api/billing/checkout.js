@@ -7,8 +7,8 @@ export default async function handler(request, response) {
   try {
     const { supabase, user } = await requireUser(request);
     const stripe = new Stripe(requiredEnv("STRIPE_SECRET_KEY"));
-    const tier = request.body?.tier === "school" ? "school" : "pro";
-    const price = tier === "school" ? requiredEnv("STRIPE_SCHOOL_PRICE_ID") : requiredEnv("STRIPE_PRO_PRICE_ID");
+    const tier = "pro";
+    const price = requiredEnv("STRIPE_PRO_PRICE_ID");
     const baseUrl = process.env.CLASSLOOP_PUBLIC_URL || originUrl(request);
     const { data: profile } = await supabase
       .from("classloop_profiles")
