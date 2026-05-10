@@ -3124,25 +3124,58 @@ function GuidedWalkthroughOverlay({
       const padding = 8;
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
+      const viewportInset = 18;
+      const highlightLeft = Math.max(12, rect.left - padding);
+      const highlightTop = Math.max(12, rect.top - padding);
+      const highlightRight = Math.min(viewportWidth - 12, rect.right + padding);
+      const highlightBottom = Math.min(viewportHeight - 12, rect.bottom + padding);
       const highlight: TourRect = {
-        left: Math.max(12, rect.left - padding),
-        top: Math.max(12, rect.top - padding),
-        width: Math.min(viewportWidth - 24, rect.width + padding * 2),
-        height: Math.min(viewportHeight - 24, rect.height + padding * 2),
+        left: highlightLeft,
+        top: highlightTop,
+        width: Math.max(0, highlightRight - highlightLeft),
+        height: Math.max(0, highlightBottom - highlightTop),
       };
-      const popoverWidth = Math.min(430, viewportWidth - 36);
-      const estimatedPopoverHeight = 320;
+      const popoverWidth = Math.min(430, viewportWidth - viewportInset * 2);
+      const estimatedPopoverHeight = 280;
       const gap = 18;
-      let left = rect.left;
-      if (left + popoverWidth > viewportWidth - 18) left = viewportWidth - popoverWidth - 18;
-      left = Math.max(18, left);
-
-      let top = rect.bottom + gap;
-      if (top + estimatedPopoverHeight > viewportHeight - 18) top = rect.top - estimatedPopoverHeight - gap;
-      if (top < 18) top = Math.max(18, viewportHeight - estimatedPopoverHeight - 18);
+      const maxPopoverLeft = Math.max(viewportInset, viewportWidth - popoverWidth - viewportInset);
+      const maxPopoverTop = Math.max(viewportInset, viewportHeight - estimatedPopoverHeight - viewportInset);
+      const clampLeft = (value: number) => Math.min(Math.max(viewportInset, value), maxPopoverLeft);
+      const clampTop = (value: number) => Math.min(Math.max(viewportInset, value), maxPopoverTop);
+      const overlapsHighlight = (candidate: { left: number; top: number }) => {
+        const candidateRight = candidate.left + popoverWidth;
+        const candidateBottom = candidate.top + estimatedPopoverHeight;
+        return !(
+          candidateRight + gap <= highlight.left ||
+          candidate.left >= highlight.left + highlight.width + gap ||
+          candidateBottom + gap <= highlight.top ||
+          candidate.top >= highlight.top + highlight.height + gap
+        );
+      };
+      const firstSlide = stepIndex === 0;
+      const candidates = firstSlide
+        ? [
+            { left: viewportWidth - popoverWidth - viewportInset, top: viewportHeight - estimatedPopoverHeight - viewportInset },
+            { left: viewportInset, top: viewportHeight - estimatedPopoverHeight - viewportInset },
+            { left: rect.left, top: rect.bottom + gap },
+            { left: rect.right - popoverWidth, top: rect.bottom + gap },
+          ]
+        : [
+            { left: rect.left, top: rect.bottom + gap },
+            { left: rect.right + gap, top: rect.top },
+            { left: rect.left - popoverWidth - gap, top: rect.top },
+            { left: rect.left, top: rect.top - estimatedPopoverHeight - gap },
+          ];
+      const popoverPosition =
+        candidates
+          .map((candidate) => ({ left: clampLeft(candidate.left), top: clampTop(candidate.top) }))
+          .find((candidate) => !overlapsHighlight(candidate)) ?? {
+          left: clampLeft(rect.left),
+          top: clampTop(rect.bottom + gap),
+        };
 
       setHighlightStyle(highlight);
-      setPopoverStyle({ left, top, width: popoverWidth });
+      setPopoverStyle({ left: popoverPosition.left, top: popoverPosition.top, width: popoverWidth });
     };
 
     measureTarget();
@@ -3152,7 +3185,7 @@ function GuidedWalkthroughOverlay({
       window.removeEventListener("resize", measureTarget);
       window.removeEventListener("scroll", measureTarget, true);
     };
-  }, [activeStep.target]);
+  }, [activeStep.target, stepIndex]);
 
   const backdropPieces = highlightStyle
     ? [
