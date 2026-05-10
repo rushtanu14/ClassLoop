@@ -6583,11 +6583,13 @@ function StudentSessionDetail({
     <div className="page-stack student-detail">
       <section className="student-session-header">
         <div>
-          <button className="back-button" onClick={() => navigate("student")}>
-            <ChevronRight size={16} />
-            Back to student dashboard
-          </button>
-          <span className="eyebrow">{student.name}</span>
+          <div className="student-session-nav">
+            <button className="back-button" onClick={() => navigate("student")}>
+              <ChevronRight size={16} />
+              Back to student dashboard
+            </button>
+            <span className="student-session-student">{student.name}</span>
+          </div>
           <h2>{session.title}</h2>
           <p>{followUp.catchUp}</p>
         </div>
