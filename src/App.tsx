@@ -2636,6 +2636,77 @@ function LoginPage({
     }
   };
 
+  const startDemo = async (nextRole: AuthRole) => {
+    setIsSubmitting(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await onLogin(
+        nextRole,
+        nextRole === "teacher" ? demoTeacherEmail : demoStudentEmail,
+        nextRole === "teacher" ? "classloop-teacher" : "classloop-student",
+      );
+      if (!result.ok) setError(result.message ?? "Unable to open the demo.");
+    } catch {
+      setError("Unable to open the demo in this browser.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (demoOnly) {
+    return (
+      <main className="login-page demo-choice-page">
+        <section className="login-panel demo-choice-panel">
+          <div className="login-brand">
+            <span className="brand-mark">
+              <BrainCircuit size={26} />
+            </span>
+            <div>
+              <strong>ClassLoop</strong>
+              <small>Web demo workspace</small>
+            </div>
+          </div>
+          <div className="login-copy demo-choice-copy">
+            <span className="eyebrow">Choose a demo</span>
+            <h1>Try ClassLoop as a teacher or student.</h1>
+            <p>
+              Pick a side to explore. This web demo resets sample work, so download the desktop app when
+              you are ready to create your own account and save data.
+            </p>
+          </div>
+          <div className="demo-choice-grid" aria-label="Choose demo side">
+            <button type="button" className="demo-choice-card" onClick={() => startDemo("teacher")} disabled={isSubmitting}>
+              <span>
+                <UserRound size={24} />
+              </span>
+              <strong>{isSubmitting ? "Opening..." : "Demo teacher side"}</strong>
+              <p>Review class records, publish follow-ups, and see completion insights with sample data.</p>
+            </button>
+            <button type="button" className="demo-choice-card" onClick={() => startDemo("student")} disabled={isSubmitting}>
+              <span>
+                <GraduationCap size={24} />
+              </span>
+              <strong>{isSubmitting ? "Opening..." : "Demo student side"}</strong>
+              <p>See how a student receives recaps, tasks, resources, and progress check-ins.</p>
+            </button>
+          </div>
+          {error && <p className="login-error">{error}</p>}
+          <div className="demo-download-card">
+            <div>
+              <strong>Want your own saved workspace?</strong>
+              <span>Create real accounts and keep data in the downloaded app.</span>
+            </div>
+            <button type="button" className="ghost-button" onClick={() => { window.location.href = "/#download"; }}>
+              <Download size={17} />
+              Download app
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="login-page">
       <section className="login-panel">
@@ -3060,13 +3131,59 @@ function GuidedWalkthroughOverlay({
         },
       ]
     : [];
+  const cornerSize = 24;
+  const cornerPieces = highlightStyle
+    ? [
+        {
+          className: "top-left",
+          style: { left: highlightStyle.left, top: highlightStyle.top, width: cornerSize, height: cornerSize },
+        },
+        {
+          className: "top-right",
+          style: {
+            left: highlightStyle.left + highlightStyle.width - cornerSize,
+            top: highlightStyle.top,
+            width: cornerSize,
+            height: cornerSize,
+          },
+        },
+        {
+          className: "bottom-left",
+          style: {
+            left: highlightStyle.left,
+            top: highlightStyle.top + highlightStyle.height - cornerSize,
+            width: cornerSize,
+            height: cornerSize,
+          },
+        },
+        {
+          className: "bottom-right",
+          style: {
+            left: highlightStyle.left + highlightStyle.width - cornerSize,
+            top: highlightStyle.top + highlightStyle.height - cornerSize,
+            width: cornerSize,
+            height: cornerSize,
+          },
+        },
+      ]
+    : [];
 
   return (
     <div className="guided-tour" role="dialog" aria-modal="true" aria-label="ClassLoop guided walkthrough">
       {highlightStyle ? (
-        backdropPieces.map((piece, index) => (
-          <div key={index} className="tour-backdrop-piece" style={piece} aria-hidden="true" />
-        ))
+        <>
+          {backdropPieces.map((piece, index) => (
+            <div key={index} className="tour-backdrop-piece" style={piece} aria-hidden="true" />
+          ))}
+          {cornerPieces.map((piece) => (
+            <div
+              key={piece.className}
+              className={`tour-corner-mask ${piece.className}`}
+              style={piece.style}
+              aria-hidden="true"
+            />
+          ))}
+        </>
       ) : (
         <div className="tour-backdrop-full" aria-hidden="true" />
       )}

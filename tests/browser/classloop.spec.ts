@@ -59,13 +59,13 @@ test("hosted demo mode uses sample accounts only and does not persist demo works
   });
   await page.goto("/?demoOnly=1#/dashboard");
 
-  await expect(page.getByRole("heading", { name: /try classloop with sample accounts/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /create account/i })).toBeDisabled();
-  await expect(page.getByText(/web demo mode uses sample credentials only/i)).toBeVisible();
-  await expect(page.getByPlaceholder("name@example.com")).toHaveValue(teacherEmail);
-  await expect(page.getByPlaceholder("Enter password")).toHaveValue(teacherPassword);
+  await expect(page.getByRole("heading", { name: /try classloop as a teacher or student/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /demo teacher side/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /demo student side/i })).toBeVisible();
+  await expect(page.getByPlaceholder("name@example.com")).toHaveCount(0);
+  await expect(page.getByPlaceholder("Enter password")).toHaveCount(0);
 
-  await page.locator("form.login-form button[type='submit']").click();
+  await page.getByRole("button", { name: /demo teacher side/i }).click();
   await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /start on the dashboard/i })).toBeVisible();
   await page.getByRole("button", { name: /skip/i }).click();
@@ -76,7 +76,7 @@ test("hosted demo mode uses sample accounts only and does not persist demo works
   expect(persistedSessions).toBeNull();
 
   await page.getByRole("button", { name: /sign out/i }).click();
-  await expect(page.getByRole("heading", { name: /try classloop with sample accounts/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /try classloop as a teacher or student/i })).toBeVisible();
 });
 
 async function publishGeometrySample(page: Page) {
@@ -274,6 +274,7 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   await page.getByRole("button", { name: /^next/i }).click();
   await expect(page.getByRole("heading", { name: /create the session/i })).toBeVisible();
   await expect(page.locator(".tour-backdrop-piece")).toHaveCount(4);
+  await expect(page.locator(".tour-corner-mask")).toHaveCount(4);
   if ((page.viewportSize()?.width ?? 0) > 920) {
     await expect.poll(async () => (await page.locator(".tour-highlight").boundingBox())?.height ?? 999).toBeLessThan(90);
   }
