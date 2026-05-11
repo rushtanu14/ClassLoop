@@ -123,7 +123,7 @@ Configure hosted mode from `.env.example`. Public Vite variables are safe for th
 
 ClassLoop includes a lightweight PWA layer for phones and tablets:
 
-- `public/manifest.webmanifest` defines the installable app name, standalone display mode, theme color, icon, and shortcuts.
+- `public/manifest.webmanifest` defines the installable app name, standalone display mode, theme color, SVG/PNG app icons, and shortcuts.
 - `public/sw.js` caches the browser shell and static assets but skips `/api/*` so cloud sync and billing stay network-backed.
 - `index.html` includes mobile web app and theme metadata.
 - The landing page has an "Add to phone" action plus short setup steps for iPhone and Android users.

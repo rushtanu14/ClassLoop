@@ -54,6 +54,7 @@ test("public root shows landing page and can enter the app demo", async ({ page 
   const manifestJson = await manifest.json();
   expect(manifestJson.display).toBe("standalone");
   expect(manifestJson.start_url).toContain("source=pwa");
+  expect(manifestJson.icons?.map((icon: { src: string }) => icon.src)).toContain("/classloop-app-icon-512.png");
   await page.getByRole("button", { name: /open web demo/i }).click();
   await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
 });

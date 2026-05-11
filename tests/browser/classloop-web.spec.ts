@@ -15,7 +15,7 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   const manifestJson = await manifest.json();
   expect(manifestJson.display).toBe("standalone");
   expect(manifestJson.start_url).toContain("source=pwa");
-  expect(manifestJson.icons?.[0]?.src).toBe("/classloop-app-icon.svg");
+  expect(manifestJson.icons?.map((icon: { src: string }) => icon.src)).toContain("/classloop-app-icon-512.png");
 
   const serviceWorker = await page.request.get("/sw.js");
   expect(serviceWorker.ok()).toBeTruthy();

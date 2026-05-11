@@ -3,6 +3,8 @@ const SHELL_ASSETS = [
   "/",
   "/manifest.webmanifest",
   "/classloop-app-icon.svg",
+  "/classloop-app-icon-192.png",
+  "/classloop-app-icon-512.png",
   "/abyssal-hero.png",
   "/abyssal-landscape.png"
 ];
