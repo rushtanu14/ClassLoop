@@ -34,12 +34,12 @@ async function upsertSubscriptionProfile({ customerId, userId, tier, status, sub
   };
 
   if (userId) {
-    const { error } = await supabase.from("classloop_profiles").update(payload).eq("id", userId);
+    const { error } = await supabase.from("relay_profiles").update(payload).eq("id", userId);
     if (error) throw error;
     return;
   }
 
-  const { error } = await supabase.from("classloop_profiles").update(payload).eq("stripe_customer_id", customerId);
+  const { error } = await supabase.from("relay_profiles").update(payload).eq("stripe_customer_id", customerId);
   if (error) throw error;
 }
 

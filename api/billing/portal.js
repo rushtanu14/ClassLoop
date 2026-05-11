@@ -8,7 +8,7 @@ export default async function handler(request, response) {
     const { supabase, user } = await requireUser(request);
     const stripe = new Stripe(requiredEnv("STRIPE_SECRET_KEY"));
     const { data: profile, error } = await supabase
-      .from("classloop_profiles")
+      .from("relay_profiles")
       .select("stripe_customer_id")
       .eq("id", user.id)
       .maybeSingle();
@@ -17,7 +17,7 @@ export default async function handler(request, response) {
       return json(response, 400, { error: "Complete Stripe Checkout before opening the billing portal." });
     }
 
-    const baseUrl = process.env.CLASSLOOP_PUBLIC_URL || originUrl(request);
+    const baseUrl = process.env.RELAY_PUBLIC_URL || originUrl(request);
     const portal = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
       return_url: `${baseUrl}/#/billing`,

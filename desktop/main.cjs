@@ -18,7 +18,7 @@ function getNodemailer() {
 
 const rootDir = path.join(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
-const dataFile = path.join(rootDir, ".classloop-data.json");
+const dataFile = path.join(rootDir, ".relay-data.json");
 let dataFileReadError = null;
 
 const securityHeaders = {
@@ -70,7 +70,7 @@ function emptyWorkspace() {
 
 function dataReadErrorMessage(error) {
   const detail = error instanceof Error && error.message ? ` ${error.message}` : "";
-  return `Unable to read ClassLoop desktop data.${detail}`;
+  return `Unable to read Relay desktop data.${detail}`;
 }
 
 function readDataFile(options = {}) {
@@ -83,7 +83,7 @@ function readDataFile(options = {}) {
     const stored = JSON.parse(fs.readFileSync(dataFile, "utf8"));
     if (stored.encrypted && stored.payload) {
       if (!safeStorage.isEncryptionAvailable()) {
-        throw new Error("Local ClassLoop data encryption is not available.");
+        throw new Error("Local Relay data encryption is not available.");
       }
       dataFileReadError = null;
       return JSON.parse(safeStorage.decryptString(Buffer.from(stored.payload, "base64")));
@@ -180,7 +180,7 @@ function deliverableStudents(session) {
   return Array.isArray(session.students)
     ? session.students.filter((student) => {
         const email = studentEmail(student);
-        return email && !email.endsWith("@classloop.local");
+        return email && !email.endsWith("@relay.local");
       })
     : [];
 }
@@ -190,50 +190,50 @@ function skippedStudents(session) {
     ? session.students
         .filter((student) => {
           const email = studentEmail(student);
-          return !email || email.endsWith("@classloop.local");
+          return !email || email.endsWith("@relay.local");
         })
         .map((student) => student.name || "Unnamed student")
     : [];
 }
 
 function emailConfig() {
-  if (process.env.CLASSLOOP_SMTP_HOST) {
-    const senderEmail = process.env.CLASSLOOP_NO_REPLY_EMAIL || process.env.CLASSLOOP_SMTP_FROM || process.env.CLASSLOOP_SMTP_USER;
-    const senderName = process.env.CLASSLOOP_NO_REPLY_NAME || "ClassLoop";
+  if (process.env.RELAY_SMTP_HOST) {
+    const senderEmail = process.env.RELAY_NO_REPLY_EMAIL || process.env.RELAY_SMTP_FROM || process.env.RELAY_SMTP_USER;
+    const senderName = process.env.RELAY_NO_REPLY_NAME || "Relay";
     return {
       configured: true,
-      provider: process.env.CLASSLOOP_SMTP_PROVIDER || (process.env.CLASSLOOP_NO_REPLY_EMAIL ? "No-reply SMTP" : "SMTP"),
+      provider: process.env.RELAY_SMTP_PROVIDER || (process.env.RELAY_NO_REPLY_EMAIL ? "No-reply SMTP" : "SMTP"),
       from: senderName && senderEmail ? `${senderName} <${senderEmail}>` : senderEmail,
-      replyTo: process.env.CLASSLOOP_REPLY_TO || undefined,
+      replyTo: process.env.RELAY_REPLY_TO || undefined,
       transport: {
-        host: process.env.CLASSLOOP_SMTP_HOST,
-        port: Number(process.env.CLASSLOOP_SMTP_PORT || 587),
-        secure: process.env.CLASSLOOP_SMTP_SECURE === "true" || process.env.CLASSLOOP_SMTP_PORT === "465",
-        auth: process.env.CLASSLOOP_SMTP_USER
+        host: process.env.RELAY_SMTP_HOST,
+        port: Number(process.env.RELAY_SMTP_PORT || 587),
+        secure: process.env.RELAY_SMTP_SECURE === "true" || process.env.RELAY_SMTP_PORT === "465",
+        auth: process.env.RELAY_SMTP_USER
           ? {
-              user: process.env.CLASSLOOP_SMTP_USER,
-              pass: process.env.CLASSLOOP_SMTP_PASS || "",
+              user: process.env.RELAY_SMTP_USER,
+              pass: process.env.RELAY_SMTP_PASS || "",
             }
           : undefined,
       },
     };
   }
 
-  if (process.env.CLASSLOOP_GMAIL_USER && process.env.CLASSLOOP_GMAIL_APP_PASSWORD) {
-    const senderEmail = process.env.CLASSLOOP_NO_REPLY_EMAIL || process.env.CLASSLOOP_GMAIL_FROM || process.env.CLASSLOOP_GMAIL_USER;
-    const senderName = process.env.CLASSLOOP_NO_REPLY_NAME || "ClassLoop";
+  if (process.env.RELAY_GMAIL_USER && process.env.RELAY_GMAIL_APP_PASSWORD) {
+    const senderEmail = process.env.RELAY_NO_REPLY_EMAIL || process.env.RELAY_GMAIL_FROM || process.env.RELAY_GMAIL_USER;
+    const senderName = process.env.RELAY_NO_REPLY_NAME || "Relay";
     return {
       configured: true,
-      provider: process.env.CLASSLOOP_NO_REPLY_EMAIL ? "No-reply Gmail SMTP" : "Gmail SMTP",
+      provider: process.env.RELAY_NO_REPLY_EMAIL ? "No-reply Gmail SMTP" : "Gmail SMTP",
       from: senderName && senderEmail ? `${senderName} <${senderEmail}>` : senderEmail,
-      replyTo: process.env.CLASSLOOP_REPLY_TO || undefined,
+      replyTo: process.env.RELAY_REPLY_TO || undefined,
       transport: {
         host: "smtp.gmail.com",
         port: 465,
         secure: true,
         auth: {
-          user: process.env.CLASSLOOP_GMAIL_USER,
-          pass: process.env.CLASSLOOP_GMAIL_APP_PASSWORD,
+          user: process.env.RELAY_GMAIL_USER,
+          pass: process.env.RELAY_GMAIL_APP_PASSWORD,
         },
       },
     };
@@ -254,10 +254,10 @@ function textForStudentEmail(session, student) {
   return [
     `Hi ${student.name || "there"},`,
     "",
-    `Your ClassLoop follow-up is ready for ${session.title || "today's class"}.`,
+    `Your Relay follow-up is ready for ${session.title || "today's class"}.`,
     "",
     "Recap:",
-    session.recap || "A session recap is available in ClassLoop.",
+    session.recap || "A session recap is available in Relay.",
     "",
     "Your next steps:",
     ...tasks.map((task) => `- ${task}`),
@@ -267,7 +267,7 @@ function textForStudentEmail(session, student) {
       ? ["", "Resources:", ...resources.map((resource) => `- ${resource.title || resource.url}: ${resource.url}`)].join("\n")
       : "",
     "",
-    "Open ClassLoop with your roster email to see the full student dashboard.",
+    "Open Relay with your roster email to see the full student dashboard.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -281,7 +281,7 @@ async function sendRecapEmails(session, options = {}) {
     throw error;
   }
   if (!config.from) {
-    const error = new Error("Email sender is missing. Set CLASSLOOP_SMTP_FROM or CLASSLOOP_GMAIL_FROM.");
+    const error = new Error("Email sender is missing. Set RELAY_SMTP_FROM or RELAY_GMAIL_FROM.");
     error.statusCode = 503;
     throw error;
   }
@@ -289,7 +289,7 @@ async function sendRecapEmails(session, options = {}) {
   const mailer = getNodemailer();
   if (!mailer) {
     const error = new Error(
-      "Email delivery is currently unavailable because the mailer dependency is not installed. Run `npm install` and restart ClassLoop.",
+      "Email delivery is currently unavailable because the mailer dependency is not installed. Run `npm install` and restart Relay.",
     );
     error.statusCode = 503;
     throw error;
@@ -316,7 +316,7 @@ async function sendRecapEmails(session, options = {}) {
         from: config.from,
         replyTo: config.replyTo,
         to,
-        subject: `ClassLoop recap: ${session.title || "Session follow-up"}`,
+        subject: `Relay recap: ${session.title || "Session follow-up"}`,
         text: textForStudentEmail(session, student),
       });
       recipients.push(to);
@@ -371,7 +371,7 @@ async function handleStateApi(request, response) {
       response.end(JSON.stringify(state));
     } catch (error) {
       response.writeHead(error.statusCode || 400, withSecurityHeaders({ "Content-Type": "application/json", "Cache-Control": "no-store" }));
-      response.end(JSON.stringify({ error: error.message || "Unable to save ClassLoop data." }));
+      response.end(JSON.stringify({ error: error.message || "Unable to save Relay data." }));
     }
     return true;
   }
@@ -483,7 +483,7 @@ let staticServer;
 
 async function createWindow() {
   if (!fs.existsSync(path.join(distDir, "index.html"))) {
-    throw new Error("Missing dist/index.html. ClassLoop needs the checked-in app build to run.");
+    throw new Error("Missing dist/index.html. Relay needs the checked-in app build to run.");
   }
 
   staticServer = await createStaticServer();
@@ -493,7 +493,7 @@ async function createWindow() {
     height: 860,
     minWidth: 980,
     minHeight: 700,
-    title: "ClassLoop",
+    title: "Relay",
     backgroundColor: "#020817",
     show: false,
     webPreferences: {

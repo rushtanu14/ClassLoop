@@ -1,6 +1,6 @@
 {
-  "name": "ClassLoop",
-  "short_name": "ClassLoop",
+  "name": "Relay",
+  "short_name": "Relay",
   "description": "Teacher-reviewed class recaps, student follow-ups, and completion check-ins.",
   "start_url": "/?source=pwa",
   "scope": "/",
@@ -10,19 +10,19 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/classloop-app-icon-192.png",
+      "src": "/relay-app-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/classloop-app-icon-512.png",
+      "src": "/relay-app-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/classloop-app-icon.svg",
+      "src": "/relay-app-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
@@ -33,13 +33,13 @@
       "name": "Teacher demo",
       "short_name": "Teacher",
       "url": "/?demoOnly=1#/dashboard",
-      "description": "Open the teacher-side ClassLoop demo."
+      "description": "Open the teacher-side Relay demo."
     },
     {
       "name": "Student demo",
       "short_name": "Student",
       "url": "/?demoOnly=1#/dashboard",
-      "description": "Open the student-side ClassLoop demo."
+      "description": "Open the student-side Relay demo."
     }
   ]
 }

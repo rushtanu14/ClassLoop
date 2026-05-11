@@ -7,7 +7,7 @@ export default async function handler(request, response) {
     const { supabase, user } = await requireUser(request);
     const rating = Number(request.body?.rating || 0);
     const note = String(request.body?.note || "").slice(0, 2000);
-    const { error } = await supabase.from("classloop_pilot_feedback").insert({
+    const { error } = await supabase.from("relay_pilot_feedback").insert({
       owner_id: user.id,
       rating: Math.max(1, Math.min(5, rating || 3)),
       note,

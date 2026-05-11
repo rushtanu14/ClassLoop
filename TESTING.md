@@ -44,7 +44,7 @@
 - **Responsive Layout**: Core controls remain visible at phone-sized width without horizontal overflow.
 
 ### Hosted Web Smoke Tests
-- **Landing Page**: Hosted root page loads ClassLoop marketing/download UI.
+- **Landing Page**: Hosted root page loads Relay marketing/download UI.
 - **Desktop Downloads**: macOS, Windows, and Linux download controls are visible; missing installer URLs show packaging/demo fallback copy.
 - **Mobile/PWA Access**: Hosted root exposes the "Add to phone" action, standalone web app manifest, app icon, and service worker shell.
 - **Sample-Only Demo**: Hosted demo exposes teacher/student demo choices instead of editable email/password fields.
@@ -103,12 +103,12 @@ Playwright starts the Vite dev server on `127.0.0.1:5177` and runs Chromium chec
 Hosted web tests use `playwright.web.config.ts` and default to `https://class-loop-ten.vercel.app`. Override with:
 
 ```bash
-CLASSLOOP_WEB_TEST_URL=https://your-domain.com npm run test:web
+RELAY_WEB_TEST_URL=https://your-domain.com npm run test:web
 ```
 
 ## Testing Script Response
 
-When the user says "use the testing script," run the saved ClassLoop QA sequence and report:
+When the user says "use the testing script," run the saved Relay QA sequence and report:
 - pass/fail by command
 - browser workflow result
 - anything not verifiable without the configured Gmail/SMTP sender
@@ -124,7 +124,7 @@ When the user says "use the testing script," run the saved ClassLoop QA sequence
 
 **When Adding Features**:
 1. Add test case to `import-flow.test.ts` first
-2. Add browser coverage in `tests/browser/classloop.spec.ts` when the feature changes access, routing, or user workflow
+2. Add browser coverage in `tests/browser/relay.spec.ts` when the feature changes access, routing, or user workflow
 3. Update parser logic in `src/data.ts` or UI logic in `src/App.tsx`
 4. Verify tests pass
 5. Update the feature QA prompt in `codexsecondbrain-sync-2026-04-30.md` so future browser QA includes the new workflow and obvious formatting checks

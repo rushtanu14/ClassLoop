@@ -1,4 +1,4 @@
-# ClassLoop Operational Memory
+# Relay Operational Memory
 
 Use this alongside `AGENTS.md` when working in this repository.
 
@@ -11,7 +11,7 @@ Use this alongside `AGENTS.md` when working in this repository.
 
 ## Current Product Direction
 
-- ClassLoop is a real teacher/student platform, not a hardcoded demo.
+- Relay is a real teacher/student platform, not a hardcoded demo.
 - Demo/sample data must be explicit.
 - Teacher-only: import, review, publish, analytics, roster manager, privacy controls, sync/billing, audit logs.
 - Student-only: personal recap, tasks, resources, completion state, appearance settings.
@@ -19,8 +19,8 @@ Use this alongside `AGENTS.md` when working in this repository.
 
 ## Backend And Payments
 
-- Hosted multi-device sync uses Supabase Auth plus `classloop_workspace_state`.
-- Subscription access uses Stripe Checkout and a webhook-updated `classloop_profiles` row.
+- Hosted multi-device sync uses Supabase Auth plus `relay_workspace_state`.
+- Subscription access uses Stripe Checkout and a webhook-updated `relay_profiles` row.
 - Client-side plan checks are UX hints only; paid entitlements must come from the hosted profile endpoint.
 - Required hosted environment variables live in `.env.example`. Never commit `.env.local` or real secrets.
 - Stripe has no monthly platform fee, but real payments have transaction fees. Keep the local app useful without payments.

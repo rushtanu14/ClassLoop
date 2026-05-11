@@ -283,8 +283,8 @@ const studentNavSections: Array<{ label: string; items: NavItem[] }> = [
 ];
 
 const studentRoutes = new Set<RouteKey>(["student", "student-session", "tutorial", "appearance"]);
-const demoTeacherEmail = "teacher@classloop.demo";
-const demoStudentEmail = "maya@classloop.demo";
+const demoTeacherEmail = "teacher@relay.demo";
+const demoStudentEmail = "maya@relay.demo";
 const teacherPasswordHash = "92d96446c5fa184300fb96631d4ca0b18e536cfab5c0da5eead1edb535190e84";
 const studentPasswordHash = "fecc0c0136b0cc27f320c7bdf5ffb1f6b902f517595f243cfa07999ef9035fe7";
 const demoAccounts: Account[] = [
@@ -379,30 +379,30 @@ const defaultBillingProfile: BillingProfile = {
 };
 
 const secureLocalKeys = {
-  accounts: "classloop:secure:accounts:v1",
-  sessions: "classloop:secure:sessions:v3",
-  draft: "classloop:secure:draft:v3",
-  demoLoaded: "classloop:secure:demo-loaded:v1",
-  classGroups: "classloop:secure:class-groups:v1",
-  rosterTemplates: "classloop:secure:roster-templates:v1",
-  privacySettings: "classloop:secure:privacy:v1",
-  auditLog: "classloop:secure:audit:v1",
-  billingProfile: "classloop:secure:billing:v1",
+  accounts: "relay:secure:accounts:v1",
+  sessions: "relay:secure:sessions:v3",
+  draft: "relay:secure:draft:v3",
+  demoLoaded: "relay:secure:demo-loaded:v1",
+  classGroups: "relay:secure:class-groups:v1",
+  rosterTemplates: "relay:secure:roster-templates:v1",
+  privacySettings: "relay:secure:privacy:v1",
+  auditLog: "relay:secure:audit:v1",
+  billingProfile: "relay:secure:billing:v1",
 };
 
 const legacyLocalKeys = {
-  accounts: "classloop:accounts:v1",
-  sessions: "classloop:sessions:v3",
-  draft: "classloop:draft:v3",
-  demoLoaded: "classloop:demo-loaded:v1",
-  classGroups: "classloop:class-groups:v1",
-  rosterTemplates: "classloop:roster-templates:v1",
-  privacySettings: "classloop:privacy:v1",
-  auditLog: "classloop:audit:v1",
-  billingProfile: "classloop:billing:v1",
+  accounts: "relay:accounts:v1",
+  sessions: "relay:sessions:v3",
+  draft: "relay:draft:v3",
+  demoLoaded: "relay:demo-loaded:v1",
+  classGroups: "relay:class-groups:v1",
+  rosterTemplates: "relay:roster-templates:v1",
+  privacySettings: "relay:privacy:v1",
+  auditLog: "relay:audit:v1",
+  billingProfile: "relay:billing:v1",
 };
 
-const localPreferenceKeys = ["classloop:selected-student", "classloop:local-storage-key:v1"];
+const localPreferenceKeys = ["relay:selected-student", "relay:local-storage-key:v1"];
 
 const themePresets: Record<
   ThemeKey,
@@ -569,14 +569,14 @@ function localDayKey(dateInput?: string | Date) {
 function studentEmailRecipients(session: Session) {
   return session.students
     .map((student) => studentAccessEmails(student)[0] ?? "")
-    .filter((email) => email && !email.endsWith("@classloop.local"));
+    .filter((email) => email && !email.endsWith("@relay.local"));
 }
 
 function studentsWithoutDeliverableEmail(session: Session) {
   return session.students
     .filter((student) => {
       const email = normalizeEmail(student.linkedAccountEmail || student.email);
-      return !email || email.endsWith("@classloop.local");
+      return !email || email.endsWith("@relay.local");
     })
     .map((student) => student.name);
 }
@@ -759,7 +759,7 @@ function makeRosterStudent(name: string, email = "", index = 0, aliases: string[
   return {
     id,
     name: cleanName,
-    email: normalizeEmail(email || `${slugify(cleanName, `student-${index + 1}`)}@classloop.local`),
+    email: normalizeEmail(email || `${slugify(cleanName, `student-${index + 1}`)}@relay.local`),
     avatarColor: rosterAvatarColors[index % rosterAvatarColors.length],
     aliases: uniqueText(aliases),
   };
@@ -793,7 +793,7 @@ function syncSessionRoster(session: Session, students: Student[]): Session {
     .map((student, index) => ({
       ...student,
       name: student.name.trim() || `Student ${index + 1}`,
-      email: normalizeEmail(student.email || `${slugify(student.name || `student-${index + 1}`, `student-${index + 1}`)}@classloop.local`),
+      email: normalizeEmail(student.email || `${slugify(student.name || `student-${index + 1}`, `student-${index + 1}`)}@relay.local`),
       avatarColor: student.avatarColor || rosterAvatarColors[index % rosterAvatarColors.length],
       aliases: uniqueText(student.aliases ?? []),
     }));
@@ -895,7 +895,7 @@ function resolveParticipant(session: Session, participant: UnmatchedParticipant,
             catchUp:
               currentFollowUp?.catchUp && currentFollowUp.catchUp !== "You were added to this session roster. Use the recap, resources, and tasks to stay current."
                 ? currentFollowUp.catchUp
-                : "ClassLoop matched this transcript speaker to the roster and connected their participation to this dashboard.",
+                : "Relay matched this transcript speaker to the roster and connected their participation to this dashboard.",
             score: Math.max(followUp.score, nextEvents.length ? 72 : followUp.score),
           }
         : followUp,
@@ -984,7 +984,7 @@ function base64ToBytes(value: string) {
 }
 
 async function localStorageCryptoKey() {
-  const keyName = "classloop:local-storage-key:v1";
+  const keyName = "relay:local-storage-key:v1";
   let raw = localStorage.getItem(keyName);
   if (!raw) {
     const bytes = crypto.getRandomValues(new Uint8Array(32));
@@ -1070,7 +1070,7 @@ async function readLocalStateFallback(): Promise<SharedState> {
   });
 }
 
-function clearClassLoopLocalPersistence() {
+function clearRelayLocalPersistence() {
   [...Object.values(secureLocalKeys), ...Object.values(legacyLocalKeys), ...localPreferenceKeys].forEach((key) => {
     localStorage.removeItem(key);
   });
@@ -1116,7 +1116,7 @@ async function writeLocalStateFallback(
 ) {
   const persistable = persistableSharedState(state);
   if (!hasPersistableUserData(persistable)) {
-    clearClassLoopLocalPersistence();
+    clearRelayLocalPersistence();
     return;
   }
   await Promise.all([
@@ -1356,7 +1356,7 @@ function App() {
   const [accounts, setAccounts] = useState<Account[]>(demoAccounts);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [draft, setDraft] = useState<Session | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>(() => localStorage.getItem("classloop:selected-student") ?? "maya");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(() => localStorage.getItem("relay:selected-student") ?? "maya");
   const [auth, setAuth] = useState<AuthSession | null>(null);
   const [theme, setTheme] = useState<ThemeSettings>(defaultTheme);
   const [demoLoaded, setDemoLoaded] = useState(false);
@@ -1404,7 +1404,7 @@ function App() {
   useEffect(() => {
     let active = true;
     if (publicDemoOnly) {
-      clearClassLoopLocalPersistence();
+      clearRelayLocalPersistence();
       setAccounts(demoAccounts);
       setSessions([]);
       setDraft(null);
@@ -1485,7 +1485,7 @@ function App() {
 
   useEffect(() => {
     if (publicDemoOnly || auth?.demo) return;
-    localStorage.setItem("classloop:selected-student", selectedStudentId);
+    localStorage.setItem("relay:selected-student", selectedStudentId);
   }, [auth?.demo, publicDemoOnly, selectedStudentId]);
 
   useEffect(() => {
@@ -2148,7 +2148,7 @@ function App() {
   }
 
   if (!sharedReady || authLoading) {
-    return <AppLoader message={authLoading ? "Opening your workspace" : "Loading ClassLoop"} />;
+    return <AppLoader message={authLoading ? "Opening your workspace" : "Loading Relay"} />;
   }
 
   if (!auth) {
@@ -2369,19 +2369,19 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
       id: "macos",
       label: "macOS",
       helper: "Apple silicon and Intel Macs",
-      url: (import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL as string | undefined)?.trim(),
+      url: (import.meta.env.VITE_RELAY_MAC_DOWNLOAD_URL as string | undefined)?.trim(),
     },
     {
       id: "windows",
       label: "Windows",
       helper: "Windows 10 or newer",
-      url: (import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL as string | undefined)?.trim(),
+      url: (import.meta.env.VITE_RELAY_WINDOWS_DOWNLOAD_URL as string | undefined)?.trim(),
     },
     {
       id: "linux",
       label: "Linux",
       helper: "AppImage or Debian package",
-      url: (import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL as string | undefined)?.trim(),
+      url: (import.meta.env.VITE_RELAY_LINUX_DOWNLOAD_URL as string | undefined)?.trim(),
     },
   ];
   const availableDownloads = downloadOptions.filter((option) => option.url);
@@ -2409,14 +2409,14 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
       setInstallPrompt(null);
       setMobileMessage(
         choice.outcome === "accepted"
-          ? "ClassLoop is ready to open from your phone home screen."
-          : "You can still add ClassLoop from your browser share menu or install menu.",
+          ? "Relay is ready to open from your phone home screen."
+          : "You can still add Relay from your browser share menu or install menu.",
       );
       return;
     }
     setMobileMessage(
       isStandaloneMobile
-        ? "ClassLoop is already running like an app on this device."
+        ? "Relay is already running like an app on this device."
         : "On iPhone, tap Share then Add to Home Screen. On Android, open the browser menu and choose Install app.",
     );
   };
@@ -2439,11 +2439,11 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
     const beforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
-      setMobileMessage("ClassLoop can be added to this device for faster access.");
+      setMobileMessage("Relay can be added to this device for faster access.");
     };
     const installed = () => {
       setInstallPrompt(null);
-      setMobileMessage("ClassLoop was added to this device.");
+      setMobileMessage("Relay was added to this device.");
       updateDisplayMode();
     };
     updateDisplayMode();
@@ -2459,12 +2459,12 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
 
   return (
     <main className="landing-page">
-      <nav className="landing-nav" aria-label="ClassLoop public navigation">
+      <nav className="landing-nav" aria-label="Relay public navigation">
         <button className="landing-brand" type="button" onClick={onOpenApp}>
           <span className="brand-mark">
             <BrainCircuit size={24} />
           </span>
-          <span>ClassLoop</span>
+          <span>Relay</span>
         </button>
         <div className="landing-links">
           <button className="landing-nav-link" type="button" onClick={() => scrollToSection("features")}>
@@ -2490,7 +2490,7 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
           <Sparkles size={38} />
         </div>
         <span className="landing-eyebrow">Classroom continuity</span>
-        <h1>ClassLoop</h1>
+        <h1>Relay</h1>
         <p>
           Turn class transcripts, notes, rosters, and resources into edited recaps, student follow-ups,
           and completion check-ins that keep learning moving after class.
@@ -2522,7 +2522,7 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
         </div>
         {downloadMessage && <p className="landing-message">{downloadMessage}</p>}
         {mobileMessage && <p className="landing-message compact">{mobileMessage}</p>}
-        <div className="landing-stat-row" aria-label="ClassLoop plan highlights">
+        <div className="landing-stat-row" aria-label="Relay plan highlights">
           {stats.map((stat) => (
             <div className="landing-stat" key={stat.label}>
               <strong>{stat.value}</strong>
@@ -2532,24 +2532,24 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
         </div>
       </section>
 
-      <section className="landing-mobile-band" id="mobile" aria-label="ClassLoop on mobile">
+      <section className="landing-mobile-band" id="mobile" aria-label="Relay on mobile">
         <div className="landing-mobile-card">
           <Smartphone size={26} />
           <span className="landing-eyebrow">Phone and tablet access</span>
-          <h2>Use ClassLoop from a browser or add it to your home screen.</h2>
+          <h2>Use Relay from a browser or add it to your home screen.</h2>
           <p>
             The hosted web version is installable on modern mobile browsers, so teachers can check follow-ups
             from a phone and students can open their dashboard without a desktop.
           </p>
           <button className="landing-primary" type="button" onClick={handleMobileInstall}>
             <Smartphone size={18} />
-            Add ClassLoop to phone
+            Add Relay to phone
           </button>
         </div>
         <div className="mobile-step-grid">
           <article className="mobile-step">
             <strong>1</strong>
-            <span>Open the hosted ClassLoop link on your phone.</span>
+            <span>Open the hosted Relay link on your phone.</span>
           </article>
           <article className="mobile-step">
             <strong>2</strong>
@@ -2562,7 +2562,7 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
         </div>
       </section>
 
-      <section className="landing-feature-band" id="features" aria-label="ClassLoop features">
+      <section className="landing-feature-band" id="features" aria-label="Relay features">
         <article>
           <BookOpen size={24} />
           <h2>Import class records</h2>
@@ -2639,7 +2639,7 @@ function LoginPage({
   const [role, setRole] = useState<AuthRole>("teacher");
   const [name, setName] = useState("");
   const [email, setEmail] = useState(demoOnly ? demoTeacherEmail : "");
-  const [password, setPassword] = useState(demoOnly ? "classloop-teacher" : "");
+  const [password, setPassword] = useState(demoOnly ? "relay-teacher" : "");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -2653,7 +2653,7 @@ function LoginPage({
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const demoEmail = role === "teacher" ? demoTeacherEmail : demoStudentEmail;
-  const demoPassword = role === "teacher" ? "classloop-teacher" : "classloop-student";
+  const demoPassword = role === "teacher" ? "relay-teacher" : "relay-student";
 
   useEffect(() => {
     if (!demoOnly || mode !== "signin") return;
@@ -2716,9 +2716,9 @@ function LoginPage({
 
   const openResetEmailDraft = () => {
     if (!issuedResetCode || !email) return;
-    const subject = encodeURIComponent("ClassLoop password reset code");
+    const subject = encodeURIComponent("Relay password reset code");
     const body = encodeURIComponent(
-      `Your ClassLoop password reset code is ${issuedResetCode}.\n\nThis code expires in 15 minutes.\n`,
+      `Your Relay password reset code is ${issuedResetCode}.\n\nThis code expires in 15 minutes.\n`,
     );
     window.open(`mailto:${normalizeEmail(email)}?subject=${subject}&body=${body}`);
   };
@@ -2781,7 +2781,7 @@ function LoginPage({
       const result = await onLogin(
         nextRole,
         nextRole === "teacher" ? demoTeacherEmail : demoStudentEmail,
-        nextRole === "teacher" ? "classloop-teacher" : "classloop-student",
+        nextRole === "teacher" ? "relay-teacher" : "relay-student",
       );
       if (!result.ok) setError(result.message ?? "Unable to open the demo.");
     } catch {
@@ -2800,13 +2800,13 @@ function LoginPage({
               <BrainCircuit size={26} />
             </span>
             <div>
-              <strong>ClassLoop</strong>
+              <strong>Relay</strong>
               <small>Web demo workspace</small>
             </div>
           </div>
           <div className="login-copy demo-choice-copy">
             <span className="eyebrow">Choose a demo</span>
-            <h1>Try ClassLoop as a teacher or student.</h1>
+            <h1>Try Relay as a teacher or student.</h1>
             <p>
               Pick a side to explore. This web demo resets sample work, so download the desktop app when
               you are ready to create your own account and save data.
@@ -2852,13 +2852,13 @@ function LoginPage({
             <BrainCircuit size={26} />
           </span>
           <div>
-            <strong>ClassLoop</strong>
+            <strong>Relay</strong>
             <small>Secure classroom workspace</small>
           </div>
         </div>
         <div className="login-copy">
           <span className="eyebrow">Welcome back</span>
-          <h1>{demoOnly ? "Try ClassLoop with sample accounts." : "Sign in to ClassLoop."}</h1>
+          <h1>{demoOnly ? "Try Relay with sample accounts." : "Sign in to Relay."}</h1>
           <p>
             {demoOnly
               ? "The web demo resets sample work. Download the desktop app when you are ready to create your own account and save data."
@@ -2969,8 +2969,8 @@ function LoginPage({
         </form>
         <div className="login-help">
           <strong>{demoOnly ? "Web demo accounts" : "Sample accounts"}</strong>
-          <span>Teacher: {demoTeacherEmail} / classloop-teacher</span>
-          <span>Student: {demoStudentEmail} / classloop-student</span>
+          <span>Teacher: {demoTeacherEmail} / relay-teacher</span>
+          <span>Student: {demoStudentEmail} / relay-student</span>
           {demoOnly && <span>Download the app to create an account and keep your own workspace.</span>}
           <button type="button" className="text-button sample-account-button" onClick={fillDemo}>
             Use sample {role} account
@@ -3080,7 +3080,7 @@ function AppLoader({ message }: { message: string }) {
         <span className="loader-ring">
           <BrainCircuit size={30} />
         </span>
-        <span className="eyebrow">ClassLoop</span>
+        <span className="eyebrow">Relay</span>
         <h1>{message}</h1>
         <p>{tip}</p>
         <div className="loader-track" aria-hidden="true">
@@ -3100,7 +3100,7 @@ function MeetingCaptureHelpModal({ onClose, onStart }: { onClose: () => void; on
             <span className="eyebrow">Online meeting capture</span>
             <h2 id="meeting-capture-title">Share the meeting tab or window with audio.</h2>
             <p>
-              Your browser will ask what to capture. Choose the tab or window where Zoom, Meet, or Teams is running, enable audio sharing if it appears, then keep ClassLoop open.
+              Your browser will ask what to capture. Choose the tab or window where Zoom, Meet, or Teams is running, enable audio sharing if it appears, then keep Relay open.
             </p>
           </div>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Close meeting capture help">
@@ -3110,7 +3110,7 @@ function MeetingCaptureHelpModal({ onClose, onStart }: { onClose: () => void; on
         <ol className="tutorial-steps">
           <li>
             <strong>Click Start capture</strong>
-            <span>ClassLoop will request screen or tab audio if your browser supports it.</span>
+            <span>Relay will request screen or tab audio if your browser supports it.</span>
           </li>
           <li>
             <strong>Pick the meeting source</strong>
@@ -3351,7 +3351,7 @@ function GuidedWalkthroughOverlay({
     : [];
 
   return (
-    <div className="guided-tour" role="dialog" aria-modal="true" aria-label="ClassLoop guided walkthrough">
+    <div className="guided-tour" role="dialog" aria-modal="true" aria-label="Relay guided walkthrough">
       {highlightStyle ? (
         <>
           {backdropPieces.map((piece, index) => (
@@ -3438,7 +3438,7 @@ function Sidebar({
           <BrainCircuit size={24} />
         </span>
         <span>
-          <strong>ClassLoop</strong>
+          <strong>Relay</strong>
           <small>Classroom continuity</small>
         </span>
       </button>
@@ -3517,9 +3517,9 @@ function Topbar({
         <span className="eyebrow">{routeLabels[route]}</span>
         <h1>
           {auth.role === "student"
-            ? "My ClassLoop"
+            ? "My Relay"
             : route === "dashboard"
-              ? "Today in ClassLoop"
+              ? "Today in Relay"
               : routeLabels[route]}
         </h1>
       </div>
@@ -3691,7 +3691,7 @@ function TeacherDashboard({
           <span className="eyebrow">Live class follow-up loop</span>
           <h2>Turn messy class records into edited recaps, personal tasks, and completion check-ins.</h2>
           <p>
-            You stay in control while ClassLoop extracts what happened, who needs support, and what should happen
+            You stay in control while Relay extracts what happened, who needs support, and what should happen
             next.
           </p>
           <div className="hero-actions" data-tour="dashboard-hero">
@@ -4031,7 +4031,7 @@ function SyncBillingPage({
   const uploadCloud = async () => {
     try {
       await cloudRequest("/api/cloud-state", { method: "PUT", body: JSON.stringify(currentState()) });
-      setMessage("Uploaded this device's ClassLoop workspace to hosted sync.");
+      setMessage("Uploaded this device's Relay workspace to hosted sync.");
       appendAudit("cloud_upload", "Uploaded workspace to hosted sync.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Cloud upload failed.");
@@ -4114,7 +4114,7 @@ function SyncBillingPage({
                 <strong>{backendStatus.supabaseConfigured ? "Cloud sync ready" : "Cloud keys needed"}</strong>
                 <small>
                   {backendStatus.supabaseConfigured
-                    ? "Sign in here to use the same ClassLoop workspace across browser, desktop, and another device."
+                    ? "Sign in here to use the same Relay workspace across browser, desktop, and another device."
                     : "Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable multi-device Pro login."}
                 </small>
               </div>
@@ -4431,7 +4431,7 @@ function ImportSession({
         stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
         const hasAudio = stream.getAudioTracks().length > 0;
         startedMessage = hasAudio
-          ? "Online meeting capture is running. Share a tab or window with audio when your browser asks, and keep ClassLoop open."
+          ? "Online meeting capture is running. Share a tab or window with audio when your browser asks, and keep Relay open."
           : "Online meeting capture is running, but no meeting audio track was shared. Use platform captions/transcript if live text does not appear.";
       } else {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -4439,8 +4439,8 @@ function ImportSession({
         });
         startedMessage =
           mode === "online_meeting"
-            ? "This browser cannot capture meeting tab audio directly, so ClassLoop is using the microphone as best-effort notes."
-            : "In-person class capture is running. Place the device where discussion is clear and keep ClassLoop open.";
+            ? "This browser cannot capture meeting tab audio directly, so Relay is using the microphone as best-effort notes."
+            : "In-person class capture is running. Place the device where discussion is clear and keep Relay open.";
       }
 
       if (recordedAudioUrl) {
@@ -4631,7 +4631,7 @@ function ImportSession({
           <div className="section-heading">
             <span className="eyebrow">New class record</span>
             <h2>Import a transcript, notes, or both.</h2>
-            <p>ClassLoop will draft your review page, then wait for your approval before students see anything.</p>
+            <p>Relay will draft your review page, then wait for your approval before students see anything.</p>
           </div>
 
           <div className="form-grid">
@@ -4827,7 +4827,7 @@ function ImportSession({
                   <div>
                     <strong>No voiceprints are created.</strong>
                     <small>
-                      ClassLoop labels live speech as unknown voice segments. After the draft is created, link each segment to a roster student,
+                      Relay labels live speech as unknown voice segments. After the draft is created, link each segment to a roster student,
                       add a new student, or leave it unassigned.
                     </small>
                   </div>
@@ -4964,7 +4964,7 @@ function Processing({ draft }: { draft: Session | null }) {
         </span>
         <span className="eyebrow">Draft in progress</span>
         <h2>{draft?.title ?? "Preparing draft"}</h2>
-        <p>ClassLoop is turning the messy record into a teacher-editable follow-up loop.</p>
+        <p>Relay is turning the messy record into a teacher-editable follow-up loop.</p>
         <div className="processing-steps">
           {steps.map((item, index) => (
             <div key={item} className={index <= step ? "processing-step active" : "processing-step"}>
@@ -5306,9 +5306,9 @@ function RosterManager({
   const sendInvite = (student: Student) => {
     const email = normalizeEmail(student.email);
     if (!email) return;
-    const subject = encodeURIComponent(`ClassLoop follow-up for ${sessionTitle}`);
+    const subject = encodeURIComponent(`Relay follow-up for ${sessionTitle}`);
     const body = encodeURIComponent(
-      `Hi ${student.name},\n\nYour teacher prepared a ClassLoop follow-up for ${sessionTitle}.\n\nYou can create or sign in to your ClassLoop student account with this email address to see your recap, resources, and tasks.\n\nThanks!`,
+      `Hi ${student.name},\n\nYour teacher prepared a Relay follow-up for ${sessionTitle}.\n\nYou can create or sign in to your Relay student account with this email address to see your recap, resources, and tasks.\n\nThanks!`,
     );
     window.open(`mailto:${email}?subject=${subject}&body=${body}`);
     updateStudent(student.id, { inviteSentAt: new Date().toISOString() });
@@ -5338,7 +5338,7 @@ function RosterManager({
           <button
             className="ghost-button"
             type="button"
-            onClick={() => downloadTextFile(`${slugify(sessionTitle, "classloop-roster")}.csv`, rosterToCsv(students), "text/csv")}
+            onClick={() => downloadTextFile(`${slugify(sessionTitle, "relay-roster")}.csv`, rosterToCsv(students), "text/csv")}
           >
             <ArrowUpRight size={17} />
             Export CSV
@@ -5597,7 +5597,7 @@ function ClassGroupsPage({
                 className="ghost-button"
                 type="button"
                 onClick={() =>
-                  downloadTextFile(`${slugify(activeGroup.name, "classloop-class")}.csv`, rosterToCsv(activeGroup.students), "text/csv")
+                  downloadTextFile(`${slugify(activeGroup.name, "relay-class")}.csv`, rosterToCsv(activeGroup.students), "text/csv")
                 }
               >
                 <ArrowUpRight size={17} />
@@ -5694,7 +5694,7 @@ function RosterTemplatesPage({
           <div>
             <span className="eyebrow">Roster manager</span>
             <h2>Save rosters once, reuse them later.</h2>
-            <p>After you publish a session, ClassLoop can save that class roster for future sessions with the same template.</p>
+            <p>After you publish a session, Relay can save that class roster for future sessions with the same template.</p>
           </div>
           <button className="primary-button" type="button" onClick={createTemplate}>
             <UserPlus size={17} />
@@ -5718,7 +5718,7 @@ function RosterTemplatesPage({
         <div>
           <span className="eyebrow">Roster manager</span>
           <h2>Saved class rosters.</h2>
-          <p>Pick a roster here, then ClassLoop will offer it automatically when you create a matching session type.</p>
+          <p>Pick a roster here, then Relay will offer it automatically when you create a matching session type.</p>
         </div>
         <button className="primary-button" type="button" onClick={createTemplate}>
           <UserPlus size={17} />
@@ -5787,7 +5787,7 @@ function RosterTemplatesPage({
                 type="button"
                 onClick={() =>
                   downloadTextFile(
-                    `${slugify(activeTemplate.name, "classloop-roster")}.csv`,
+                    `${slugify(activeTemplate.name, "relay-roster")}.csv`,
                     rosterToCsv(activeTemplate.students),
                     "text/csv",
                   )
@@ -5947,7 +5947,7 @@ function ParticipantResolutionPanel({
           </span>
           <div>
             <strong>All transcript speakers match the roster</strong>
-            <p>When a Zoom display name does not match a student, ClassLoop will pause here before using it.</p>
+            <p>When a Zoom display name does not match a student, Relay will pause here before using it.</p>
           </div>
         </div>
       </Panel>
@@ -6350,7 +6350,7 @@ function SessionReport({
                   onClick={() => {
                     setExportMenuOpen(false);
                     downloadTextFile(
-                      `${slugify(session.title, "classloop-session")}.json`,
+                      `${slugify(session.title, "relay-session")}.json`,
                       JSON.stringify(session, null, 2),
                       "application/json",
                     );
@@ -6365,7 +6365,7 @@ function SessionReport({
                   onClick={() => {
                     setExportMenuOpen(false);
                     downloadTextFile(
-                      `${slugify(session.title, "classloop-follow-through")}.csv`,
+                      `${slugify(session.title, "relay-follow-through")}.csv`,
                       sessionFollowThroughCsv(session),
                       "text/csv",
                     );
@@ -6534,7 +6534,7 @@ function StudentDashboard({
         title="No student dashboard yet"
         detail={
           auth.role === "teacher"
-            ? "Publish a session first, then ClassLoop will create personalized student recaps and check-ins."
+            ? "Publish a session first, then Relay will create personalized student recaps and check-ins."
             : "Your teacher has not published any sessions for this account yet."
         }
         action={auth.role === "teacher" ? "Create a session" : undefined}
@@ -7163,7 +7163,7 @@ function PrivacyControlsPage({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `classloop-export-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `relay-export-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(url);
     appendAudit("export_data", "Exported teacher workspace data.");
@@ -7181,7 +7181,7 @@ function PrivacyControlsPage({
         <div>
           <span className="eyebrow">Privacy controls</span>
           <h2>Manage retention, recording consent, exports, and audit history.</h2>
-          <p>Use these controls before running ClassLoop with real student data or school accounts.</p>
+          <p>Use these controls before running Relay with real student data or school accounts.</p>
         </div>
       </section>
 
@@ -7558,7 +7558,7 @@ function DesignSystemPage({
       <section className="appearance-hero">
         <div>
           <span className="eyebrow">Experience settings</span>
-          <h2>Customize ClassLoop around your classroom.</h2>
+          <h2>Customize Relay around your classroom.</h2>
           <p>
             Choose a calmer workspace, tune the accent color, or use an image backdrop so the product feels comfortable
             for your teaching style while staying easy to scan during a busy school day.

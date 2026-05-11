@@ -35,12 +35,12 @@ Need to reinforce:
 - Homework problems 7-12 due Friday
 - Ethan absent, Priya quiet, Jordan needs cross-multiplication reminder`;
 
-export const sampleRoster = `Maya Chen, maya@classloop.demo
-Aarav Patel, aarav@classloop.demo
-Jordan Lee, jordan@classloop.demo
-Sofia Ramirez, sofia@classloop.demo
-Ethan Brooks, ethan@classloop.demo
-Priya Shah, priya@classloop.demo`;
+export const sampleRoster = `Maya Chen, maya@relay.demo
+Aarav Patel, aarav@relay.demo
+Jordan Lee, jordan@relay.demo
+Sofia Ramirez, sofia@relay.demo
+Ethan Brooks, ethan@relay.demo
+Priya Shah, priya@relay.demo`;
 
 export type ImportDraftInput = {
   title: string;
@@ -115,7 +115,7 @@ function isTranscriptMetadataSpeaker(speaker: string) {
   const normalized = normalizeSpeakerName(speaker);
   return (
     !normalized ||
-    /^(teacher|instructor|professor|facilitator|host|classloop|meeting title|meeting date|meeting id|meeting passcode|passcode|date|duration|participants?|transcript|transcription|recording|audio|chat|question|questions|answer|answers|summary|agenda|topic|topics|resources?|links?|name|email|attendance|zoom names?|student access|speaker|speakers|speaker matching|transcript speaker matching|start time|end time|timezone|language|notes|practice problems?|skills? to reinforce|common mistakes?|project or repo|debug targets?|workshop deliverable|decisions made|owners?|next checkpoint|peer questions?|practice goals?)$/i.test(
+    /^(teacher|instructor|professor|facilitator|host|relay|meeting title|meeting date|meeting id|meeting passcode|passcode|date|duration|participants?|transcript|transcription|recording|audio|chat|question|questions|answer|answers|summary|agenda|topic|topics|resources?|links?|name|email|attendance|zoom names?|student access|speaker|speakers|speaker matching|transcript speaker matching|start time|end time|timezone|language|notes|practice problems?|skills? to reinforce|common mistakes?|project or repo|debug targets?|workshop deliverable|decisions made|owners?|next checkpoint|peer questions?|practice goals?)$/i.test(
       normalized,
     ) ||
     /^\d+$/.test(normalized) ||
@@ -301,7 +301,7 @@ function studentFromRosterEntry(name: string, email: string, index: number): Stu
   return {
     id: slugify(cleanName, `student-${index + 1}`),
     name: cleanName,
-    email: cleanEmail || `${slugify(cleanName, `student-${index + 1}`)}@classloop.local`,
+    email: cleanEmail || `${slugify(cleanName, `student-${index + 1}`)}@relay.local`,
     avatarColor: avatarColors[index % avatarColors.length],
   };
 }
@@ -397,7 +397,7 @@ function parseRoster(roster: string, transcript: string): Student[] {
   return unique(speakerNames).map((name, index) => ({
     id: slugify(name, `student-${index + 1}`),
     name,
-    email: `${slugify(name, `student-${index + 1}`)}@classloop.local`,
+    email: `${slugify(name, `student-${index + 1}`)}@relay.local`,
     avatarColor: avatarColors[index % avatarColors.length],
   }));
 }

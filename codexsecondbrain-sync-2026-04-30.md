@@ -1,14 +1,14 @@
-# ClassLoop Codex Second Brain Sync - 2026-04-30
+# Relay Codex Second Brain Sync - 2026-04-30
 
 ## Project Context
 
-ClassLoop is an AI-assisted classroom follow-up platform for teachers, tutors, instructors, club leaders, and students. The product turns transcripts, pasted notes, rosters, and resources into teacher-reviewed session recaps, personalized student follow-ups, resources, participation signals, and completion tracking.
+Relay is an AI-assisted classroom follow-up platform for teachers, tutors, instructors, club leaders, and students. The product turns transcripts, pasted notes, rosters, and resources into teacher-reviewed session recaps, personalized student follow-ups, resources, participation signals, and completion tracking.
 
 The user wants the main branch to preserve the original clean white/green classroom UI. A separate experimental UI branch existed during the conversation, but main should be treated as the real product UI and should not inherit the dark image-heavy style.
 
 ## Major Product Decisions
 
-- ClassLoop should behave like a real usable platform, not a hardcoded demo.
+- Relay should behave like a real usable platform, not a hardcoded demo.
 - Sample data should only appear when the user explicitly chooses a sample/demo account or sample transcript.
 - Teacher and student accounts are separate.
 - Teachers see teacher dashboards, review tools, session reports, roster tools, publishing controls, and analytics.
@@ -22,7 +22,7 @@ The user wants the main branch to preserve the original clean white/green classr
 - `package.json` supports a real build through `tsc && vite build`.
 - `./run.sh` starts the Electron desktop app.
 - Electron serves the built `dist/` bundle.
-- Default theme storage key was changed to `classloop:theme:main:v1` so stale experimental theme state does not force main into the wrong style.
+- Default theme storage key was changed to `relay:theme:main:v1` so stale experimental theme state does not force main into the wrong style.
 - Default theme is classroom calm: white/green.
 
 ## Latest Feature Work
@@ -40,7 +40,7 @@ The latest requested features were added in source and rebuilt into `dist`:
 
 - Transcript participant resolution:
   - The parser detects Zoom-style speaker lines such as `Maya: ...` or timestamp-prefixed transcript lines.
-  - If a speaker appears in the transcript but is not on the roster, ClassLoop prompts the teacher to add the speaker to the roster or link the display name to an existing student.
+  - If a speaker appears in the transcript but is not on the roster, Relay prompts the teacher to add the speaker to the roster or link the display name to an existing student.
   - Linked names are stored as aliases on the student record for future matching within that roster/session context.
 
 - Teacher editing from student side:
@@ -92,12 +92,12 @@ The latest requested features were added in source and rebuilt into `dist`:
 
 ## 2026-05-01 Update
 
-Latest polish pass focused on making ClassLoop feel more like a real daily-use app instead of a demo:
+Latest polish pass focused on making Relay feel more like a real daily-use app instead of a demo:
 
 - Account creation now has confirm password plus show/hide password.
 - The profile pill in the topbar opens profile settings for name, email, and password changes.
 - The duplicate topbar sign-out button was removed; sign-out stays in the sidebar.
-- Electron now serves `/api/state` and stores account/session state in `.classloop-data.json`, so local desktop accounts can be logged into again after restarting the app.
+- Electron now serves `/api/state` and stores account/session state in `.relay-data.json`, so local desktop accounts can be logged into again after restarting the app.
 - Passwords are hashed before storage; no plaintext passwords are stored.
 - File upload now reads `.txt`, `.vtt`, and `.srt` transcripts into the import flow.
 - Transcript parsing ignores Zoom/VTT metadata speakers such as `Meeting Title`, `Date`, `Duration`, `Participants`, `Question`, and similar labels.
@@ -108,7 +108,7 @@ Latest polish pass focused on making ClassLoop feel more like a real daily-use a
 - Publish flow now says `Preview and publish`, making the publishing step clearer.
 - Publish preview now shows class-wide recap plus personal next steps and the participation evidence behind them.
 - Roster rows include student access controls:
-  - link by matching ClassLoop student account email,
+  - link by matching Relay student account email,
   - open a prepared `mailto:` invite if the student does not have an account.
 - Dashboard attention queue now uses the blank space for a support snapshot chart when there are no urgent items.
 - Appearance page copy was rewritten to focus on user benefit and customization, not AI/design-system language.
@@ -124,12 +124,12 @@ Verification from this pass:
 
 ### CS4All Compressed Roster + Zoom Transcript Import QA
 
-Use this prompt when testing the ClassLoop import flow without making code changes:
+Use this prompt when testing the Relay import flow without making code changes:
 
 ```text
 You are only testing. Do not edit files, do not patch code, do not format files, do not run build tools that write output unless absolutely necessary. If a dev server or cache writes anything, clean up only your own generated test artifacts.
 
-Goal: verify whether ClassLoop correctly handles this exact pasted input scenario.
+Goal: verify whether Relay correctly handles this exact pasted input scenario.
 
 Test the app/import logic with this roster and transcript exactly as pasted below. Report:
 - whether the app boots
@@ -230,7 +230,7 @@ D) The name of a city
 Use this prompt after the QA prompt identifies the compressed roster and Zoom speaker matching issues:
 
 ```text
-Fix the ClassLoop import flow based on the test results. Keep changes narrowly scoped to only affect the background logic, do not touch the ui or anything unrelated.
+Fix the Relay import flow based on the test results. Keep changes narrowly scoped to only affect the background logic, do not touch the ui or anything unrelated.
 
 Expected behavior for the pasted CS4All roster + Zoom transcript:
 - Parse exactly 18 students from the compressed roster.
@@ -275,10 +275,10 @@ Make the code changes and then summarize exactly what changed and how you verifi
 
 ## 2026-05-06 Feature QA Prompt: Access, Appearance, Storage, Capture, Privacy, Rosters
 
-Use this prompt when testing the ClassLoop feature set after appearance, storage, browser tests, live audio notes, delivery logging, privacy controls, roster templates, or sidebar navigation are changed:
+Use this prompt when testing the Relay feature set after appearance, storage, browser tests, live audio notes, delivery logging, privacy controls, roster templates, or sidebar navigation are changed:
 
 ```text
-You are testing ClassLoop. Verify functionality; do not redesign the app.
+You are testing Relay. Verify functionality; do not redesign the app.
 
 Run:
 - npm run build
@@ -287,8 +287,8 @@ Run:
 - node -c desktop/main.cjs
 
 Feature checks:
-1. Teacher login works with teacher@classloop.demo / classloop-teacher.
-2. Student login works with maya@classloop.demo / classloop-student.
+1. Teacher login works with teacher@relay.demo / relay-teacher.
+2. Student login works with maya@relay.demo / relay-student.
 3. Teacher can create/import a session, load the geometry sample, generate a draft, open publish preview, publish, view student preview, and open analytics.
 4. Publish preview shows per-student preview differences explaining why each student got different follow-ups.
 5. After the first published session, the save-roster prompt appears, accepts a teacher-entered roster name, and saves the roster.
@@ -310,7 +310,7 @@ Feature checks:
 13. Paid/API-key/external-platform features are absent from the working app: no OpenAI transcription, custom transcription endpoint, Google Classroom posting, or LMS posting. Browser-only in-person/online-meeting capture is allowed because it uses free local browser capabilities and still treats transcript paste/upload as the reliable path.
 14. Publish preview shows delivery logs after email send actions.
 15. Privacy page is accessible to teachers and exposes retention settings, export, delete class data, consent settings, and audit log.
-16. Account/session/browser roster fallback storage uses secure classloop:secure:* localStorage keys; legacy plain classloop:accounts/session keys should migrate away.
+16. Account/session/browser roster fallback storage uses secure relay:secure:* localStorage keys; legacy plain relay:accounts/session keys should migrate away.
 17. Responsive layout has no horizontal overflow at a phone-sized viewport.
 18. Frontend formatting pass: no unreadable low-contrast text, overlapping form labels, clipped buttons, blank teacher-only panels, or unnecessary implementation details exposed to users.
 
@@ -335,18 +335,18 @@ Report:
 
 ## 2026-05-06 Testing Tooling Requirement
 
-Playwright is a required dev dependency for ClassLoop browser QA.
+Playwright is a required dev dependency for Relay browser QA.
 
 - Keep `@playwright/test` in `devDependencies`.
 - Keep `npm run test:browser` available.
 - Keep `postinstall` running `playwright install chromium` so a fresh repo install has the browser needed for tests.
-- Browser tests live in `tests/browser/classloop.spec.ts`.
+- Browser tests live in `tests/browser/relay.spec.ts`.
 - Playwright config lives in `playwright.config.ts` and starts Vite on `127.0.0.1:5177`.
 
 ## 2026-05-06 Security/Storage Notes
 
-- Desktop `.classloop-data.json` should be written encrypted with Electron `safeStorage` when the OS supports it.
-- Browser fallback storage should use `classloop:secure:*` keys with AES-GCM encryption and migrate legacy plain localStorage keys.
+- Desktop `.relay-data.json` should be written encrypted with Electron `safeStorage` when the OS supports it.
+- Browser fallback storage should use `relay:secure:*` keys with AES-GCM encryption and migrate legacy plain localStorage keys.
 - This is local encryption at rest. It is not true multi-device sync. Real multi-device student access requires a backend database, server-side auth/session validation, HTTPS, and school-approved identity/OAuth.
 
 ## 2026-05-06 Live Audio Notes
@@ -359,10 +359,10 @@ Playwright is a required dev dependency for ClassLoop browser QA.
 ## 2026-05-06 Free-First External Services Policy
 
 - The user does not want to pay for integrations during the prototype stage.
-- ClassLoop cannot generate a Gmail account or send from an address the user does not own.
-- Free email path: the user creates/owns a Gmail account such as `classloop.noreply@gmail.com`, enables 2-Step Verification, creates an app password, and configures ClassLoop to send from that mailbox with `CLASSLOOP_REPLY_TO` set to the teacher/support inbox.
+- Relay cannot generate a Gmail account or send from an address the user does not own.
+- Free email path: the user creates/owns a Gmail account such as `relay.noreply@gmail.com`, enables 2-Step Verification, creates an app password, and configures Relay to send from that mailbox with `RELAY_REPLY_TO` set to the teacher/support inbox.
 - Remove or hide Google Classroom OAuth posting, LMS posting, OpenAI transcription, and custom transcription endpoints from the working app because they depend on external integration setup or paid API-key paths. Browser-only online meeting capture is allowed as a free best-effort feature.
-- If no external credentials are configured, ClassLoop must remain useful through transcript paste/upload, local review, publish preview, student portal, roster manager, and analytics.
+- If no external credentials are configured, Relay must remain useful through transcript paste/upload, local review, publish preview, student portal, roster manager, and analytics.
 
 ## 2026-05-06 Roster Template Notes
 
@@ -395,7 +395,7 @@ Playwright is a required dev dependency for ClassLoop browser QA.
 
 ### Updated Feature QA Additions
 
-When using the ClassLoop testing script, also verify:
+When using the Relay testing script, also verify:
 
 - Classes sidebar tab is teacher-only and shows reusable class rosters.
 - Publishing/saving a roster creates or updates a reusable class group.
@@ -431,17 +431,17 @@ When using the ClassLoop testing script, also verify:
 - `main` now includes the richer daily-use workflow: consent-first capture modes, one-click recap delivery UI, saved rosters, class/course manager, publish audit, student submitted/reviewed completion state, report exports, hosted backend/freemium scaffold, and privacy controls.
 - Fixed a promotion merge regression where duplicate privacy/billing defaults broke the Vite app.
 - Restored CSV import/export controls in the shared roster manager so draft review rosters, saved rosters, and classes all keep CSV workflow access.
-- Expanded `tests/browser/classloop.spec.ts` into a deeper UX smoke script covering account creation/reset/settings, capture choices, roster CSV import/export, class reuse, publish preview, report downloads, student submission, teacher review, privacy, sync/billing fallback, appearance, tutorial, role gates, and mobile overflow.
+- Expanded `tests/browser/relay.spec.ts` into a deeper UX smoke script covering account creation/reset/settings, capture choices, roster CSV import/export, class reuse, publish preview, report downloads, student submission, teacher review, privacy, sync/billing fallback, appearance, tutorial, role gates, and mobile overflow.
 - Manual-style Playwright UX pass against the running app covered login, capture mode selection, sample import, CSV import, publish, student preview completion, analytics, and privacy. It found no page errors, no console errors, and no desktop horizontal overflow.
 - Verification passed on `main`: `npm run build`, `npm run test:import`, `npm run test:browser` (12/12), `node -c desktop/main.cjs`, `node --check api/*.js api/billing/*.js`, and `git diff --check`.
 
 ## 2026-05-09 Skills Added From Backend Rollout
 
-Created three reusable ClassLoop skills:
+Created three reusable Relay skills:
 
-- `classloop-hosted-deployment`: Vercel/Supabase/Stripe hosted deployment setup, env vars, RLS, API routes, webhooks, and live multi-device sync verification.
-- `classloop-entitlement-gates`: Free/Pro plan limits, Stripe subscription state, webhook-owned entitlements, paid feature gating, and anti-client-bypass review.
-- `classloop-dual-branch-rollout`: applies shared ClassLoop changes to both `main` and `codex/audio-session-improvements` while preserving branch boundaries and verifying both branches.
+- `relay-hosted-deployment`: Vercel/Supabase/Stripe hosted deployment setup, env vars, RLS, API routes, webhooks, and live multi-device sync verification.
+- `relay-entitlement-gates`: Free/Pro plan limits, Stripe subscription state, webhook-owned entitlements, paid feature gating, and anti-client-bypass review.
+- `relay-dual-branch-rollout`: applies shared Relay changes to both `main` and `codex/audio-session-improvements` while preserving branch boundaries and verifying both branches.
 
 All three validate with `quick_validate.py`.
 
@@ -449,16 +449,16 @@ All three validate with `quick_validate.py`.
 
 - `codex/audio-session-improvements` is no longer an active product branch.
 - The committed improvement-branch history was already merged into `main`; remaining useful documentation guidance was folded into `main`.
-- Future ClassLoop work should target `main` unless the user explicitly asks to create a new experiment branch.
+- Future Relay work should target `main` unless the user explicitly asks to create a new experiment branch.
 - Keep the old `ui-test`/abyssal visual direction separate unless the user explicitly asks to revive it.
 
 ## 2026-05-10 Hosted Landing / Vercel Diagnostics
 
-- The hosted Vercel root route `/` now serves a public ClassLoop landing page with a Codex-style first impression, download call to action, and web demo entry point.
+- The hosted Vercel root route `/` now serves a public Relay landing page with a Codex-style first impression, download call to action, and web demo entry point.
 - The actual app remains at `/#/dashboard`; Electron still opens `/#/dashboard` directly, so the desktop workflow is unchanged.
 - The hosted web demo is sample-account-only. Visitors can use the sample teacher/student credentials, but they can only create their own account and keep saved data in the downloaded desktop app.
 - Demo-account state is ephemeral: sample teacher/student changes are not written to the normal persistence path, demo-owned state is stripped before storage, and a top demo banner reminds users to download the app to save data.
-- `VITE_CLASSLOOP_MAC_DOWNLOAD_URL` can point the landing-page download button at a signed macOS desktop installer when packaging is ready. Until then, the page tells visitors to use the web demo.
+- `VITE_RELAY_MAC_DOWNLOAD_URL` can point the landing-page download button at a signed macOS desktop installer when packaging is ready. Until then, the page tells visitors to use the web demo.
 - `/api/config` now returns a safe config version plus hosted backend booleans. If live Vercel still returns `stripeSchoolConfigured`, the deployed app is stale and must redeploy latest `main`.
 - Current active freemium model: Free is 1 generated session per day; Pro is `$9/month` with unlimited sessions, live capture modes, multi-device cloud sync, delivery logs, privacy exports, and advanced reports. School pilot UI/env keys remain removed/deferred.
 - Verification passed after landing update: `npm run build`, `npm run test:import`, `npm run test:browser` (14/14), `node -c desktop/main.cjs`, `node --check api/*.js api/billing/*.js`, and `git diff --check -- ':!dist/**'`.

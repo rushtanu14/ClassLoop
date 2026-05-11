@@ -1,9 +1,9 @@
 {
-  "name": "classloop",
+  "name": "relay",
   "version": "0.1.0",
   "private": true,
-  "description": "ClassLoop desktop and mobile-web classroom follow-up platform",
-  "author": "ClassLoop <classloop.donotreply@gmail.com>",
+  "description": "Relay desktop and mobile-web classroom follow-up platform",
+  "author": "Relay <relay.donotreply@gmail.com>",
   "type": "module",
   "main": "desktop/main.cjs",
   "scripts": {
@@ -39,8 +39,8 @@
     "vite": "^6.0.7"
   },
   "build": {
-    "appId": "com.classloop.app",
-    "productName": "ClassLoop",
+    "appId": "com.relay.app",
+    "productName": "Relay",
     "directories": {
       "output": "release"
     },

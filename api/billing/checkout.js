@@ -9,9 +9,9 @@ export default async function handler(request, response) {
     const stripe = new Stripe(requiredEnv("STRIPE_SECRET_KEY"));
     const tier = "pro";
     const price = requiredEnv("STRIPE_PRO_PRICE_ID");
-    const baseUrl = process.env.CLASSLOOP_PUBLIC_URL || originUrl(request);
+    const baseUrl = process.env.RELAY_PUBLIC_URL || originUrl(request);
     const { data: profile } = await supabase
-      .from("classloop_profiles")
+      .from("relay_profiles")
       .select("stripe_customer_id")
       .eq("id", user.id)
       .maybeSingle();
@@ -24,7 +24,7 @@ export default async function handler(request, response) {
         })
       ).id;
 
-    await supabase.from("classloop_profiles").upsert({
+    await supabase.from("relay_profiles").upsert({
       id: user.id,
       email: user.email || "",
       role: "teacher",
