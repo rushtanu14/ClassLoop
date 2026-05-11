@@ -37,6 +37,7 @@ import {
   Settings2,
   ShieldCheck,
   SlidersHorizontal,
+  Smartphone,
   Sparkles,
   Target,
   UploadCloud,
@@ -126,6 +127,11 @@ type AuthSession = {
   name: string;
   studentId?: string;
   demo?: boolean;
+};
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
 type Account = {
@@ -475,6 +481,7 @@ function isLandingHash() {
     hash === "#/home" ||
     hash === "#/landing" ||
     hash === "#features" ||
+    hash === "#mobile" ||
     hash === "#privacy" ||
     hash === "#download"
   );
@@ -2354,6 +2361,9 @@ function App() {
 
 function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
   const [downloadMessage, setDownloadMessage] = useState("");
+  const [mobileMessage, setMobileMessage] = useState("");
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isStandaloneMobile, setIsStandaloneMobile] = useState(false);
   const downloadOptions = [
     {
       id: "macos",
@@ -2378,7 +2388,7 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
   const stats = [
     { value: "1", label: "daily free session" },
     { value: "Pro", label: "unlimited follow-ups" },
-    { value: "CSV", label: "roster import/export" },
+    { value: "PWA", label: "phone-ready web app" },
   ];
 
   const handleDownload = (option = downloadOptions[0]) => {
@@ -2392,11 +2402,59 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const handleMobileInstall = async () => {
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      setInstallPrompt(null);
+      setMobileMessage(
+        choice.outcome === "accepted"
+          ? "ClassLoop is ready to open from your phone home screen."
+          : "You can still add ClassLoop from your browser share menu or install menu.",
+      );
+      return;
+    }
+    setMobileMessage(
+      isStandaloneMobile
+        ? "ClassLoop is already running like an app on this device."
+        : "On iPhone, tap Share then Add to Home Screen. On Android, open the browser menu and choose Install app.",
+    );
+  };
+
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
-    if (["features", "privacy", "download"].includes(hash)) {
+    if (["features", "mobile", "privacy", "download"].includes(hash)) {
       window.setTimeout(() => scrollToSection(hash), 80);
     }
+  }, []);
+
+  useEffect(() => {
+    const displayModeQuery = window.matchMedia("(display-mode: standalone)");
+    const updateDisplayMode = () => {
+      setIsStandaloneMobile(
+        displayModeQuery.matches ||
+          (window.navigator as Navigator & { standalone?: boolean }).standalone === true,
+      );
+    };
+    const beforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+      setMobileMessage("ClassLoop can be added to this device for faster access.");
+    };
+    const installed = () => {
+      setInstallPrompt(null);
+      setMobileMessage("ClassLoop was added to this device.");
+      updateDisplayMode();
+    };
+    updateDisplayMode();
+    window.addEventListener("beforeinstallprompt", beforeInstallPrompt);
+    window.addEventListener("appinstalled", installed);
+    displayModeQuery.addEventListener("change", updateDisplayMode);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", beforeInstallPrompt);
+      window.removeEventListener("appinstalled", installed);
+      displayModeQuery.removeEventListener("change", updateDisplayMode);
+    };
   }, []);
 
   return (
@@ -2411,6 +2469,9 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
         <div className="landing-links">
           <button className="landing-nav-link" type="button" onClick={() => scrollToSection("features")}>
             Features
+          </button>
+          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("mobile")}>
+            Mobile
           </button>
           <button className="landing-nav-link" type="button" onClick={() => scrollToSection("privacy")}>
             Privacy
@@ -2443,6 +2504,10 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
             <PlayCircle size={20} />
             Open web demo
           </button>
+          <button className="landing-secondary" type="button" onClick={handleMobileInstall}>
+            <Smartphone size={20} />
+            Add to phone
+          </button>
         </div>
         <div className="landing-platform-list" aria-label="Desktop download options">
           {downloadOptions.map((option) => (
@@ -2456,6 +2521,7 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
           ))}
         </div>
         {downloadMessage && <p className="landing-message">{downloadMessage}</p>}
+        {mobileMessage && <p className="landing-message compact">{mobileMessage}</p>}
         <div className="landing-stat-row" aria-label="ClassLoop plan highlights">
           {stats.map((stat) => (
             <div className="landing-stat" key={stat.label}>
@@ -2463,6 +2529,36 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
               <span>{stat.label}</span>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="landing-mobile-band" id="mobile" aria-label="ClassLoop on mobile">
+        <div className="landing-mobile-card">
+          <Smartphone size={26} />
+          <span className="landing-eyebrow">Phone and tablet access</span>
+          <h2>Use ClassLoop from a browser or add it to your home screen.</h2>
+          <p>
+            The hosted web version is installable on modern mobile browsers, so teachers can check follow-ups
+            from a phone and students can open their dashboard without a desktop.
+          </p>
+          <button className="landing-primary" type="button" onClick={handleMobileInstall}>
+            <Smartphone size={18} />
+            Add ClassLoop to phone
+          </button>
+        </div>
+        <div className="mobile-step-grid">
+          <article className="mobile-step">
+            <strong>1</strong>
+            <span>Open the hosted ClassLoop link on your phone.</span>
+          </article>
+          <article className="mobile-step">
+            <strong>2</strong>
+            <span>Choose Add to Home Screen or Install app from your browser.</span>
+          </article>
+          <article className="mobile-step">
+            <strong>3</strong>
+            <span>Use the sample demo now, then sign in with Pro cloud sync when live.</span>
+          </article>
         </div>
       </section>
 
@@ -3140,8 +3236,13 @@ function GuidedWalkthroughOverlay({
         width: Math.max(0, highlightRight - highlightLeft),
         height: Math.max(0, highlightBottom - highlightTop),
       };
+      if (viewportWidth <= 920) {
+        setHighlightStyle(highlight);
+        setPopoverStyle(null);
+        return;
+      }
       const popoverWidth = Math.min(430, viewportWidth - viewportInset * 2);
-      const estimatedPopoverHeight = 280;
+      const estimatedPopoverHeight = 240;
       const gap = 18;
       const maxPopoverLeft = Math.max(viewportInset, viewportWidth - popoverWidth - viewportInset);
       const maxPopoverTop = Math.max(viewportInset, viewportHeight - estimatedPopoverHeight - viewportInset);
@@ -3160,16 +3261,18 @@ function GuidedWalkthroughOverlay({
       const firstSlide = stepIndex === 0;
       const candidates = firstSlide
         ? [
+            { left: rect.left, top: highlight.top - estimatedPopoverHeight - gap },
+            { left: rect.right - popoverWidth, top: highlight.top - estimatedPopoverHeight - gap },
+            { left: rect.left, top: highlight.top + highlight.height + gap },
+            { left: rect.right - popoverWidth, top: highlight.top + highlight.height + gap },
             { left: viewportWidth - popoverWidth - viewportInset, top: viewportHeight - estimatedPopoverHeight - viewportInset },
             { left: viewportInset, top: viewportHeight - estimatedPopoverHeight - viewportInset },
-            { left: rect.left, top: rect.bottom + gap },
-            { left: rect.right - popoverWidth, top: rect.bottom + gap },
           ]
         : [
-            { left: rect.left, top: rect.bottom + gap },
-            { left: rect.right + gap, top: rect.top },
-            { left: rect.left - popoverWidth - gap, top: rect.top },
-            { left: rect.left, top: rect.top - estimatedPopoverHeight - gap },
+            { left: rect.left, top: highlight.top + highlight.height + gap },
+            { left: highlight.left + highlight.width + gap, top: rect.top },
+            { left: highlight.left - popoverWidth - gap, top: rect.top },
+            { left: rect.left, top: highlight.top - estimatedPopoverHeight - gap },
           ];
       const popoverPosition =
         candidates
@@ -3583,7 +3686,7 @@ function TeacherDashboard({
 
   return (
     <div className="page-stack">
-      <section className="dashboard-hero" data-tour="dashboard-hero">
+      <section className="dashboard-hero">
         <div className="hero-copy">
           <span className="eyebrow">Live class follow-up loop</span>
           <h2>Turn messy class records into edited recaps, personal tasks, and completion check-ins.</h2>
@@ -3591,7 +3694,7 @@ function TeacherDashboard({
             You stay in control while ClassLoop extracts what happened, who needs support, and what should happen
             next.
           </p>
-          <div className="hero-actions">
+          <div className="hero-actions" data-tour="dashboard-hero">
             <button className="primary-button large" onClick={() => navigate("new-session")}>
               <Wand2 size={19} />
               Create a session

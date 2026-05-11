@@ -1,0 +1,33 @@
+{
+  "name": "ClassLoop",
+  "short_name": "ClassLoop",
+  "description": "Teacher-reviewed class recaps, student follow-ups, and completion check-ins.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8faf7",
+  "theme_color": "#0f766e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/classloop-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Teacher demo",
+      "short_name": "Teacher",
+      "url": "/?demoOnly=1#/dashboard",
+      "description": "Open the teacher-side ClassLoop demo."
+    },
+    {
+      "name": "Student demo",
+      "short_name": "Student",
+      "url": "/?demoOnly=1#/dashboard",
+      "description": "Open the student-side ClassLoop demo."
+    }
+  ]
+}

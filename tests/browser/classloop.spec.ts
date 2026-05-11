@@ -47,6 +47,13 @@ test("public root shows landing page and can enter the app demo", async ({ page 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /^ClassLoop$/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /download for macos/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /add to phone/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /use classloop from a browser or add it to your home screen/i })).toBeVisible();
+  const manifest = await page.request.get("/manifest.webmanifest");
+  expect(manifest.ok()).toBeTruthy();
+  const manifestJson = await manifest.json();
+  expect(manifestJson.display).toBe("standalone");
+  expect(manifestJson.start_url).toContain("source=pwa");
   await page.getByRole("button", { name: /open web demo/i }).click();
   await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
 });

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-ClassLoop is a desktop classroom follow-up platform (Electron + React) that transforms messy class inputs—transcripts, notes, rosters, and resource links—into structured teacher review workflows and student-facing follow-up dashboards.
+ClassLoop is a desktop and mobile-web classroom follow-up platform (Electron + React + hosted PWA shell) that transforms messy class inputs—transcripts, notes, rosters, and resource links—into structured teacher review workflows and student-facing follow-up dashboards.
 
 **Core value**: Teachers import a Zoom transcript + class roster → ClassLoop auto-extracts participation events, identifies students who need catch-up, generates action items, and publishes personalized student follow-ups with tasks, resources, and due dates.
 
@@ -31,6 +31,7 @@ ClassLoop is a desktop classroom follow-up platform (Electron + React) that tran
 - Hosted Vercel demo should use sample accounts only. Do not enable custom account creation in the hosted demo; users create durable accounts in the downloaded desktop app.
 - Sample/demo account changes must be ephemeral and clearly bannered as unsaved demo data.
 - Public landing downloads support macOS, Windows, and Linux through `VITE_CLASSLOOP_MAC_DOWNLOAD_URL`, `VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL`, and `VITE_CLASSLOOP_LINUX_DOWNLOAD_URL`. If a URL is missing, the UI should say that installer is still being packaged rather than pretending the download works. Packaging scripts target both x64 and arm64 where Electron Builder supports it.
+- Hosted mobile access is through the Vercel PWA shell: keep `public/manifest.webmanifest`, `public/sw.js`, mobile meta tags, and the landing-page "Add to phone" flow working.
 
 ## Architecture
 
@@ -45,6 +46,8 @@ ClassLoop
 ├── desktop/
 │   └── main.cjs             # Electron main process, window creation
 ├── public/                  # Static assets
+│   ├── manifest.webmanifest # Hosted mobile/PWA install metadata
+│   └── sw.js                # Browser shell cache; skips /api/*
 ├── tests/
 │   └── import-flow.test.ts  # End-to-end parsing tests
 ├── tests/browser/
@@ -295,7 +298,7 @@ Tests validate:
 4. **String formatting**: Date strings are ISO 8601 (YYYY-MM-DD). Names are lowercase-slugified for IDs.
 5. **Error handling**: Parser is defensive (unmatched names flagged but don't break import). UI shows warnings clearly.
 6. **Accessibility**: Icons from lucide-react (semantic naming). Enough contrast for education-friendly green theme.
-7. **Browser QA**: Keep Playwright installed. `npm install` runs `playwright install chromium`; run `npm run test:browser` for login/import/publish/student/analytics/access/responsive/class manager/CSV/report export coverage.
+7. **Browser QA**: Keep Playwright installed. `npm install` runs `playwright install chromium`; run `npm run test:browser` for login/import/publish/student/analytics/access/responsive/class manager/CSV/report export coverage. Run `npm run test:web` for the hosted landing/demo/PWA smoke test across desktop and phone-sized viewports.
 8. **Local storage security**: Desktop state is encrypted with Electron `safeStorage` when available. Browser fallback uses encrypted `classloop:secure:*` localStorage keys. Hosted multi-device access uses Supabase Auth and workspace sync when credentials are configured.
 9. **Testing prompt upkeep**: When adding user-facing features, update the feature QA prompt in `codexsecondbrain-sync-2026-04-30.md` and Playwright coverage so future agents test the new workflow plus layout/readability issues.
 

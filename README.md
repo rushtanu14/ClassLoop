@@ -6,7 +6,7 @@ The product goal is simple: connect what happened in class, what each student ne
 
 ## Run
 
-ClassLoop runs as a desktop application.
+ClassLoop runs as a desktop application. The hosted Vercel version also works as a mobile web app that can be added to a phone home screen.
 
 ```bash
 ./run.sh
@@ -100,6 +100,7 @@ The local desktop app still works without paid services or cloud credentials. Fo
 - Stripe webhook endpoint for server-owned subscription status updates.
 - Pilot feedback endpoint for collecting early user feedback.
 - A Vercel landing page at `/` with download/demo calls to action.
+- A PWA/mobile shell with `manifest.webmanifest`, a service worker, mobile meta tags, and an "Add to phone" landing action.
 
 Hosted route behavior:
 
@@ -109,6 +110,7 @@ Hosted route behavior:
 - Sample account changes are ephemeral and should not be treated as saved data.
 - `https://your-domain.com/api/config` returns safe booleans that confirm whether server-only Supabase and Stripe env vars were picked up by Vercel.
 - Set desktop installer URLs when release assets are ready: `VITE_CLASSLOOP_MAC_DOWNLOAD_URL`, `VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL`, and `VITE_CLASSLOOP_LINUX_DOWNLOAD_URL`. Until then, the landing page clearly says installers are still being packaged and directs visitors to the web demo.
+- Phone and tablet access runs through the hosted web app. Visitors can open the Vercel URL in Safari/Chrome and use Add to Home Screen or Install app for app-like access.
 
 Suggested pricing:
 
@@ -116,6 +118,17 @@ Suggested pricing:
 - Pro: `$9/month`, unlimited sessions, live in-person/online capture modes, multi-device cloud login, email delivery logs, privacy exports, and advanced reports.
 
 Configure hosted mode from `.env.example`. Public Vite variables are safe for the browser build; `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, and `STRIPE_WEBHOOK_SECRET` must only live in Vercel/server environment variables.
+
+### Mobile Web App
+
+ClassLoop includes a lightweight PWA layer for phones and tablets:
+
+- `public/manifest.webmanifest` defines the installable app name, standalone display mode, theme color, icon, and shortcuts.
+- `public/sw.js` caches the browser shell and static assets but skips `/api/*` so cloud sync and billing stay network-backed.
+- `index.html` includes mobile web app and theme metadata.
+- The landing page has an "Add to phone" action plus short setup steps for iPhone and Android users.
+
+The mobile version is best for checking dashboards, student follow-ups, and quick reviews. Heavy transcript editing and large roster cleanup are still more comfortable on desktop or tablet.
 
 ### Stripe Setup
 
@@ -210,6 +223,8 @@ npm run test:web
 ```
 
 `npm run test:browser` covers the local Vite app. `npm run test:web` checks the deployed hosted web demo. Override the target with `CLASSLOOP_WEB_TEST_URL=https://your-domain.com npm run test:web`.
+
+Hosted web tests now run both desktop and Pixel-sized projects and verify the PWA manifest/service worker, mobile install CTA, sample-only demo, and guided walkthrough entry.
 
 ## PRD Alignment
 

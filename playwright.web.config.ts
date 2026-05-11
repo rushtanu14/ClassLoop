@@ -18,5 +18,9 @@ export default defineConfig({
       name: "web-chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "web-mobile",
+      use: { ...devices["Pixel 7"] },
+    },
   ],
 });

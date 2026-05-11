@@ -46,6 +46,7 @@
 ### Hosted Web Smoke Tests
 - **Landing Page**: Hosted root page loads ClassLoop marketing/download UI.
 - **Desktop Downloads**: macOS, Windows, and Linux download controls are visible; missing installer URLs show packaging/demo fallback copy.
+- **Mobile/PWA Access**: Hosted root exposes the "Add to phone" action, standalone web app manifest, app icon, and service worker shell.
 - **Sample-Only Demo**: Hosted demo exposes teacher/student demo choices instead of editable email/password fields.
 - **Demo Walkthrough**: Teacher sample demo starts the guided walkthrough and shows the unsaved demo banner after skip.
 
@@ -114,6 +115,7 @@ When the user says "use the testing script," run the saved ClassLoop QA sequence
 - whether paid/API-key/external-platform features remain absent from the app, except Gmail/SMTP email through a user-owned sender
 - whether class manager, CSV roster import/export, publish audit, student submitted/reviewed states, and report exports are reachable
 - whether the hosted web demo still hides editable login fields and exposes platform download controls
+- whether the hosted web demo exposes mobile/PWA install controls and passes the manifest/service-worker checks
 - concise feedback on how the run went
 - what could be improved
 - feature ideas that would improve user experience

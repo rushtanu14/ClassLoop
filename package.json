@@ -2,7 +2,7 @@
   "name": "classloop",
   "version": "0.1.0",
   "private": true,
-  "description": "ClassLoop desktop classroom follow-up platform",
+  "description": "ClassLoop desktop and mobile-web classroom follow-up platform",
   "author": "ClassLoop <classloop.donotreply@gmail.com>",
   "type": "module",
   "main": "desktop/main.cjs",
