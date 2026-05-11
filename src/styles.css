@@ -645,6 +645,28 @@ a {
   transform: rotate(180deg);
 }
 
+.student-session-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-bottom: 12px;
+}
+
+.student-session-student {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--green);
+  background: var(--soft);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .page-stack {
   display: grid;
   gap: 22px;
@@ -1410,8 +1432,8 @@ a {
   display: inline-flex;
   align-items: center;
   min-height: 34px;
-  padding: 0 11px;
-  border-radius: 999px;
+  padding: 8px 12px;
+  border-radius: 16px;
   color: #344151;
   background: #f2ead9;
   line-height: 1.2;
@@ -2140,6 +2162,37 @@ th {
 
   .theme-option-grid {
     grid-template-columns: 1fr;
+  }
+
+  .student-preview-columns,
+  .student-visible-editor.compact-editor,
+  .template-detail-grid,
+  .capture-mode-grid,
+  .saved-roster-row,
+  .session-prep-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tour-highlight {
+    display: none;
+  }
+
+  .tour-popover,
+  .tour-popover.anchored,
+  .tour-popover.top-left,
+  .tour-popover.top-right,
+  .tour-popover.center,
+  .tour-popover.bottom-right {
+    inset: auto 18px 18px 18px !important;
+    top: auto !important;
+    right: 18px !important;
+    bottom: 18px !important;
+    left: 18px !important;
+    width: auto;
+    max-height: calc(100vh - 36px);
+    max-height: calc(100svh - 36px);
+    overflow: auto;
+    transform: none;
   }
 }
 
