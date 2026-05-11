@@ -6,15 +6,21 @@ import {
   BrainCircuit,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   CircleAlert,
   ClipboardCheck,
   Clock3,
+  Download,
+  Eye,
+  EyeOff,
   FileText,
   GraduationCap,
   KeyRound,
   LayoutDashboard,
+  Lightbulb,
   LineChart,
+  Link2,
   Link as LinkIcon,
   ListChecks,
   LogOut,
@@ -31,9 +37,12 @@ import {
   Settings2,
   ShieldCheck,
   SlidersHorizontal,
+  Smartphone,
   Sparkles,
   Target,
   UploadCloud,
+  Trash2,
+  UserPlus,
   UserRound,
   UserRoundCheck,
   UserX,
@@ -41,22 +50,49 @@ import {
   Wand2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import {
   createGeneratedSession,
+  extractTranscriptSpeakers,
+  readTranscriptFileText,
   sampleNotes,
   sampleRoster,
   sampleTranscript,
 } from "./data";
+import {
+  cloudRequest,
+  createBillingPortalSession,
+  createCheckoutSession,
+  createCloudAccount,
+  getBackendStatus,
+  getCloudProfile,
+  getCloudSession,
+  isPaidPlan,
+  planCatalog,
+  signIntoCloud,
+  signOutCloud,
+  type BillingProfile,
+  type PlanTier,
+} from "./cloud";
 import type {
   ActionItem,
   AttendanceStatus,
+  ClassGroup,
+  DeliveryLog,
   ParticipationEvent,
+  ParticipationType,
+  PublishAuditEntry,
   Resource,
+  RosterTemplate,
   Session,
+  SessionCaptureMode,
   SessionType,
   Student,
   StudentFollowUp,
+  StudentSubmission,
+  StudentSubmissionStatus,
   TaskStatus,
+  UnmatchedParticipant,
 } from "./types";
 
 type RouteKey =
@@ -64,11 +100,17 @@ type RouteKey =
   | "new-session"
   | "processing"
   | "review"
+  | "publish-preview"
   | "report"
   | "student"
   | "student-session"
+  | "classes"
+  | "rosters"
   | "analytics"
-  | "appearance";
+  | "billing"
+  | "tutorial"
+  | "appearance"
+  | "privacy";
 
 type NavItem = {
   route: RouteKey;
@@ -87,6 +129,11 @@ type AuthSession = {
   demo?: boolean;
 };
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
 type Account = {
   id: string;
   role: AuthRole;
@@ -94,7 +141,20 @@ type Account = {
   name: string;
   passwordHash: string;
   createdAt: string;
+  theme?: ThemeSettings;
   demo?: boolean;
+};
+
+type AccountSettingsInput = {
+  name: string;
+  email: string;
+  currentPassword: string;
+  newPassword: string;
+};
+
+type PasswordResetRecord = {
+  code: string;
+  expiresAt: number;
 };
 
 type SharedState = {
@@ -102,10 +162,32 @@ type SharedState = {
   sessions: Session[];
   draft: Session | null;
   demoLoaded: boolean;
+  classGroups: ClassGroup[];
+  rosterTemplates: RosterTemplate[];
+  privacySettings: PrivacySettings;
+  auditLog: AuditLogEntry[];
+  billingProfile: BillingProfile;
   updatedAt?: string;
 };
 
 type SyncStatus = "connecting" | "shared" | "local";
+
+type PrivacySettings = {
+  retentionDays: number;
+  recordingConsentRequired: boolean;
+  allowStudentExport: boolean;
+  auditLogEnabled: boolean;
+  noTrainingOnStudentData: boolean;
+};
+
+type AuditLogEntry = {
+  id: string;
+  actorEmail: string;
+  actorRole: AuthRole;
+  action: string;
+  detail: string;
+  createdAt: string;
+};
 
 type ThemeKey = "abyssal" | "classroom" | "botanical" | "graphite";
 
@@ -115,22 +197,92 @@ type ThemeSettings = {
   imageUrl: string;
 };
 
+type SpeechRecognitionResultLike = {
+  isFinal: boolean;
+  0?: { transcript: string };
+};
+
+type SpeechRecognitionEventLike = {
+  resultIndex?: number;
+  results: ArrayLike<SpeechRecognitionResultLike>;
+};
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
+type TourRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+type IntegrationStatus = {
+  email: {
+    configured: boolean;
+    provider: string;
+    from?: string;
+    replyTo?: string;
+  };
+};
+
+type EmailDeliveryResult = {
+  provider: string;
+  sentAt: string;
+  recipients: string[];
+  skipped: string[];
+  failed: string[];
+};
+
 const navItems: NavItem[] = [
   { route: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { route: "new-session", label: "New session", icon: PlusCircle },
-  { route: "review", label: "AI review", icon: Sparkles },
+  { route: "classes", label: "Classes", icon: BookOpen },
+  { route: "rosters", label: "Rosters", icon: Users },
+  { route: "review", label: "Draft review", icon: Sparkles },
   { route: "report", label: "Session report", icon: ClipboardCheck },
   { route: "student", label: "Student view", icon: GraduationCap },
   { route: "analytics", label: "Analytics", icon: BarChart3 },
-  { route: "appearance", label: "Design system", icon: Palette },
+  { route: "billing", label: "Plan options", icon: RefreshCw },
+  { route: "tutorial", label: "How it works", icon: BookOpen },
+  { route: "appearance", label: "Appearance", icon: Palette },
+  { route: "privacy", label: "Privacy", icon: ShieldCheck },
 ];
 
 const studentNavItems: NavItem[] = [
   { route: "student", label: "My portal", icon: GraduationCap },
-  { route: "appearance", label: "Design system", icon: Palette },
+  { route: "tutorial", label: "How it works", icon: BookOpen },
+  { route: "appearance", label: "Appearance", icon: Palette },
 ];
 
-const studentRoutes = new Set<RouteKey>(["student", "student-session", "appearance"]);
+const teacherNavSections: Array<{ label: string; items: NavItem[] }> = [
+  { label: "Classroom", items: navItems.filter((item) => ["dashboard", "new-session", "review", "report"].includes(item.route)) },
+  { label: "Manage", items: navItems.filter((item) => ["classes", "rosters"].includes(item.route)) },
+  { label: "Insights", items: navItems.filter((item) => ["student", "analytics"].includes(item.route)) },
+  { label: "Settings", items: navItems.filter((item) => ["billing", "appearance", "privacy", "tutorial"].includes(item.route)) },
+];
+
+const studentNavSections: Array<{ label: string; items: NavItem[] }> = [
+  { label: "Portal", items: studentNavItems.filter((item) => item.route === "student") },
+  { label: "Settings", items: studentNavItems.filter((item) => item.route !== "student") },
+];
+
+const studentRoutes = new Set<RouteKey>(["student", "student-session", "tutorial", "appearance"]);
 const demoTeacherEmail = "teacher@classloop.demo";
 const demoStudentEmail = "maya@classloop.demo";
 const teacherPasswordHash = "92d96446c5fa184300fb96631d4ca0b18e536cfab5c0da5eead1edb535190e84";
@@ -157,9 +309,9 @@ const demoAccounts: Account[] = [
 ];
 
 const templateOptions: SessionType[] = [
+  "General classroom",
   "Math review",
   "CS workshop",
-  "General classroom",
   "Club meeting",
   "Study group",
 ];
@@ -172,11 +324,85 @@ const templateDescriptions: Record<SessionType, string> = {
   "Study group": "Shared notes, peer questions, practice goals, and check-ins.",
 };
 
+const templateDetailFields: Record<SessionType, Array<{ id: string; label: string; placeholder: string }>> = {
+  "Math review": [
+    { id: "practiceProblems", label: "Practice problems", placeholder: "Problems 7-12, worksheet B, textbook p. 144" },
+    { id: "focusSkills", label: "Skills to reinforce", placeholder: "Similar triangles, proportions, cross multiplication" },
+    { id: "commonMistakes", label: "Common mistakes", placeholder: "Wrong corresponding sides, diagonal products mixed up" },
+  ],
+  "CS workshop": [
+    { id: "projectLinks", label: "Project or repo", placeholder: "GitHub link, Replit, starter file, or branch name" },
+    { id: "debugTargets", label: "Debug targets", placeholder: "Array indexing, event handlers, state updates" },
+    { id: "deliverable", label: "Workshop deliverable", placeholder: "Submit fixed function, write reflection, push commit" },
+  ],
+  "General classroom": [],
+  "Club meeting": [
+    { id: "decisions", label: "Decisions made", placeholder: "Event theme, budget choice, outreach plan" },
+    { id: "owners", label: "Owners", placeholder: "Who owns each next step" },
+    { id: "nextCheckpoint", label: "Next checkpoint", placeholder: "Deadline, meeting date, milestone" },
+  ],
+  "Study group": [
+    { id: "topics", label: "Topics", placeholder: "Exam units, readings, problem types" },
+    { id: "peerQuestions", label: "Peer questions", placeholder: "Questions the group could not fully answer" },
+    { id: "practiceGoals", label: "Practice goals", placeholder: "Timed practice, explain one solution, review flashcards" },
+  ],
+};
+
+const loadingTips = [
+  "Tip: paste the roster once, then save it as a class so future sessions preload faster.",
+  "Tip: review the student preview before publishing so each learner sees the right follow-up.",
+  "Tip: platform transcripts are still the most reliable source after online meetings.",
+  "Tip: use aliases when a Zoom display name is different from a roster name.",
+];
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 const defaultTheme: ThemeSettings = {
-  key: "abyssal",
-  accent: "#38bdf8",
+  key: "classroom",
+  accent: "#0f766e",
   imageUrl: "",
 };
+
+const defaultPrivacySettings: PrivacySettings = {
+  retentionDays: 365,
+  recordingConsentRequired: true,
+  allowStudentExport: true,
+  auditLogEnabled: true,
+  noTrainingOnStudentData: true,
+};
+
+const defaultBillingProfile: BillingProfile = {
+  tier: "free",
+  status: "not_configured",
+};
+
+const secureLocalKeys = {
+  accounts: "classloop:secure:accounts:v1",
+  sessions: "classloop:secure:sessions:v3",
+  draft: "classloop:secure:draft:v3",
+  demoLoaded: "classloop:secure:demo-loaded:v1",
+  classGroups: "classloop:secure:class-groups:v1",
+  rosterTemplates: "classloop:secure:roster-templates:v1",
+  privacySettings: "classloop:secure:privacy:v1",
+  auditLog: "classloop:secure:audit:v1",
+  billingProfile: "classloop:secure:billing:v1",
+};
+
+const legacyLocalKeys = {
+  accounts: "classloop:accounts:v1",
+  sessions: "classloop:sessions:v3",
+  draft: "classloop:draft:v3",
+  demoLoaded: "classloop:demo-loaded:v1",
+  classGroups: "classloop:class-groups:v1",
+  rosterTemplates: "classloop:roster-templates:v1",
+  privacySettings: "classloop:privacy:v1",
+  auditLog: "classloop:audit:v1",
+  billingProfile: "classloop:billing:v1",
+};
+
+const localPreferenceKeys = ["classloop:selected-student", "classloop:local-storage-key:v1"];
 
 const themePresets: Record<
   ThemeKey,
@@ -218,21 +444,56 @@ const accentOptions = ["#0f766e", "#2563eb", "#38bdf8", "#8b5cf6", "#e11d48", "#
 const routeLabels: Record<RouteKey, string> = {
   dashboard: "Teacher dashboard",
   "new-session": "Import session",
-  processing: "AI processing",
-  review: "AI review",
+  processing: "Draft processing",
+  review: "Draft review",
+  "publish-preview": "Publish preview",
   report: "Session report",
   student: "Student dashboard",
   "student-session": "Student session detail",
+  classes: "Class manager",
+  rosters: "Roster manager",
   analytics: "Teacher analytics",
-  appearance: "Design system",
+  billing: "Plan options",
+  tutorial: "How it works",
+  appearance: "Appearance",
+  privacy: "Privacy controls",
 };
 
 function getRoute(): RouteKey {
   const hash = window.location.hash.replace(/^#\/?/, "");
   const route = hash.split("?")[0] as RouteKey;
-  return navItems.some((item) => item.route === route) || route === "processing" || route === "student-session"
+  return navItems.some((item) => item.route === route) ||
+    route === "processing" ||
+    route === "student-session" ||
+    route === "publish-preview" ||
+    route === "billing" ||
+    route === "privacy"
     ? route
     : "dashboard";
+}
+
+function isLandingHash() {
+  const hash = window.location.hash.trim();
+  return (
+    !hash ||
+    hash === "#" ||
+    hash === "#/" ||
+    hash === "#/home" ||
+    hash === "#/landing" ||
+    hash === "#features" ||
+    hash === "#mobile" ||
+    hash === "#privacy" ||
+    hash === "#download"
+  );
+}
+
+function isPublicHostedDemo() {
+  const hostname = window.location.hostname;
+  return Boolean(hostname && !["localhost", "127.0.0.1", "::1"].includes(hostname));
+}
+
+function isDemoOnlyOverride() {
+  return new URLSearchParams(window.location.search).get("demoOnly") === "1" || getParam("demoOnly") === "1";
 }
 
 function getParam(name: string): string | null {
@@ -256,6 +517,136 @@ async function hashSecret(value: string) {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function isDemoEmail(email: string) {
+  const normalized = normalizeEmail(email);
+  return normalized === normalizeEmail(demoTeacherEmail) || normalized === normalizeEmail(demoStudentEmail);
+}
+
+function studentAccessEmails(student: Student) {
+  return uniqueText(
+    [student.linkedAccountEmail, student.email].map((email) => normalizeEmail(email ?? "")).filter(Boolean),
+  );
+}
+
+function studentMatchesEmail(student: Student, email: string) {
+  const normalizedEmail = normalizeEmail(email);
+  return studentAccessEmails(student).includes(normalizedEmail);
+}
+
+function getSpeechRecognitionConstructor() {
+  const speechWindow = window as SpeechRecognitionWindow;
+  return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+}
+
+const captureModeLabels: Record<SessionCaptureMode, string> = {
+  transcript: "Transcript import",
+  audio: "Live audio notes",
+  in_person: "In-person class capture",
+  online_meeting: "Online meeting capture",
+};
+
+function appendCapturedText(current: string, text: string) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (!clean) return current;
+  return [current.trim(), clean].filter(Boolean).join("\n");
+}
+
+function liveCaptureSpeakerLabel(mode: SessionCaptureMode, segmentNumber: number) {
+  if (mode === "online_meeting") return `Unknown meeting voice ${segmentNumber}`;
+  return `Unknown in-person voice ${segmentNumber}`;
+}
+
+function localDayKey(dateInput?: string | Date) {
+  const date = dateInput ? new Date(dateInput) : new Date();
+  if (Number.isNaN(date.getTime())) return "";
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function studentEmailRecipients(session: Session) {
+  return session.students
+    .map((student) => studentAccessEmails(student)[0] ?? "")
+    .filter((email) => email && !email.endsWith("@classloop.local"));
+}
+
+function studentsWithoutDeliverableEmail(session: Session) {
+  return session.students
+    .filter((student) => {
+      const email = normalizeEmail(student.linkedAccountEmail || student.email);
+      return !email || email.endsWith("@classloop.local");
+    })
+    .map((student) => student.name);
+}
+
+function markSessionEmailsSent(session: Session, result: EmailDeliveryResult): Session {
+  return {
+    ...session,
+    emailDelivery: {
+      status: "sent",
+      sentAt: result.sentAt,
+      provider: result.provider,
+      recipients: result.recipients,
+      skipped: result.skipped,
+      failed: result.failed,
+    },
+    deliveryLogs: [
+      makeDeliveryLog({
+        provider: "email",
+        target: "Student recap email",
+        status: result.failed.length ? "failed" : "sent",
+        message: result.failed.length
+          ? `Sent ${result.recipients.length}; failed ${result.failed.length}.`
+          : `Sent recap emails to ${result.recipients.length} students.`,
+        recipientCount: result.recipients.length,
+        createdAt: result.sentAt,
+      }),
+      ...(session.deliveryLogs ?? []),
+    ],
+  };
+}
+
+function makeDeliveryLog({
+  provider,
+  target,
+  status,
+  message,
+  recipientCount,
+  createdAt = new Date().toISOString(),
+}: {
+  provider: DeliveryLog["provider"];
+  target: string;
+  status: DeliveryLog["status"];
+  message: string;
+  recipientCount?: number;
+  createdAt?: string;
+}): DeliveryLog {
+  return {
+    id: `delivery-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    provider,
+    target,
+    status,
+    message,
+    recipientCount,
+    createdAt,
+  };
+}
+
+async function apiJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options?.headers ?? {}),
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || `Request failed with status ${response.status}.`);
+  }
+  return data as T;
 }
 
 function makeAccountId(role: AuthRole) {
@@ -289,6 +680,10 @@ function createDemoSession(): Session {
     isDemo: true,
     date: "2026-04-27",
     status: "published",
+    submissions: (session.submissions ?? []).map((submission) => ({
+      ...submission,
+      sessionId: "demo-geometry-review",
+    })),
   };
 }
 
@@ -302,11 +697,10 @@ function teacherSessionsFor(sessions: Session[], email: string) {
 }
 
 function studentSessionsFor(sessions: Session[], email: string) {
-  const normalizedEmail = normalizeEmail(email);
   return sessions.filter(
     (session) =>
       session.status === "published" &&
-      session.students.some((student) => normalizeEmail(student.email) === normalizedEmail),
+      session.students.some((student) => studentMatchesEmail(student, email)),
   );
 }
 
@@ -321,13 +715,13 @@ function publishedRoster(sessions: Session[]) {
       sessions
         .filter((session) => session.status === "published")
         .flatMap((session) => session.students)
-        .map((student) => [student.email.toLowerCase(), student]),
+        .map((student) => [student.id, student]),
     ).values(),
   );
 }
 
 function findStudentByEmail(sessions: Session[], email: string) {
-  return publishedRoster(sessions).find((student) => normalizeEmail(student.email) === normalizeEmail(email));
+  return publishedRoster(sessions).find((student) => studentMatchesEmail(student, email));
 }
 
 function studentById(id: string, roster: Student[] = []) {
@@ -345,10 +739,181 @@ function studentById(id: string, roster: Student[] = []) {
   );
 }
 
+const rosterAvatarColors = ["#f59e0b", "#0ea5e9", "#8b5cf6", "#10b981", "#ef4444", "#14b8a6", "#6366f1", "#d946ef"];
+
+function slugify(value: string, fallback: string) {
+  const slug = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return slug || fallback;
+}
+
+function uniqueText(items: string[]) {
+  return Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)));
+}
+
+function makeRosterStudent(name: string, email = "", index = 0, aliases: string[] = []): Student {
+  const cleanName = name.trim() || `Student ${index + 1}`;
+  const id = `${slugify(cleanName, `student-${index + 1}`)}-${Date.now().toString(36)}`;
+  return {
+    id,
+    name: cleanName,
+    email: normalizeEmail(email || `${slugify(cleanName, `student-${index + 1}`)}@classloop.local`),
+    avatarColor: rosterAvatarColors[index % rosterAvatarColors.length],
+    aliases: uniqueText(aliases),
+  };
+}
+
+function formatRosterFromStudents(students: Student[]) {
+  return students
+    .map((student) => {
+      const aliases = uniqueText(student.aliases ?? []).join(", ");
+      return [student.name, student.email, aliases].filter(Boolean).join(", ");
+    })
+    .join("\n");
+}
+
+function blankFollowUpForStudent(student: Student, session: Session): StudentFollowUp {
+  const dueDate = session.actionItems[0]?.dueDate ?? new Date().toISOString().slice(0, 10);
+  return {
+    studentId: student.id,
+    reminder: `Review ${session.title} and complete the assigned follow-up.`,
+    catchUp: "You were added to this session roster. Use the recap, resources, and tasks to stay current.",
+    tasks: session.actionItems[0]?.title ? [session.actionItems[0].title] : ["Review the session recap"],
+    dueDate,
+    status: "todo",
+    score: 60,
+  };
+}
+
+function syncSessionRoster(session: Session, students: Student[]): Session {
+  const normalizedStudents = students
+    .filter((student) => student.name.trim() || student.email.trim())
+    .map((student, index) => ({
+      ...student,
+      name: student.name.trim() || `Student ${index + 1}`,
+      email: normalizeEmail(student.email || `${slugify(student.name || `student-${index + 1}`, `student-${index + 1}`)}@classloop.local`),
+      avatarColor: student.avatarColor || rosterAvatarColors[index % rosterAvatarColors.length],
+      aliases: uniqueText(student.aliases ?? []),
+    }));
+  const studentIds = new Set(normalizedStudents.map((student) => student.id));
+  const nextAttendance = normalizedStudents.reduce<Record<string, AttendanceStatus>>((acc, student) => {
+    acc[student.id] = session.attendance[student.id] ?? "present";
+    return acc;
+  }, {});
+  const nextFollowUps = normalizedStudents.map(
+    (student) => session.followUps.find((followUp) => followUp.studentId === student.id) ?? blankFollowUpForStudent(student, session),
+  );
+  const nextSubmissions = normalizedStudents.map((student) => {
+    const existing = (session.submissions ?? []).find((submission) => submission.studentId === student.id);
+    return (
+      existing ?? {
+        studentId: student.id,
+        sessionId: session.id,
+        status: "todo" as const,
+        note: "",
+      }
+    );
+  });
+  return {
+    ...session,
+    students: normalizedStudents,
+    attendance: nextAttendance,
+    followUps: nextFollowUps,
+    submissions: nextSubmissions,
+    actionItems: session.actionItems.filter((item) => !item.ownerId || studentIds.has(item.ownerId)),
+    participationEvents: session.participationEvents.filter((event) => studentIds.has(event.studentId)),
+  };
+}
+
+function patchFollowUp(session: Session, studentId: string, changes: Partial<StudentFollowUp>) {
+  return {
+    ...session,
+    followUps: session.followUps.map((followUp) =>
+      followUp.studentId === studentId ? { ...followUp, ...changes } : followUp,
+    ),
+  };
+}
+
+function participationTypeFromText(text: string): ParticipationType {
+  if (text.includes("?")) return "asked_question";
+  if (/(because|so|should|equals|answer|i think|we can|it is|therefore)/i.test(text)) return "answered_question";
+  return "chat";
+}
+
+function participantEventsFor(session: Session, participantName: string, studentId: string) {
+  const suffix = Date.now().toString(36);
+  const existingTexts = new Set(session.participationEvents.map((event) => `${event.studentId}:${event.text}`));
+  return extractTranscriptSpeakers(`${session.transcript}\n${session.notes}`)
+    .filter((line) => line.speaker.trim().toLowerCase() === participantName.trim().toLowerCase())
+    .slice(0, 3)
+    .map((line, index): ParticipationEvent => {
+      const type = participationTypeFromText(line.text);
+      const text =
+        type === "asked_question"
+          ? `Asked: ${line.text}`
+          : type === "answered_question"
+            ? `Contributed: ${line.text}`
+            : `Shared: ${line.text}`;
+      return {
+        id: `p-${studentId}-linked-${index}-${suffix}`,
+        studentId,
+        type,
+        text,
+        confidence: 0.84,
+        approved: !existingTexts.has(`${studentId}:${text}`),
+      };
+    })
+    .filter((event) => event.approved);
+}
+
+function resolveParticipant(session: Session, participant: UnmatchedParticipant, mode: "add" | "link", studentId?: string): Session {
+  const students =
+    mode === "add"
+      ? [
+          ...session.students,
+          makeRosterStudent(participant.name, "", session.students.length, [participant.name]),
+        ]
+      : session.students.map((student) =>
+          student.id === studentId
+            ? { ...student, aliases: uniqueText([...(student.aliases ?? []), participant.name]) }
+            : student,
+        );
+  const targetStudent = mode === "add" ? students[students.length - 1] : students.find((student) => student.id === studentId);
+  if (!targetStudent) return session;
+  const synced = syncSessionRoster(session, students);
+  const nextEvents = participantEventsFor(synced, participant.name, targetStudent.id);
+  const currentFollowUp = synced.followUps.find((followUp) => followUp.studentId === targetStudent.id);
+  return {
+    ...synced,
+    participationEvents: [...synced.participationEvents, ...nextEvents],
+    followUps: synced.followUps.map((followUp) =>
+      followUp.studentId === targetStudent.id
+        ? {
+            ...followUp,
+            catchUp:
+              currentFollowUp?.catchUp && currentFollowUp.catchUp !== "You were added to this session roster. Use the recap, resources, and tasks to stay current."
+                ? currentFollowUp.catchUp
+                : "ClassLoop matched this transcript speaker to the roster and connected their participation to this dashboard.",
+            score: Math.max(followUp.score, nextEvents.length ? 72 : followUp.score),
+          }
+        : followUp,
+    ),
+    unmatchedParticipants: (synced.unmatchedParticipants ?? []).filter((item) => item.name !== participant.name),
+    transcriptAliases: {
+      ...(synced.transcriptAliases ?? {}),
+      [participant.name]: targetStudent.id,
+    },
+  };
+}
+
 function statusLabel(status: TaskStatus) {
   const labels: Record<TaskStatus, string> = {
     todo: "To do",
     in_progress: "In progress",
+    submitted: "Submitted",
+    reviewed: "Reviewed",
     complete: "Complete",
     overdue: "Overdue",
   };
@@ -378,7 +943,11 @@ function attendanceLabel(status: AttendanceStatus) {
 function completionRate(sessions: Session[]) {
   const followUps = sessions.flatMap((session) => session.followUps);
   if (followUps.length === 0) return 0;
-  return Math.round((followUps.filter((followUp) => followUp.status === "complete").length / followUps.length) * 100);
+  return Math.round(
+    (followUps.filter((followUp) => ["submitted", "reviewed", "complete"].includes(followUp.status)).length /
+      followUps.length) *
+      100,
+  );
 }
 
 function attentionCount(sessions: Session[]) {
@@ -401,43 +970,385 @@ function classParticipationRate(session: Session) {
   return Math.round((activeIds.size / present) * 100);
 }
 
-function usePersistentState<T>(key: string, initialValue: T) {
-  const [value, setValue] = useState<T>(() => {
-    const stored = localStorage.getItem(key);
-    return stored ? (JSON.parse(stored) as T) : initialValue;
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
   });
+  return window.btoa(binary);
+}
 
-  useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(value));
-  }, [key, value]);
+function base64ToBytes(value: string) {
+  const binary = window.atob(value);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
 
-  return [value, setValue] as const;
+async function localStorageCryptoKey() {
+  const keyName = "classloop:local-storage-key:v1";
+  let raw = localStorage.getItem(keyName);
+  if (!raw) {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    raw = bytesToBase64(bytes);
+    localStorage.setItem(keyName, raw);
+  }
+  return crypto.subtle.importKey("raw", base64ToBytes(raw), "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+
+async function encryptLocalJson(value: unknown) {
+  const key = await localStorageCryptoKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(JSON.stringify(value));
+  const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded));
+  return JSON.stringify({
+    version: 1,
+    encrypted: true,
+    iv: bytesToBase64(iv),
+    payload: bytesToBase64(encrypted),
+  });
+}
+
+async function decryptLocalJson<T>(stored: string): Promise<T | null> {
+  try {
+    const parsed = JSON.parse(stored);
+    if (!parsed?.encrypted) return parsed as T;
+    const key = await localStorageCryptoKey();
+    const iv = base64ToBytes(parsed.iv);
+    const payload = base64ToBytes(parsed.payload);
+    const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, payload);
+    return JSON.parse(new TextDecoder().decode(decrypted)) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function readSecureLocalJson<T>(secureKey: string, legacyKey: string, fallback: T) {
+  const secureValue = localStorage.getItem(secureKey);
+  if (secureValue) {
+    const decrypted = await decryptLocalJson<T>(secureValue);
+    if (decrypted !== null) return decrypted;
+  }
+
+  const legacyValue = localStorage.getItem(legacyKey);
+  if (!legacyValue) return fallback;
+  try {
+    const parsed = JSON.parse(legacyValue) as T;
+    localStorage.setItem(secureKey, await encryptLocalJson(parsed));
+    localStorage.removeItem(legacyKey);
+    return parsed;
+  } catch {
+    return fallback;
+  }
+}
+
+async function writeSecureLocalJson(key: string, value: unknown) {
+  localStorage.setItem(key, await encryptLocalJson(value));
+}
+
+async function readLocalStateFallback(): Promise<SharedState> {
+  return normalizeSharedState({
+    accounts: await readSecureLocalJson<Account[]>(secureLocalKeys.accounts, legacyLocalKeys.accounts, []),
+    sessions: await readSecureLocalJson<Session[]>(secureLocalKeys.sessions, legacyLocalKeys.sessions, []),
+    draft: await readSecureLocalJson<Session | null>(secureLocalKeys.draft, legacyLocalKeys.draft, null),
+    demoLoaded: await readSecureLocalJson<boolean>(secureLocalKeys.demoLoaded, legacyLocalKeys.demoLoaded, false),
+    classGroups: await readSecureLocalJson<ClassGroup[]>(secureLocalKeys.classGroups, legacyLocalKeys.classGroups, []),
+    rosterTemplates: await readSecureLocalJson<RosterTemplate[]>(
+      secureLocalKeys.rosterTemplates,
+      legacyLocalKeys.rosterTemplates,
+      [],
+    ),
+    privacySettings: await readSecureLocalJson<PrivacySettings>(
+      secureLocalKeys.privacySettings,
+      legacyLocalKeys.privacySettings,
+      defaultPrivacySettings,
+    ),
+    auditLog: await readSecureLocalJson<AuditLogEntry[]>(secureLocalKeys.auditLog, legacyLocalKeys.auditLog, []),
+    billingProfile: await readSecureLocalJson<BillingProfile>(
+      secureLocalKeys.billingProfile,
+      legacyLocalKeys.billingProfile,
+      defaultBillingProfile,
+    ),
+  });
+}
+
+function clearClassLoopLocalPersistence() {
+  [...Object.values(secureLocalKeys), ...Object.values(legacyLocalKeys), ...localPreferenceKeys].forEach((key) => {
+    localStorage.removeItem(key);
+  });
+}
+
+function persistableSharedState(
+  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "classGroups" | "rosterTemplates" | "privacySettings" | "auditLog" | "billingProfile">,
+) {
+  const demoOwner = normalizeEmail(demoTeacherEmail);
+  const isDemoOwnedSession = (session: Session | null) =>
+    Boolean(session?.isDemo) || normalizeEmail(session?.ownerEmail ?? "") === demoOwner;
+
+  return {
+    accounts: state.accounts.filter((account) => !account.demo && !isDemoEmail(account.email)),
+    sessions: state.sessions.filter((session) => !isDemoOwnedSession(session)),
+    draft: isDemoOwnedSession(state.draft) ? null : state.draft,
+    demoLoaded: false,
+    classGroups: state.classGroups.filter((group) => normalizeEmail(group.ownerEmail) !== demoOwner),
+    rosterTemplates: state.rosterTemplates.filter((template) => normalizeEmail(template.ownerEmail) !== demoOwner),
+    privacySettings: state.privacySettings,
+    auditLog: state.auditLog.filter((entry) => !isDemoEmail(entry.actorEmail)),
+    billingProfile: state.billingProfile,
+  };
+}
+
+function hasPersistableUserData(state: ReturnType<typeof persistableSharedState>) {
+  const privacyChanged = JSON.stringify(state.privacySettings) !== JSON.stringify(defaultPrivacySettings);
+  const billingChanged = JSON.stringify(state.billingProfile) !== JSON.stringify(defaultBillingProfile);
+  return Boolean(
+    state.accounts.length ||
+      state.sessions.length ||
+      state.draft ||
+      state.classGroups.length ||
+      state.rosterTemplates.length ||
+      state.auditLog.length ||
+      privacyChanged ||
+      billingChanged,
+  );
+}
+
+async function writeLocalStateFallback(
+  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "classGroups" | "rosterTemplates" | "privacySettings" | "auditLog" | "billingProfile">,
+) {
+  const persistable = persistableSharedState(state);
+  if (!hasPersistableUserData(persistable)) {
+    clearClassLoopLocalPersistence();
+    return;
+  }
+  await Promise.all([
+    writeSecureLocalJson(secureLocalKeys.accounts, persistable.accounts),
+    writeSecureLocalJson(secureLocalKeys.sessions, persistable.sessions),
+    writeSecureLocalJson(secureLocalKeys.draft, persistable.draft),
+    writeSecureLocalJson(secureLocalKeys.demoLoaded, persistable.demoLoaded),
+    writeSecureLocalJson(secureLocalKeys.classGroups, persistable.classGroups),
+    writeSecureLocalJson(secureLocalKeys.rosterTemplates, persistable.rosterTemplates),
+    writeSecureLocalJson(secureLocalKeys.privacySettings, persistable.privacySettings),
+    writeSecureLocalJson(secureLocalKeys.auditLog, persistable.auditLog),
+    writeSecureLocalJson(secureLocalKeys.billingProfile, persistable.billingProfile),
+  ]);
 }
 
 function normalizeSharedState(data: Partial<SharedState>): SharedState {
-  return {
-    accounts: mergeAccounts(Array.isArray(data.accounts) ? data.accounts : []),
+  const normalized = persistableSharedState({
+    accounts: Array.isArray(data.accounts) ? data.accounts : [],
     sessions: Array.isArray(data.sessions) ? data.sessions : [],
     draft: data.draft ?? null,
     demoLoaded: Boolean(data.demoLoaded),
+    classGroups: Array.isArray(data.classGroups) ? data.classGroups : [],
+    rosterTemplates: Array.isArray(data.rosterTemplates) ? data.rosterTemplates : [],
+    privacySettings: { ...defaultPrivacySettings, ...(data.privacySettings ?? {}) },
+    auditLog: Array.isArray(data.auditLog) ? data.auditLog : [],
+    billingProfile: { ...defaultBillingProfile, ...(data.billingProfile ?? {}) },
+  });
+
+  return {
+    ...normalized,
+    accounts: mergeAccounts(normalized.accounts),
     updatedAt: data.updatedAt,
   };
 }
 
-function sharedStateJson(state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded">) {
+function sharedStateJson(
+  state: Pick<SharedState, "accounts" | "sessions" | "draft" | "demoLoaded" | "classGroups" | "rosterTemplates" | "privacySettings" | "auditLog" | "billingProfile">,
+) {
   return JSON.stringify({
     accounts: state.accounts,
     sessions: state.sessions,
     draft: state.draft,
     demoLoaded: state.demoLoaded,
+    classGroups: state.classGroups,
+    rosterTemplates: state.rosterTemplates,
+    privacySettings: state.privacySettings,
+    auditLog: state.auditLog,
+    billingProfile: state.billingProfile,
   });
 }
 
 function safeBackgroundUrl(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "linear-gradient(transparent, transparent)";
+  try {
+    const parsed = new URL(trimmed, window.location.origin);
+    const isLocalHttp = parsed.protocol === "http:" && ["localhost", "127.0.0.1"].includes(parsed.hostname);
+    if (!["https:", "data:", "blob:"].includes(parsed.protocol) && !isLocalHttp) {
+      return "linear-gradient(transparent, transparent)";
+    }
+  } catch {
+    return "linear-gradient(transparent, transparent)";
+  }
   const sanitized = trimmed.replace(/["\\\n\r]/g, "");
   return `url("${sanitized}")`;
+}
+
+function csvEscape(value: string) {
+  const clean = value ?? "";
+  return /[",\n]/.test(clean) ? `"${clean.replace(/"/g, '""')}"` : clean;
+}
+
+function parseCsvRows(text: string) {
+  const rows: string[][] = [];
+  let current = "";
+  let row: string[] = [];
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      row.push(current.trim());
+      current = "";
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && next === "\n") index += 1;
+      row.push(current.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  row.push(current.trim());
+  if (row.some(Boolean)) rows.push(row);
+  return rows;
+}
+
+function rosterStudentsFromCsv(text: string) {
+  const rows = parseCsvRows(text);
+  if (!rows.length) return [];
+  const header = rows[0].map((cell) => cell.toLowerCase().replace(/\s+/g, ""));
+  const hasHeader = header.some((cell) => ["firstname", "lastname", "name", "studentname", "email", "emailaddress"].includes(cell));
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+  const nameIndex = header.findIndex((cell) => cell === "name" || cell === "studentname" || cell === "student");
+  const firstIndex = header.findIndex((cell) => cell === "firstname" || cell === "first");
+  const lastIndex = header.findIndex((cell) => cell === "lastname" || cell === "last");
+  const emailIndex = header.findIndex((cell) => cell === "email" || cell === "emailaddress");
+  const aliasesIndex = header.findIndex((cell) => cell === "aliases" || cell === "zoomnames" || cell === "nickname");
+
+  return dataRows
+    .map((row, index) => {
+      const email = normalizeEmail(emailIndex >= 0 ? row[emailIndex] ?? "" : row.find((cell) => /@/.test(cell)) ?? "");
+      const name =
+        nameIndex >= 0
+          ? row[nameIndex] ?? ""
+          : [firstIndex >= 0 ? row[firstIndex] : row[0], lastIndex >= 0 ? row[lastIndex] : row[1]]
+              .filter(Boolean)
+              .join(" ");
+      const aliases = aliasesIndex >= 0 ? (row[aliasesIndex] ?? "").split(/[;,]/).map((item) => item.trim()).filter(Boolean) : [];
+      return makeRosterStudent(name, email, index, aliases);
+    })
+    .filter((student) => student.name.trim() && student.email.includes("@"));
+}
+
+function rosterToCsv(students: Student[]) {
+  return [
+    ["Name", "Email", "Aliases"].map(csvEscape).join(","),
+    ...students.map((student) =>
+      [student.name, student.email, uniqueText(student.aliases ?? []).join("; ")].map(csvEscape).join(","),
+    ),
+  ].join("\n");
+}
+
+function downloadTextFile(filename: string, contents: string, type = "text/plain") {
+  const blob = new Blob([contents], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function setStudentSubmission(
+  session: Session,
+  studentId: string,
+  status: StudentSubmissionStatus,
+  note = "",
+): Session {
+  const now = new Date().toISOString();
+  const currentSubmissions = session.submissions ?? [];
+  const existing = currentSubmissions.find((submission) => submission.studentId === studentId);
+  const nextSubmission: StudentSubmission = {
+    studentId,
+    sessionId: session.id,
+    status,
+    note: note || existing?.note || "",
+    submittedAt: status === "submitted" ? now : existing?.submittedAt,
+    reviewedAt: status === "reviewed" ? now : existing?.reviewedAt,
+  };
+  const nextStatus: TaskStatus = status === "working" ? "in_progress" : status === "todo" ? "todo" : status;
+  return {
+    ...session,
+    submissions: existing
+      ? currentSubmissions.map((submission) =>
+          submission.studentId === studentId ? { ...submission, ...nextSubmission } : submission,
+        )
+      : [...currentSubmissions, nextSubmission],
+    followUps: session.followUps.map((followUp) =>
+      followUp.studentId === studentId
+        ? {
+            ...followUp,
+            status: nextStatus,
+            score: status === "reviewed" ? 100 : status === "submitted" ? Math.max(followUp.score, 90) : followUp.score,
+          }
+        : followUp,
+    ),
+  };
+}
+
+function makePublishAudit(session: Session): PublishAuditEntry[] {
+  const createdAt = new Date().toISOString();
+  const entries: PublishAuditEntry[] = [
+    {
+      sessionId: session.id,
+      type: "class_recap",
+      message: `Class recap, ${session.actionItems.length} action items, and ${session.resources.length} resources will be published.`,
+      createdAt,
+    },
+  ];
+
+  session.students.forEach((student) => {
+    const diff = previewDiffForStudent(session, student);
+    entries.push({
+      sessionId: session.id,
+      studentId: student.id,
+      type: "student_followup",
+      message: `${student.name}: ${diff.reasons[0]?.label ?? "Shared class baseline"}; ${diff.sharedTaskCount} shared tasks, ${diff.uniqueTaskCount} personalized tasks.`,
+      createdAt,
+    });
+  });
+
+  return entries;
+}
+
+function sessionFollowThroughCsv(session: Session) {
+  const rows = [
+    ["Student", "Email", "Attendance", "Status", "Readiness", "Due date", "Reminder"].map(csvEscape).join(","),
+    ...session.followUps.map((followUp) => {
+      const student = studentById(followUp.studentId, session.students);
+      return [
+        student.name,
+        student.email,
+        attendanceLabel(session.attendance[student.id] ?? "present"),
+        statusLabel(followUp.status),
+        String(followUp.score),
+        followUp.dueDate,
+        followUp.reminder,
+      ]
+        .map(csvEscape)
+        .join(",");
+    }),
+  ];
+  return rows.join("\n");
 }
 
 function App() {
@@ -445,17 +1356,40 @@ function App() {
   const [accounts, setAccounts] = useState<Account[]>(demoAccounts);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [draft, setDraft] = useState<Session | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = usePersistentState<string>("classloop:selected-student", "maya");
-  const [auth, setAuth] = usePersistentState<AuthSession | null>("classloop:auth:v1", null);
-  const [theme, setTheme] = usePersistentState<ThemeSettings>("classloop:theme:v1", defaultTheme);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(() => localStorage.getItem("classloop:selected-student") ?? "maya");
+  const [auth, setAuth] = useState<AuthSession | null>(null);
+  const [theme, setTheme] = useState<ThemeSettings>(defaultTheme);
   const [demoLoaded, setDemoLoaded] = useState(false);
+  const [classGroups, setClassGroups] = useState<ClassGroup[]>([]);
+  const [rosterTemplates, setRosterTemplates] = useState<RosterTemplate[]>([]);
+  const [rosterPromptSession, setRosterPromptSession] = useState<Session | null>(null);
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(defaultPrivacySettings);
+  const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
+  const [billingProfile, setBillingProfile] = useState<BillingProfile>(defaultBillingProfile);
   const [sharedReady, setSharedReady] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+  const [walkthroughStepIndex, setWalkthroughStepIndex] = useState(0);
+  const [landingMode, setLandingMode] = useState(isLandingHash);
+  const [publicDemoOnly] = useState(() => isPublicHostedDemo() || isDemoOnlyOverride());
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connecting");
+  const [passwordResetCodes, setPasswordResetCodes] = useState<Record<string, PasswordResetRecord>>({});
   const serverSyncRef = useRef(false);
+  const demoSessionRef = useRef(false);
   const isSavingRef = useRef(false);
   const writeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSharedJsonRef = useRef(
-    sharedStateJson({ accounts: demoAccounts, sessions: [], draft: null, demoLoaded: false }),
+    sharedStateJson(persistableSharedState({
+      accounts: demoAccounts,
+      sessions: [],
+      draft: null,
+      demoLoaded: false,
+      classGroups: [],
+      rosterTemplates: [],
+      privacySettings: defaultPrivacySettings,
+      auditLog: [],
+      billingProfile: defaultBillingProfile,
+    })),
   );
   const lastServerUpdatedAtRef = useRef<string | undefined>(undefined);
 
@@ -469,6 +1403,37 @@ function App() {
 
   useEffect(() => {
     let active = true;
+    if (publicDemoOnly) {
+      clearClassLoopLocalPersistence();
+      setAccounts(demoAccounts);
+      setSessions([]);
+      setDraft(null);
+      setDemoLoaded(false);
+      setClassGroups([]);
+      setRosterTemplates([]);
+      setSelectedStudentId("maya");
+      setPrivacySettings(defaultPrivacySettings);
+      setAuditLog([]);
+      setBillingProfile(defaultBillingProfile);
+      lastSharedJsonRef.current = sharedStateJson(persistableSharedState({
+        accounts: demoAccounts,
+        sessions: [],
+        draft: null,
+        demoLoaded: false,
+        classGroups: [],
+        rosterTemplates: [],
+        privacySettings: defaultPrivacySettings,
+        auditLog: [],
+        billingProfile: defaultBillingProfile,
+      }));
+      serverSyncRef.current = false;
+      setSyncStatus("local");
+      setSharedReady(true);
+      return () => {
+        active = false;
+      };
+    }
+
     fetch("/api/state")
       .then(async (response) => {
         const contentType = response.headers.get("content-type") ?? "";
@@ -483,27 +1448,28 @@ function App() {
         setSessions(state.sessions);
         setDraft(state.draft);
         setDemoLoaded(state.demoLoaded);
+        setClassGroups(state.classGroups);
+        setRosterTemplates(state.rosterTemplates);
+        setPrivacySettings(state.privacySettings);
+        setAuditLog(state.auditLog);
+        setBillingProfile(state.billingProfile);
         lastSharedJsonRef.current = sharedStateJson(state);
         lastServerUpdatedAtRef.current = state.updatedAt;
         serverSyncRef.current = true;
         setSyncStatus("shared");
       })
-      .catch(() => {
+      .catch(async () => {
         if (!active) return;
-        const storedAccounts = localStorage.getItem("classloop:accounts:v1");
-        const storedSessions = localStorage.getItem("classloop:sessions:v3");
-        const storedDraft = localStorage.getItem("classloop:draft:v3");
-        const storedDemo = localStorage.getItem("classloop:demo-loaded:v1");
-        const localState = normalizeSharedState({
-          accounts: storedAccounts ? JSON.parse(storedAccounts) : [],
-          sessions: storedSessions ? JSON.parse(storedSessions) : [],
-          draft: storedDraft ? JSON.parse(storedDraft) : null,
-          demoLoaded: storedDemo ? JSON.parse(storedDemo) : false,
-        });
+        const localState = await readLocalStateFallback();
         setAccounts(localState.accounts);
         setSessions(localState.sessions);
         setDraft(localState.draft);
         setDemoLoaded(localState.demoLoaded);
+        setClassGroups(localState.classGroups);
+        setRosterTemplates(localState.rosterTemplates);
+        setPrivacySettings(localState.privacySettings);
+        setAuditLog(localState.auditLog);
+        setBillingProfile(localState.billingProfile);
         lastSharedJsonRef.current = sharedStateJson(localState);
         serverSyncRef.current = false;
         setSyncStatus("local");
@@ -515,19 +1481,33 @@ function App() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [publicDemoOnly]);
+
+  useEffect(() => {
+    if (publicDemoOnly || auth?.demo) return;
+    localStorage.setItem("classloop:selected-student", selectedStudentId);
+  }, [auth?.demo, publicDemoOnly, selectedStudentId]);
 
   useEffect(() => {
     if (!sharedReady) return;
+    if (publicDemoOnly || auth?.demo || demoSessionRef.current) return;
+    const persistableState = persistableSharedState({
+      accounts,
+      sessions,
+      draft,
+      demoLoaded,
+      classGroups,
+      rosterTemplates,
+      privacySettings,
+      auditLog,
+      billingProfile,
+    });
     if (!serverSyncRef.current) {
-      localStorage.setItem("classloop:accounts:v1", JSON.stringify(accounts));
-      localStorage.setItem("classloop:sessions:v3", JSON.stringify(sessions));
-      localStorage.setItem("classloop:draft:v3", JSON.stringify(draft));
-      localStorage.setItem("classloop:demo-loaded:v1", JSON.stringify(demoLoaded));
+      void writeLocalStateFallback(persistableState);
       return;
     }
 
-    const nextJson = sharedStateJson({ accounts, sessions, draft, demoLoaded });
+    const nextJson = sharedStateJson(persistableState);
     if (nextJson === lastSharedJsonRef.current) return;
 
     if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
@@ -551,7 +1531,7 @@ function App() {
           writeTimerRef.current = null;
         });
     }, 300);
-  }, [accounts, demoLoaded, draft, sessions, sharedReady]);
+  }, [accounts, auditLog, auth?.demo, billingProfile, classGroups, demoLoaded, draft, privacySettings, publicDemoOnly, rosterTemplates, sessions, sharedReady]);
 
   useEffect(() => {
     if (!sharedReady || !serverSyncRef.current) return;
@@ -570,6 +1550,11 @@ function App() {
             setSessions(state.sessions);
             setDraft(state.draft);
             setDemoLoaded(state.demoLoaded);
+            setClassGroups(state.classGroups);
+            setRosterTemplates(state.rosterTemplates);
+            setPrivacySettings(state.privacySettings);
+            setAuditLog(state.auditLog);
+            setBillingProfile(state.billingProfile);
           }
           lastSharedJsonRef.current = nextJson;
           lastServerUpdatedAtRef.current = state.updatedAt;
@@ -582,9 +1567,11 @@ function App() {
   }, [sharedReady]);
 
   useEffect(() => {
-    const onHashChange = () => setRoute(getRoute());
+    const onHashChange = () => {
+      setLandingMode(isLandingHash());
+      setRoute(getRoute());
+    };
     window.addEventListener("hashchange", onHashChange);
-    if (!window.location.hash) navigate("dashboard");
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
@@ -592,6 +1579,13 @@ function App() {
     if (auth?.role === "student" && !studentRoutes.has(route)) {
       navigate("student");
     }
+  }, [auth, route]);
+
+  useEffect(() => {
+    if (!auth || route !== "tutorial") return;
+    setWalkthroughStepIndex(0);
+    setWalkthroughOpen(true);
+    navigate(auth.role === "teacher" ? "dashboard" : "student");
   }, [auth, route]);
 
   const sortedSessions = useMemo(
@@ -603,6 +1597,20 @@ function App() {
     () => (auth?.role === "teacher" ? teacherSessionsFor(sortedSessions, auth.email) : []),
     [auth, sortedSessions],
   );
+  const teacherRosterTemplates = useMemo(
+    () =>
+      auth?.role === "teacher"
+        ? rosterTemplates.filter((template) => normalizeEmail(template.ownerEmail) === normalizeEmail(auth.email))
+        : [],
+    [auth, rosterTemplates],
+  );
+  const teacherClassGroups = useMemo(
+    () =>
+      auth?.role === "teacher"
+        ? classGroups.filter((group) => normalizeEmail(group.ownerEmail) === normalizeEmail(auth.email))
+        : [],
+    [auth, classGroups],
+  );
   const activeTheme = useMemo(
     () => ({
       ...defaultTheme,
@@ -612,6 +1620,75 @@ function App() {
     }),
     [theme],
   );
+
+  const startWalkthrough = () => {
+    setWalkthroughStepIndex(0);
+    if (auth) navigate(auth.role === "teacher" ? "dashboard" : "student");
+    setWalkthroughOpen(false);
+    window.setTimeout(() => setWalkthroughOpen(true), 0);
+  };
+
+  const appendAudit = (action: string, detail: string, actor: AuthSession | null = auth) => {
+    if (!actor || !privacySettings.auditLogEnabled) return;
+    if (actor.demo) return;
+    setAuditLog((current) => [
+      {
+        id: `audit-${Date.now().toString(36)}-${current.length}`,
+        actorEmail: actor.email,
+        actorRole: actor.role,
+        action,
+        detail,
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ].slice(0, 250));
+  };
+
+  const currentState = (): SharedState => ({
+    accounts,
+    sessions,
+    draft,
+    demoLoaded,
+    classGroups,
+    rosterTemplates,
+    privacySettings,
+    auditLog,
+    billingProfile,
+  });
+
+  const applyCloudState = (state: Partial<SharedState>) => {
+    const normalized = normalizeSharedState(state);
+    setAccounts(normalized.accounts);
+    setSessions(normalized.sessions);
+    setDraft(normalized.draft);
+    setDemoLoaded(normalized.demoLoaded);
+    setClassGroups(normalized.classGroups);
+    setRosterTemplates(normalized.rosterTemplates);
+    setPrivacySettings(normalized.privacySettings);
+    setAuditLog(normalized.auditLog);
+    setBillingProfile(normalized.billingProfile);
+    lastSharedJsonRef.current = sharedStateJson(normalized);
+  };
+
+  const handleThemeChange: React.Dispatch<React.SetStateAction<ThemeSettings>> = (value) => {
+    setTheme((current) => {
+      const nextTheme = typeof value === "function" ? value(current) : value;
+      if (auth && !auth.demo) {
+        setAccounts((accountsCurrent) =>
+          accountsCurrent.map((account) =>
+            account.id === auth.accountId
+              ? {
+                  ...account,
+                  theme: nextTheme,
+                }
+              : account,
+          ),
+        );
+      }
+      return nextTheme;
+    });
+  };
+
   const studentPortalSessions = useMemo(
     () => (auth?.role === "student" ? studentSessionsFor(sortedSessions, auth.email) : teacherSessions),
     [auth, sortedSessions, teacherSessions],
@@ -619,6 +1696,12 @@ function App() {
   const visibleDraft = auth?.role === "teacher" && draft && sessionOwnerEmail(draft) === normalizeEmail(auth.email) ? draft : null;
   const latestPublished = teacherSessions.find((session) => session.status === "published") ?? teacherSessions[0];
   const effectiveRoute = auth?.role === "student" && !studentRoutes.has(route) ? "student" : route;
+  const hasPaidAccess = isPaidPlan(billingProfile);
+  const todayKey = localDayKey();
+  const freeSessionsToday =
+    teacherSessions.filter((session) => localDayKey(session.date) === todayKey).length +
+    (visibleDraft && localDayKey(visibleDraft.date) === todayKey ? 1 : 0);
+  const freeLimitReached = !hasPaidAccess && freeSessionsToday >= 1;
 
   const updateSession = (session: Session) => {
     setSessions((current) => {
@@ -628,20 +1711,172 @@ function App() {
     });
   };
 
+  const updateSessionById = (sessionId: string, updater: (session: Session) => Session) => {
+    setSessions((current) =>
+      current
+        .map((session) => (session.id === sessionId ? updater(session) : session))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    );
+    setDraft((current) => (current?.id === sessionId ? updater(current) : current));
+  };
+
+  const saveRosterTemplateFromSession = (session: Session, name: string) => {
+    if (!auth || auth.role !== "teacher" || !session.students.length) return;
+    const now = new Date().toISOString();
+    const template: RosterTemplate = {
+      id: `roster-template-${Date.now().toString(36)}`,
+      ownerEmail: auth.email,
+      name: name.trim() || `${session.type} roster`,
+      sessionType: session.type,
+      students: session.students.map((student, index) => ({ ...student, avatarColor: student.avatarColor || makeRosterStudent(student.name, student.email, index).avatarColor })),
+      createdAt: now,
+      updatedAt: now,
+    };
+    setRosterTemplates((current) => [template, ...current]);
+    setClassGroups((current) => {
+      const existing = current.find(
+        (group) =>
+          normalizeEmail(group.ownerEmail) === normalizeEmail(auth.email) &&
+          group.name.trim().toLowerCase() === template.name.trim().toLowerCase(),
+      );
+      if (existing) {
+        return current.map((group) =>
+          group.id === existing.id
+            ? {
+                ...group,
+                defaultSessionType: template.sessionType,
+                students: template.students,
+                updatedAt: now,
+              }
+            : group,
+        );
+      }
+      return [
+        {
+          id: `class-group-${Date.now().toString(36)}`,
+          ownerEmail: auth.email,
+          name: template.name,
+          defaultSessionType: template.sessionType,
+          students: template.students,
+          createdAt: now,
+          updatedAt: now,
+        },
+        ...current,
+      ];
+    });
+    appendAudit("save_roster_template", `Saved ${template.name} for ${session.type}.`);
+  };
+
+  const updateRosterTemplate = (templateId: string, changes: Partial<RosterTemplate>) => {
+    setRosterTemplates((current) =>
+      current.map((template) =>
+        template.id === templateId
+          ? {
+              ...template,
+              ...changes,
+              updatedAt: new Date().toISOString(),
+            }
+          : template,
+      ),
+    );
+  };
+
+  const deleteRosterTemplate = (templateId: string) => {
+    setRosterTemplates((current) => current.filter((template) => template.id !== templateId));
+  };
+
+  const createClassGroupFromTemplate = (template: RosterTemplate) => {
+    if (!auth || auth.role !== "teacher") return;
+    const now = new Date().toISOString();
+    const group: ClassGroup = {
+      id: `class-group-${Date.now().toString(36)}`,
+      ownerEmail: auth.email,
+      name: template.name,
+      defaultSessionType: template.sessionType,
+      students: template.students,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setClassGroups((current) => [group, ...current]);
+    appendAudit("create_class_group", `Created class group ${group.name}.`);
+  };
+
+  const updateClassGroup = (groupId: string, changes: Partial<ClassGroup>) => {
+    setClassGroups((current) =>
+      current.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              ...changes,
+              updatedAt: new Date().toISOString(),
+            }
+          : group,
+      ),
+    );
+  };
+
+  const deleteClassGroup = (groupId: string) => {
+    setClassGroups((current) => current.filter((group) => group.id !== groupId));
+  };
+
+  const resetDemoWorkspaceAfterUse = () => {
+    setSessions((current) => current.filter((session) => sessionOwnerEmail(session) !== normalizeEmail(demoTeacherEmail)));
+    setDraft((current) => (current && sessionOwnerEmail(current) === normalizeEmail(demoTeacherEmail) ? null : current));
+    setClassGroups((current) => current.filter((group) => normalizeEmail(group.ownerEmail) !== normalizeEmail(demoTeacherEmail)));
+    setRosterTemplates((current) => current.filter((template) => normalizeEmail(template.ownerEmail) !== normalizeEmail(demoTeacherEmail)));
+    setRosterPromptSession(null);
+    setDemoLoaded(false);
+    if (publicDemoOnly) {
+      setAccounts(demoAccounts);
+      setPrivacySettings(defaultPrivacySettings);
+      setAuditLog([]);
+      setBillingProfile(defaultBillingProfile);
+    }
+  };
+
   const ensureDemoSession = () => {
     const demoSession = createDemoSession();
     setSessions((current) =>
-      current.some((session) => session.id === demoSession.id) ? current : [demoSession, ...current],
+      [
+        demoSession,
+        ...current.filter(
+          (session) => session.id !== demoSession.id && sessionOwnerEmail(session) !== normalizeEmail(demoTeacherEmail),
+        ),
+      ],
     );
+    setDraft((current) => (current && sessionOwnerEmail(current) === normalizeEmail(demoTeacherEmail) ? null : current));
+    setClassGroups((current) => current.filter((group) => normalizeEmail(group.ownerEmail) !== normalizeEmail(demoTeacherEmail)));
+    setRosterTemplates((current) => current.filter((template) => normalizeEmail(template.ownerEmail) !== normalizeEmail(demoTeacherEmail)));
     setDemoLoaded(true);
     return demoSession;
   };
 
-  const publishDraft = () => {
+  const publishDraft = (sessionOverride?: Session) => {
     if (!visibleDraft || !auth) return;
-    const published = { ...visibleDraft, ownerEmail: auth.email, status: "published" as const };
+    const source = sessionOverride ?? visibleDraft;
+    const published = {
+      ...source,
+      ownerEmail: auth.email,
+      status: "published" as const,
+      submissions:
+        source.submissions ??
+        source.students.map((student) => ({
+          studentId: student.id,
+          sessionId: source.id,
+          status: "todo" as const,
+          note: "",
+        })),
+      publishAudit: makePublishAudit(source),
+    };
     updateSession(published);
     setDraft(published);
+    appendAudit("publish_session", `Published ${published.title}.`);
+    if (
+      published.students.length > 0 &&
+      !teacherRosterTemplates.some((template) => template.sessionType === published.type)
+    ) {
+      setRosterPromptSession(published);
+    }
     navigate("report", { session: published.id });
   };
 
@@ -650,12 +1885,9 @@ function App() {
       current.map((session) =>
         session.id === sessionId
           ? {
-              ...session,
-              followUps: session.followUps.map((followUp) =>
-                followUp.studentId === studentId ? { ...followUp, status: "complete", score: 100 } : followUp,
-              ),
+              ...setStudentSubmission(session, studentId, "submitted", "Marked complete from the student portal."),
               actionItems: session.actionItems.map((item) =>
-                item.ownerId === studentId || !item.ownerId ? { ...item, status: "complete" } : item,
+                item.ownerId === studentId || !item.ownerId ? { ...item, status: "submitted" } : item,
               ),
             }
           : session,
@@ -674,37 +1906,71 @@ function App() {
       return { ok: false, message: "Email or password is incorrect." };
     }
 
-    const demoSession = account.demo ? ensureDemoSession() : undefined;
+    setAuthLoading(true);
+    try {
+      await wait(420);
+      if (publicDemoOnly && !account.demo) {
+        return { ok: false, message: "The web demo uses the sample accounts only. Download the app to create your own account." };
+      }
 
-    if (role === "teacher") {
+      if (account.demo) demoSessionRef.current = true;
+      const demoSession = account.demo ? ensureDemoSession() : undefined;
+
+      if (role === "teacher") {
+        setTheme(account.theme ?? defaultTheme);
+        setAuth({
+          accountId: account.id,
+          role: "teacher",
+          email: normalizedEmail,
+          name: account.name,
+          demo: account.demo,
+        });
+        appendAudit("login", "Teacher signed in.", {
+          accountId: account.id,
+          role: "teacher",
+          email: normalizedEmail,
+          name: account.name,
+          demo: account.demo,
+        });
+        navigate("dashboard");
+        if (account.demo) startWalkthrough();
+        return { ok: true };
+      }
+
+      const availableSessions = demoSession ? [demoSession, ...sortedSessions] : sortedSessions;
+      const student = findStudentByEmail(studentSessionsFor(availableSessions, normalizedEmail), normalizedEmail);
+
+      if (student) setSelectedStudentId(student.id);
+      setTheme(account.theme ?? defaultTheme);
       setAuth({
         accountId: account.id,
-        role: "teacher",
+        role: "student",
         email: normalizedEmail,
-        name: account.name,
+        name: student?.name ?? account.name,
+        studentId: student?.id,
         demo: account.demo,
       });
-      navigate("dashboard");
+      appendAudit("login", "Student signed in.", {
+        accountId: account.id,
+        role: "student",
+        email: normalizedEmail,
+        name: student?.name ?? account.name,
+        studentId: student?.id,
+        demo: account.demo,
+      });
+      navigate("student");
+      if (account.demo) startWalkthrough();
       return { ok: true };
+    } finally {
+      setAuthLoading(false);
     }
-
-    const availableSessions = demoSession ? [demoSession, ...sortedSessions] : sortedSessions;
-    const student = findStudentByEmail(studentSessionsFor(availableSessions, normalizedEmail), normalizedEmail);
-
-    if (student) setSelectedStudentId(student.id);
-    setAuth({
-      accountId: account.id,
-      role: "student",
-      email: normalizedEmail,
-      name: student?.name ?? account.name,
-      studentId: student?.id,
-      demo: account.demo,
-    });
-    navigate("student");
-    return { ok: true };
   };
 
   const handleCreateAccount = async (role: AuthRole, name: string, email: string, password: string) => {
+    if (publicDemoOnly) {
+      return { ok: false, message: "Account creation is available in the desktop app. Use the sample accounts in the web demo." };
+    }
+
     const normalizedEmail = normalizeEmail(email);
     const trimmedName = name.trim();
 
@@ -721,44 +1987,273 @@ function App() {
       return { ok: false, message: "An account with that email already exists for this role." };
     }
 
-    const account: Account = {
-      id: makeAccountId(role),
-      role,
+    setAuthLoading(true);
+    try {
+      await wait(420);
+      const account: Account = {
+        id: makeAccountId(role),
+        role,
+        email: normalizedEmail,
+        name: trimmedName,
+        passwordHash: await hashSecret(password),
+        createdAt: new Date().toISOString(),
+        theme: defaultTheme,
+      };
+      setAccounts((current) => mergeAccounts([...current, account]));
+      setTheme(defaultTheme);
+      setAuth({ accountId: account.id, role, email: normalizedEmail, name: trimmedName });
+      navigate(role === "teacher" ? "dashboard" : "student");
+      startWalkthrough();
+      return { ok: true };
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleUpdateAccount = async (settings: AccountSettingsInput) => {
+    if (!auth) return { ok: false, message: "Sign in again before changing account settings." };
+    const account = accounts.find((item) => item.id === auth.accountId);
+    if (!account) return { ok: false, message: "This account could not be found." };
+
+    const nextName = settings.name.trim();
+    const nextEmail = normalizeEmail(settings.email);
+    if (!nextName) return { ok: false, message: "Enter a name for the account." };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+      return { ok: false, message: "Enter a valid email address." };
+    }
+    if (
+      accounts.some(
+        (item) =>
+          item.id !== account.id &&
+          item.role === account.role &&
+          normalizeEmail(item.email) === nextEmail,
+      )
+    ) {
+      return { ok: false, message: "Another account already uses that email." };
+    }
+    if (auth.demo && (nextName !== account.name || nextEmail !== normalizeEmail(account.email) || settings.newPassword)) {
+      return { ok: false, message: "Sample account settings reset after the demo. Download the app to save your own profile." };
+    }
+
+    let passwordHash = account.passwordHash;
+    if (settings.newPassword) {
+      if (settings.newPassword.length < 8) {
+        return { ok: false, message: "Use at least 8 characters for the new password." };
+      }
+      const currentHash = await hashSecret(settings.currentPassword);
+      if (currentHash !== account.passwordHash) {
+        return { ok: false, message: "Current password is incorrect." };
+      }
+      passwordHash = await hashSecret(settings.newPassword);
+    }
+
+    const nextAccount = { ...account, name: nextName, email: nextEmail, passwordHash };
+    setAccounts((current) => current.map((item) => (item.id === account.id ? nextAccount : item)));
+    setAuth((current) =>
+      current
+        ? {
+            ...current,
+            name: nextName,
+            email: nextEmail,
+          }
+        : current,
+    );
+    return { ok: true, message: "Settings saved." };
+  };
+
+  const handleRequestPasswordReset = async (role: AuthRole, email: string) => {
+    const normalizedEmail = normalizeEmail(email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return { ok: false, message: "Enter the email for the account you want to reset." };
+    }
+
+    const account = accounts.find((item) => item.role === role && normalizeEmail(item.email) === normalizedEmail);
+    if (!account) {
+      return { ok: true, message: "If an account exists for that email, a reset code can be sent." };
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const key = `${role}:${normalizedEmail}`;
+    setPasswordResetCodes((current) => ({
+      ...current,
+      [key]: {
+        code,
+        expiresAt: Date.now() + 15 * 60 * 1000,
+      },
+    }));
+    return {
+      ok: true,
+      message: "Reset code ready.",
+      code,
       email: normalizedEmail,
-      name: trimmedName,
-      passwordHash: await hashSecret(password),
-      createdAt: new Date().toISOString(),
+      name: account.name,
     };
-    setAccounts((current) => mergeAccounts([...current, account]));
-    setAuth({ accountId: account.id, role, email: normalizedEmail, name: trimmedName });
-    navigate(role === "teacher" ? "dashboard" : "student");
-    return { ok: true };
+  };
+
+  const handleCompletePasswordReset = async (
+    role: AuthRole,
+    email: string,
+    code: string,
+    newPassword: string,
+  ) => {
+    const normalizedEmail = normalizeEmail(email);
+    const key = `${role}:${normalizedEmail}`;
+    const resetRecord = passwordResetCodes[key];
+    const account = accounts.find((item) => item.role === role && normalizeEmail(item.email) === normalizedEmail);
+
+    if (!account || !resetRecord || resetRecord.expiresAt < Date.now() || resetRecord.code !== code.trim()) {
+      return { ok: false, message: "Reset code is incorrect or expired." };
+    }
+    if (newPassword.length < 8) return { ok: false, message: "Use at least 8 characters for the new password." };
+    if (account.demo) return { ok: false, message: "Sample account passwords stay fixed. Create your own account to change it." };
+
+    const passwordHash = await hashSecret(newPassword);
+    setAccounts((current) =>
+      current.map((item) =>
+        item.id === account.id
+          ? {
+              ...item,
+              passwordHash,
+            }
+          : item,
+      ),
+    );
+    setPasswordResetCodes((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    return { ok: true, message: "Password reset. You can sign in now." };
   };
 
   const logout = () => {
+    const wasDemo = Boolean(auth?.demo);
+    appendAudit("logout", "Signed out.");
+    if (wasDemo) resetDemoWorkspaceAfterUse();
+    demoSessionRef.current = false;
     setAuth(null);
+    setTheme(defaultTheme);
     navigate("dashboard");
   };
 
+  if (landingMode && !auth) {
+    return (
+      <LandingPage
+        onOpenApp={() => {
+          setLandingMode(false);
+          navigate("dashboard");
+        }}
+      />
+    );
+  }
+
+  if (!sharedReady || authLoading) {
+    return <AppLoader message={authLoading ? "Opening your workspace" : "Loading ClassLoop"} />;
+  }
+
   if (!auth) {
-    return <LoginPage onLogin={handleLogin} onCreateAccount={handleCreateAccount} />;
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        onCreateAccount={handleCreateAccount}
+        onRequestPasswordReset={handleRequestPasswordReset}
+        onCompletePasswordReset={handleCompletePasswordReset}
+        demoOnly={publicDemoOnly}
+      />
+    );
   }
 
   return (
     <div className="app-shell">
       <Sidebar route={effectiveRoute} auth={auth} onLogout={logout} showDemoCard={Boolean(auth.demo && demoLoaded)} />
       <main className="main-area">
-        <Topbar route={effectiveRoute} latestSession={latestPublished} auth={auth} onLogout={logout} />
-        {effectiveRoute === "dashboard" && <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} />}
+        {auth.demo && <DemoAccountBanner />}
+        <Topbar
+          route={effectiveRoute}
+          latestSession={latestPublished}
+          auth={auth}
+          syncStatus={syncStatus}
+          onUpdateAccount={handleUpdateAccount}
+          onStartWalkthrough={startWalkthrough}
+        />
+        {effectiveRoute === "dashboard" && <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} billingProfile={billingProfile} />}
+        {effectiveRoute === "classes" && auth.role === "teacher" && (
+          <ClassGroupsPage
+            groups={teacherClassGroups}
+            rosterTemplates={teacherRosterTemplates}
+            sessions={teacherSessions}
+            ownerEmail={auth.email}
+            onCreateFromTemplate={createClassGroupFromTemplate}
+            onCreateTemplateFromGroup={(group) => {
+              const now = new Date().toISOString();
+              setRosterTemplates((current) => [
+                {
+                  id: `roster-template-${Date.now().toString(36)}`,
+                  ownerEmail: auth.email,
+                  name: `${group.name} roster`,
+                  sessionType: group.defaultSessionType,
+                  students: group.students,
+                  createdAt: now,
+                  updatedAt: now,
+                },
+                ...current,
+              ]);
+              appendAudit("create_roster_template", `Saved ${group.name} as a reusable roster.`);
+            }}
+            onCreateBlank={(group) => {
+              setClassGroups((current) => [group, ...current]);
+              appendAudit("create_class_group", `Created class group ${group.name}.`);
+            }}
+            onUpdate={updateClassGroup}
+            onDelete={deleteClassGroup}
+          />
+        )}
+        {effectiveRoute === "rosters" && auth.role === "teacher" && (
+          <RosterTemplatesPage
+            templates={teacherRosterTemplates}
+            ownerEmail={auth.email}
+            onCreate={(template) => {
+              setRosterTemplates((current) => [template, ...current]);
+              appendAudit("create_roster_template", `Created ${template.name}.`);
+            }}
+            onUpdate={updateRosterTemplate}
+            onDelete={deleteRosterTemplate}
+            onCreateClassGroup={createClassGroupFromTemplate}
+          />
+        )}
         {effectiveRoute === "new-session" && (
           <ImportSession
             ownerEmail={auth.email}
             setDraft={setDraft}
             onUseDemo={() => setDemoLoaded(true)}
+            recordingConsentRequired={privacySettings.recordingConsentRequired}
+            rosterTemplates={teacherRosterTemplates}
+            classGroups={teacherClassGroups}
+            canCreateSession={!freeLimitReached}
+            canUseLiveCapture={hasPaidAccess}
+            dailySessionsUsed={freeSessionsToday}
+            planName={billingProfile.tier === "free" ? "Free" : "Pro"}
           />
         )}
         {effectiveRoute === "processing" && <Processing draft={visibleDraft} />}
-        {effectiveRoute === "review" && <ReviewDraft draft={visibleDraft} setDraft={setDraft} publishDraft={publishDraft} />}
+        {effectiveRoute === "review" && (
+          <ReviewDraft
+            draft={visibleDraft}
+            setDraft={setDraft}
+            studentAccountEmails={accounts
+              .filter((account) => account.role === "student")
+              .map((account) => normalizeEmail(account.email))}
+          />
+        )}
+        {effectiveRoute === "publish-preview" && (
+          <PublishPreview
+            draft={visibleDraft}
+            selectedStudentId={selectedStudentId}
+            setSelectedStudentId={setSelectedStudentId}
+            setDraft={setDraft}
+            publishDraft={publishDraft}
+          />
+        )}
         {effectiveRoute === "report" && (
           <SessionReport
             sessions={teacherSessions}
@@ -766,6 +2261,15 @@ function App() {
             editSession={(session) => {
               setDraft({ ...session, ownerEmail: auth.email, status: "draft" });
               navigate("review");
+            }}
+            deleteSession={(session) => {
+              if (!window.confirm(`Delete "${session.title}"? This removes the session report and student follow-ups from this workspace.`)) {
+                return;
+              }
+              setSessions((current) => current.filter((item) => item.id !== session.id));
+              setDraft((current) => (current?.id === session.id ? null : current));
+              appendAudit("delete_session", `Deleted session ${session.title}.`);
+              navigate("dashboard");
             }}
           />
         )}
@@ -776,6 +2280,7 @@ function App() {
             setSelectedStudentId={setSelectedStudentId}
             markFollowUpComplete={markFollowUpComplete}
             auth={auth}
+            updateSession={auth.role === "teacher" ? updateSessionById : undefined}
           />
         )}
         {effectiveRoute === "student-session" && (
@@ -784,18 +2289,332 @@ function App() {
             selectedStudentId={auth.role === "student" ? auth.studentId ?? selectedStudentId : selectedStudentId}
             markFollowUpComplete={markFollowUpComplete}
             auth={auth}
+            updateSession={auth.role === "teacher" ? updateSessionById : undefined}
           />
         )}
         {effectiveRoute === "analytics" && <TeacherAnalytics sessions={teacherSessions} />}
-        {effectiveRoute === "appearance" && <DesignSystemPage theme={activeTheme} setTheme={setTheme} />}
+        {effectiveRoute === "billing" && auth.role === "teacher" && (
+          <SyncBillingPage
+            billingProfile={billingProfile}
+            setBillingProfile={setBillingProfile}
+            currentState={currentState}
+            applyCloudState={applyCloudState}
+            appendAudit={appendAudit}
+            sessionCount={freeSessionsToday}
+          />
+        )}
+        {effectiveRoute === "tutorial" &&
+          (auth.role === "teacher" ? (
+            <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} billingProfile={billingProfile} />
+          ) : (
+            <StudentDashboard
+              sessions={studentPortalSessions}
+              selectedStudentId={auth.studentId ?? selectedStudentId}
+              setSelectedStudentId={setSelectedStudentId}
+              markFollowUpComplete={markFollowUpComplete}
+              auth={auth}
+            />
+          ))}
+        {effectiveRoute === "appearance" && <DesignSystemPage theme={activeTheme} setTheme={handleThemeChange} />}
+        {effectiveRoute === "privacy" && auth.role === "teacher" && (
+          <PrivacyControlsPage
+            auth={auth}
+            sessions={teacherSessions}
+            accounts={accounts}
+            privacySettings={privacySettings}
+            setPrivacySettings={setPrivacySettings}
+            auditLog={auditLog}
+            appendAudit={appendAudit}
+            clearClassData={() => {
+              const teacherSessionIds = new Set(teacherSessions.map((session) => session.id));
+              setSessions((current) => current.filter((session) => !teacherSessionIds.has(session.id)));
+              setDraft(null);
+              setDemoLoaded(false);
+            }}
+          />
+        )}
       </main>
+      {rosterPromptSession && auth.role === "teacher" && (
+        <SaveRosterTemplatePrompt
+          session={rosterPromptSession}
+          onSave={(name) => {
+            saveRosterTemplateFromSession(rosterPromptSession, name);
+            setRosterPromptSession(null);
+          }}
+          onSkip={() => setRosterPromptSession(null)}
+        />
+      )}
+      {walkthroughOpen && (
+        <GuidedWalkthroughOverlay
+          auth={auth}
+          stepIndex={walkthroughStepIndex}
+          setStepIndex={setWalkthroughStepIndex}
+          onClose={() => {
+            setWalkthroughOpen(false);
+            navigate(auth.role === "teacher" ? "dashboard" : "student");
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
+  const [downloadMessage, setDownloadMessage] = useState("");
+  const [mobileMessage, setMobileMessage] = useState("");
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isStandaloneMobile, setIsStandaloneMobile] = useState(false);
+  const downloadOptions = [
+    {
+      id: "macos",
+      label: "macOS",
+      helper: "Apple silicon and Intel Macs",
+      url: (import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL as string | undefined)?.trim(),
+    },
+    {
+      id: "windows",
+      label: "Windows",
+      helper: "Windows 10 or newer",
+      url: (import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL as string | undefined)?.trim(),
+    },
+    {
+      id: "linux",
+      label: "Linux",
+      helper: "AppImage or Debian package",
+      url: (import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL as string | undefined)?.trim(),
+    },
+  ];
+  const availableDownloads = downloadOptions.filter((option) => option.url);
+  const stats = [
+    { value: "1", label: "daily free session" },
+    { value: "Pro", label: "unlimited follow-ups" },
+    { value: "PWA", label: "phone-ready web app" },
+  ];
+
+  const handleDownload = (option = downloadOptions[0]) => {
+    if (option.url) {
+      window.location.href = option.url;
+      return;
+    }
+    setDownloadMessage(`${option.label} desktop download is being packaged. You can try the hosted web demo now.`);
+  };
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleMobileInstall = async () => {
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      setInstallPrompt(null);
+      setMobileMessage(
+        choice.outcome === "accepted"
+          ? "ClassLoop is ready to open from your phone home screen."
+          : "You can still add ClassLoop from your browser share menu or install menu.",
+      );
+      return;
+    }
+    setMobileMessage(
+      isStandaloneMobile
+        ? "ClassLoop is already running like an app on this device."
+        : "On iPhone, tap Share then Add to Home Screen. On Android, open the browser menu and choose Install app.",
+    );
+  };
+
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (["features", "mobile", "privacy", "download"].includes(hash)) {
+      window.setTimeout(() => scrollToSection(hash), 80);
+    }
+  }, []);
+
+  useEffect(() => {
+    const displayModeQuery = window.matchMedia("(display-mode: standalone)");
+    const updateDisplayMode = () => {
+      setIsStandaloneMobile(
+        displayModeQuery.matches ||
+          (window.navigator as Navigator & { standalone?: boolean }).standalone === true,
+      );
+    };
+    const beforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+      setMobileMessage("ClassLoop can be added to this device for faster access.");
+    };
+    const installed = () => {
+      setInstallPrompt(null);
+      setMobileMessage("ClassLoop was added to this device.");
+      updateDisplayMode();
+    };
+    updateDisplayMode();
+    window.addEventListener("beforeinstallprompt", beforeInstallPrompt);
+    window.addEventListener("appinstalled", installed);
+    displayModeQuery.addEventListener("change", updateDisplayMode);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", beforeInstallPrompt);
+      window.removeEventListener("appinstalled", installed);
+      displayModeQuery.removeEventListener("change", updateDisplayMode);
+    };
+  }, []);
+
+  return (
+    <main className="landing-page">
+      <nav className="landing-nav" aria-label="ClassLoop public navigation">
+        <button className="landing-brand" type="button" onClick={onOpenApp}>
+          <span className="brand-mark">
+            <BrainCircuit size={24} />
+          </span>
+          <span>ClassLoop</span>
+        </button>
+        <div className="landing-links">
+          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("features")}>
+            Features
+          </button>
+          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("mobile")}>
+            Mobile
+          </button>
+          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("privacy")}>
+            Privacy
+          </button>
+          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("download")}>
+            Download
+          </button>
+          <button className="landing-link-button" type="button" onClick={onOpenApp}>
+            Open demo
+          </button>
+        </div>
+      </nav>
+
+      <section className="landing-hero">
+        <div className="landing-icon" aria-hidden="true">
+          <Sparkles size={38} />
+        </div>
+        <span className="landing-eyebrow">Classroom continuity</span>
+        <h1>ClassLoop</h1>
+        <p>
+          Turn class transcripts, notes, rosters, and resources into edited recaps, student follow-ups,
+          and completion check-ins that keep learning moving after class.
+        </p>
+        <div className="landing-actions">
+          <button className="landing-primary" type="button" onClick={() => handleDownload(downloadOptions[0])}>
+            <Download size={20} />
+            Download for macOS
+          </button>
+          <button className="landing-secondary" type="button" onClick={onOpenApp}>
+            <PlayCircle size={20} />
+            Open web demo
+          </button>
+          <button className="landing-secondary" type="button" onClick={handleMobileInstall}>
+            <Smartphone size={20} />
+            Add to phone
+          </button>
+        </div>
+        <div className="landing-platform-list" aria-label="Desktop download options">
+          {downloadOptions.map((option) => (
+            <button key={option.id} type="button" onClick={() => handleDownload(option)}>
+              <Download size={16} />
+              <span>
+                <strong>{option.label}</strong>
+                <small>{option.url ? "Download ready" : option.helper}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+        {downloadMessage && <p className="landing-message">{downloadMessage}</p>}
+        {mobileMessage && <p className="landing-message compact">{mobileMessage}</p>}
+        <div className="landing-stat-row" aria-label="ClassLoop plan highlights">
+          {stats.map((stat) => (
+            <div className="landing-stat" key={stat.label}>
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-mobile-band" id="mobile" aria-label="ClassLoop on mobile">
+        <div className="landing-mobile-card">
+          <Smartphone size={26} />
+          <span className="landing-eyebrow">Phone and tablet access</span>
+          <h2>Use ClassLoop from a browser or add it to your home screen.</h2>
+          <p>
+            The hosted web version is installable on modern mobile browsers, so teachers can check follow-ups
+            from a phone and students can open their dashboard without a desktop.
+          </p>
+          <button className="landing-primary" type="button" onClick={handleMobileInstall}>
+            <Smartphone size={18} />
+            Add ClassLoop to phone
+          </button>
+        </div>
+        <div className="mobile-step-grid">
+          <article className="mobile-step">
+            <strong>1</strong>
+            <span>Open the hosted ClassLoop link on your phone.</span>
+          </article>
+          <article className="mobile-step">
+            <strong>2</strong>
+            <span>Choose Add to Home Screen or Install app from your browser.</span>
+          </article>
+          <article className="mobile-step">
+            <strong>3</strong>
+            <span>Use the sample demo now, then sign in with Pro cloud sync when live.</span>
+          </article>
+        </div>
+      </section>
+
+      <section className="landing-feature-band" id="features" aria-label="ClassLoop features">
+        <article>
+          <BookOpen size={24} />
+          <h2>Import class records</h2>
+          <p>Paste transcripts, upload text files, add meeting notes, and reuse saved rosters.</p>
+        </article>
+        <article>
+          <Users size={24} />
+          <h2>Personalize follow-ups</h2>
+          <p>Review student-specific tasks, resources, questions, and completion states before publishing.</p>
+        </article>
+        <article id="privacy">
+          <ShieldCheck size={24} />
+          <h2>Private by default</h2>
+          <p>The desktop app stays local-first, while hosted Pro sync requires protected account access.</p>
+        </article>
+      </section>
+
+      <section className="landing-download-band" id="download">
+        <div>
+          <span className="landing-eyebrow">Try it safely</span>
+          <h2>Start with the web demo, then move daily work to the desktop app.</h2>
+          <p>
+            {availableDownloads.length
+              ? `${availableDownloads.length} desktop download ${availableDownloads.length === 1 ? "is" : "are"} connected.`
+              : "Desktop installers are being packaged for macOS, Windows, and Linux."}
+          </p>
+        </div>
+        <div className="landing-actions compact">
+          <button className="landing-primary" type="button" onClick={() => handleDownload(downloadOptions[0])}>
+            <Download size={18} />
+            Download macOS
+          </button>
+          {downloadOptions.slice(1).map((option) => (
+            <button key={option.id} className="landing-secondary" type="button" onClick={() => handleDownload(option)}>
+              {option.label}
+            </button>
+          ))}
+          <button className="landing-secondary" type="button" onClick={onOpenApp}>
+            Open demo
+          </button>
+        </div>
+      </section>
+    </main>
   );
 }
 
 function LoginPage({
   onLogin,
   onCreateAccount,
+  onRequestPasswordReset,
+  onCompletePasswordReset,
+  demoOnly,
 }: {
   onLogin: (role: AuthRole, email: string, password: string) => Promise<{ ok: boolean; message?: string }>;
   onCreateAccount: (
@@ -804,26 +2623,62 @@ function LoginPage({
     email: string,
     password: string,
   ) => Promise<{ ok: boolean; message?: string }>;
+  onRequestPasswordReset: (
+    role: AuthRole,
+    email: string,
+  ) => Promise<{ ok: boolean; message?: string; code?: string; email?: string; name?: string }>;
+  onCompletePasswordReset: (
+    role: AuthRole,
+    email: string,
+    code: string,
+    newPassword: string,
+  ) => Promise<{ ok: boolean; message?: string }>;
+  demoOnly: boolean;
 }) {
   const [mode, setMode] = useState<"signin" | "create">("signin");
   const [role, setRole] = useState<AuthRole>("teacher");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(demoOnly ? demoTeacherEmail : "");
+  const [password, setPassword] = useState(demoOnly ? "classloop-teacher" : "");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetStep, setResetStep] = useState<"request" | "confirm">("request");
+  const [resetCode, setResetCode] = useState("");
+  const [issuedResetCode, setIssuedResetCode] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const demoEmail = role === "teacher" ? demoTeacherEmail : demoStudentEmail;
   const demoPassword = role === "teacher" ? "classloop-teacher" : "classloop-student";
 
+  useEffect(() => {
+    if (!demoOnly || mode !== "signin") return;
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+  }, [demoEmail, demoOnly, demoPassword, mode]);
+
   const chooseRole = (nextRole: AuthRole) => {
     setRole(nextRole);
     setError("");
+    setNotice("");
+    setResetMessage("");
   };
 
   const chooseMode = (nextMode: "signin" | "create") => {
+    if (demoOnly && nextMode === "create") {
+      setError("Download the app to create your own account and save data. The web demo uses sample accounts only.");
+      return;
+    }
     setMode(nextMode);
     setError("");
+    setNotice("");
     setPassword("");
+    setConfirmPassword("");
+    setResetOpen(false);
     if (nextMode === "create") {
       setEmail("");
       setName("");
@@ -835,12 +2690,76 @@ function LoginPage({
     setEmail(demoEmail);
     setPassword(demoPassword);
     setError("");
+    setNotice("");
+  };
+
+  const closeResetModal = () => {
+    setResetOpen(false);
+    setResetStep("request");
+    setResetCode("");
+    setIssuedResetCode("");
+    setResetPassword("");
+    setResetConfirmPassword("");
+    setResetMessage("");
+  };
+
+  const requestReset = async () => {
+    setResetMessage("");
+    const result = await onRequestPasswordReset(role, email);
+    setResetMessage(result.message ?? "Reset request received.");
+    if (result.ok && result.code && result.email) {
+      setResetStep("confirm");
+      setIssuedResetCode(result.code);
+      setEmail(result.email);
+    }
+  };
+
+  const openResetEmailDraft = () => {
+    if (!issuedResetCode || !email) return;
+    const subject = encodeURIComponent("ClassLoop password reset code");
+    const body = encodeURIComponent(
+      `Your ClassLoop password reset code is ${issuedResetCode}.\n\nThis code expires in 15 minutes.\n`,
+    );
+    window.open(`mailto:${normalizeEmail(email)}?subject=${subject}&body=${body}`);
+  };
+
+  const copyResetCode = async () => {
+    if (!issuedResetCode) return;
+    try {
+      await navigator.clipboard.writeText(issuedResetCode);
+      setResetMessage("Reset code copied.");
+    } catch {
+      setResetMessage("Copy failed. Select the code and copy it manually.");
+    }
+  };
+
+  const completeReset = async () => {
+    setResetMessage("");
+    if (resetPassword !== resetConfirmPassword) {
+      setResetMessage("New passwords do not match.");
+      return;
+    }
+    const result = await onCompletePasswordReset(role, email, resetCode, resetPassword);
+    setResetMessage(result.message ?? "Password reset.");
+    if (result.ok) {
+      setMode("signin");
+      setPassword("");
+      setConfirmPassword("");
+      closeResetModal();
+      setNotice(result.message ?? "Password reset. You can sign in now.");
+    }
   };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsSubmitting(true);
     setError("");
+    setNotice("");
+    if (mode === "create" && password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setIsSubmitting(false);
+      return;
+    }
     try {
       const result =
         mode === "signin"
@@ -853,6 +2772,77 @@ function LoginPage({
       setIsSubmitting(false);
     }
   };
+
+  const startDemo = async (nextRole: AuthRole) => {
+    setIsSubmitting(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await onLogin(
+        nextRole,
+        nextRole === "teacher" ? demoTeacherEmail : demoStudentEmail,
+        nextRole === "teacher" ? "classloop-teacher" : "classloop-student",
+      );
+      if (!result.ok) setError(result.message ?? "Unable to open the demo.");
+    } catch {
+      setError("Unable to open the demo in this browser.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (demoOnly) {
+    return (
+      <main className="login-page demo-choice-page">
+        <section className="login-panel demo-choice-panel">
+          <div className="login-brand">
+            <span className="brand-mark">
+              <BrainCircuit size={26} />
+            </span>
+            <div>
+              <strong>ClassLoop</strong>
+              <small>Web demo workspace</small>
+            </div>
+          </div>
+          <div className="login-copy demo-choice-copy">
+            <span className="eyebrow">Choose a demo</span>
+            <h1>Try ClassLoop as a teacher or student.</h1>
+            <p>
+              Pick a side to explore. This web demo resets sample work, so download the desktop app when
+              you are ready to create your own account and save data.
+            </p>
+          </div>
+          <div className="demo-choice-grid" aria-label="Choose demo side">
+            <button type="button" className="demo-choice-card" onClick={() => startDemo("teacher")} disabled={isSubmitting}>
+              <span>
+                <UserRound size={24} />
+              </span>
+              <strong>{isSubmitting ? "Opening..." : "Demo teacher side"}</strong>
+              <p>Review class records, publish follow-ups, and see completion insights with sample data.</p>
+            </button>
+            <button type="button" className="demo-choice-card" onClick={() => startDemo("student")} disabled={isSubmitting}>
+              <span>
+                <GraduationCap size={24} />
+              </span>
+              <strong>{isSubmitting ? "Opening..." : "Demo student side"}</strong>
+              <p>See how a student receives recaps, tasks, resources, and progress check-ins.</p>
+            </button>
+          </div>
+          {error && <p className="login-error">{error}</p>}
+          <div className="demo-download-card">
+            <div>
+              <strong>Want your own saved workspace?</strong>
+              <span>Create real accounts and keep data in the downloaded app.</span>
+            </div>
+            <button type="button" className="ghost-button" onClick={() => { window.location.href = "/#download"; }}>
+              <Download size={17} />
+              Download app
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="login-page">
@@ -868,10 +2858,11 @@ function LoginPage({
         </div>
         <div className="login-copy">
           <span className="eyebrow">Welcome back</span>
-          <h1>Sign in to ClassLoop.</h1>
+          <h1>{demoOnly ? "Try ClassLoop with sample accounts." : "Sign in to ClassLoop."}</h1>
           <p>
-            Keep class follow-ups organized in one place. Teachers publish updates when they are ready, and students see
-            the work meant for them.
+            {demoOnly
+              ? "The web demo resets sample work. Download the desktop app when you are ready to create your own account and save data."
+              : "Keep class follow-ups organized in one place. Teachers publish updates when they are ready, and students see the work meant for them."}
           </p>
         </div>
         <form className="login-form" onSubmit={submit}>
@@ -879,10 +2870,21 @@ function LoginPage({
             <button type="button" className={mode === "signin" ? "active" : ""} onClick={() => chooseMode("signin")}>
               Sign in
             </button>
-            <button type="button" className={mode === "create" ? "active" : ""} onClick={() => chooseMode("create")}>
+            <button
+              type="button"
+              className={mode === "create" ? "active" : ""}
+              onClick={() => chooseMode("create")}
+              disabled={demoOnly}
+              title={demoOnly ? "Create your own account in the downloaded desktop app." : undefined}
+            >
               Create account
             </button>
           </div>
+          {demoOnly && (
+            <p className="demo-login-note">
+              Web demo mode uses sample credentials only. Your changes will reset and will not be saved.
+            </p>
+          )}
           <div className="role-tabs" role="tablist" aria-label="Choose account type">
             <button type="button" className={role === "teacher" ? "active" : ""} onClick={() => chooseRole("teacher")}>
               <UserRound size={17} />
@@ -911,39 +2913,148 @@ function LoginPage({
           </label>
           <label className="field compact">
             <span>Password</span>
-            <div className="input-with-icon">
+            <div className="input-with-icon password-control">
               <KeyRound size={17} />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Enter password"
               />
+              <button type="button" onClick={() => setShowPassword((show) => !show)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </label>
+          {mode === "signin" && !demoOnly && (
+            <button
+              type="button"
+              className="text-button forgot-password-link"
+              onClick={() => {
+                setResetOpen(true);
+                setResetStep("request");
+                setResetMessage("");
+              }}
+            >
+              Forgot password?
+            </button>
+          )}
+          {mode === "create" && (
+            <label className="field compact">
+              <span>Confirm password</span>
+              <div className="input-with-icon password-control">
+                <KeyRound size={17} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Re-enter password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((show) => !show)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </label>
+          )}
           {error && <p className="login-error">{error}</p>}
+          {notice && <p className="login-success">{notice}</p>}
           <button className="primary-button full" type="submit" disabled={isSubmitting}>
             <KeyRound size={17} />
             {isSubmitting ? "Working..." : mode === "signin" ? "Sign in" : "Create account"}
           </button>
         </form>
         <div className="login-help">
-          <strong>Sample accounts</strong>
+          <strong>{demoOnly ? "Web demo accounts" : "Sample accounts"}</strong>
           <span>Teacher: {demoTeacherEmail} / classloop-teacher</span>
           <span>Student: {demoStudentEmail} / classloop-student</span>
+          {demoOnly && <span>Download the app to create an account and keep your own workspace.</span>}
           <button type="button" className="text-button sample-account-button" onClick={fillDemo}>
             Use sample {role} account
             <ChevronRight size={16} />
           </button>
         </div>
       </section>
+      {mode === "signin" && resetOpen && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Reset password">
+          <section className="password-reset-modal">
+            <div className="modal-header">
+              <div>
+                <span className="eyebrow">Account recovery</span>
+                <h2>Reset password</h2>
+                <p>Choose the account, get a short reset code, then set a new password.</p>
+              </div>
+              <button type="button" className="text-button" onClick={closeResetModal}>
+                Close
+              </button>
+            </div>
+            <div className="reset-account-row">
+              <span>{role === "teacher" ? "Teacher" : "Student"} account</span>
+              <strong>{email || "Enter email on the sign-in form"}</strong>
+            </div>
+            {resetStep === "request" ? (
+              <button type="button" className="primary-button full" onClick={requestReset}>
+                <KeyRound size={17} />
+                Get reset code
+              </button>
+            ) : (
+              <div className="reset-confirm-grid">
+                {issuedResetCode && (
+                  <div className="reset-code-card">
+                    <span>Reset code</span>
+                    <button type="button" onClick={copyResetCode}>{issuedResetCode}</button>
+                  </div>
+                )}
+                <button type="button" className="ghost-button full" onClick={openResetEmailDraft}>
+                  <Mail size={17} />
+                  Open email draft
+                </button>
+                <label className="field compact">
+                  <span>Code</span>
+                  <input value={resetCode} onChange={(event) => setResetCode(event.target.value)} placeholder="6-digit code" />
+                </label>
+                <label className="field compact">
+                  <span>New password</span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={resetPassword}
+                    onChange={(event) => setResetPassword(event.target.value)}
+                    placeholder="New password"
+                  />
+                </label>
+                <label className="field compact">
+                  <span>Confirm new password</span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={resetConfirmPassword}
+                    onChange={(event) => setResetConfirmPassword(event.target.value)}
+                    placeholder="Confirm new password"
+                  />
+                </label>
+                <button type="button" className="primary-button full" onClick={completeReset}>
+                  <KeyRound size={17} />
+                  Reset password
+                </button>
+              </div>
+            )}
+            {resetMessage && (
+              <p className={/incorrect|expired|match|enter|failed/i.test(resetMessage) ? "settings-message" : "settings-message success"}>
+                {resetMessage}
+              </p>
+            )}
+          </section>
+        </div>
+      )}
       <section className="login-side">
         <div className="security-card">
           <span>
             <ShieldCheck size={22} />
           </span>
           <strong>Private by default</strong>
-          <p>Class notes, participation signals, and follow-ups stay in the teacher workspace until they are published.</p>
+          <p>Class notes, participation signals, and follow-ups stay in your workspace until you publish them.</p>
         </div>
         <div className="security-card">
           <span>
@@ -961,6 +3072,349 @@ function LockIcon() {
   return <KeyRound size={22} />;
 }
 
+function AppLoader({ message }: { message: string }) {
+  const tip = loadingTips[Math.floor(Date.now() / 1000) % loadingTips.length];
+  return (
+    <main className="app-loader" aria-live="polite">
+      <div className="loader-card">
+        <span className="loader-ring">
+          <BrainCircuit size={30} />
+        </span>
+        <span className="eyebrow">ClassLoop</span>
+        <h1>{message}</h1>
+        <p>{tip}</p>
+        <div className="loader-track" aria-hidden="true">
+          <i />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function MeetingCaptureHelpModal({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="meeting-capture-title">
+      <section className="password-reset-modal capture-help-modal">
+        <div className="modal-header">
+          <div>
+            <span className="eyebrow">Online meeting capture</span>
+            <h2 id="meeting-capture-title">Share the meeting tab or window with audio.</h2>
+            <p>
+              Your browser will ask what to capture. Choose the tab or window where Zoom, Meet, or Teams is running, enable audio sharing if it appears, then keep ClassLoop open.
+            </p>
+          </div>
+          <button className="icon-button" type="button" onClick={onClose} aria-label="Close meeting capture help">
+            <CircleAlert size={18} />
+          </button>
+        </div>
+        <ol className="tutorial-steps">
+          <li>
+            <strong>Click Start capture</strong>
+            <span>ClassLoop will request screen or tab audio if your browser supports it.</span>
+          </li>
+          <li>
+            <strong>Pick the meeting source</strong>
+            <span>Select the meeting tab/window and turn on shared audio when prompted.</span>
+          </li>
+          <li>
+            <strong>Paste the platform transcript after class</strong>
+            <span>Live capture is useful for notes, but the meeting transcript is still the most reliable source.</span>
+          </li>
+        </ol>
+        <div className="modal-actions">
+          <button className="ghost-button" type="button" onClick={onClose}>
+            Not now
+          </button>
+          <button className="primary-button" type="button" onClick={onStart}>
+            <PlayCircle size={17} />
+            Start capture
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function GuidedWalkthroughOverlay({
+  auth,
+  stepIndex,
+  setStepIndex,
+  onClose,
+}: {
+  auth: AuthSession;
+  stepIndex: number;
+  setStepIndex: (value: number | ((current: number) => number)) => void;
+  onClose: () => void;
+}) {
+  const homeRoute = auth.role === "teacher" ? "dashboard" : "student";
+  const steps =
+    auth.role === "teacher"
+      ? [
+          {
+            title: "Start on the dashboard",
+            detail: "This is your daily home base. Click New session when you have a transcript, notes, or recording.",
+            route: "dashboard" as RouteKey,
+            position: "top-left",
+            target: '[data-tour="dashboard-hero"]',
+          },
+          {
+            title: "Create the session",
+            detail: "Pick a template, preload a class roster, then choose transcript, in-person capture, or online meeting capture.",
+            route: "new-session" as RouteKey,
+            position: "top-right",
+            target: '[data-tour="new-session-button"], [data-tour="nav-new-session"]',
+          },
+          {
+            title: "Review before publishing",
+            detail: "Check speaker matches, edit the recap, and preview what each student will see.",
+            route: "review" as RouteKey,
+            position: "center",
+            target: '[data-tour="nav-review"]',
+          },
+          {
+            title: "Track follow-through",
+            detail: "After publishing, analytics and reports show completion, quiet flags, and support needs.",
+            route: "analytics" as RouteKey,
+            position: "bottom-right",
+            target: '[data-tour="nav-analytics"]',
+          },
+        ]
+      : [
+          {
+            title: "Open your portal",
+            detail: "Your dashboard shows the latest recap, assigned tasks, and resources from your teacher.",
+            route: "student" as RouteKey,
+            position: "top-left",
+            target: '[data-tour="nav-student"], .student-hero',
+          },
+          {
+            title: "Check the session detail",
+            detail: "Open a class to see what changed, what is due, and which resources to use.",
+            route: "student-session" as RouteKey,
+            position: "center",
+            target: ".today-card",
+          },
+          {
+            title: "Mark progress",
+            detail: "Update your task status so your teacher can see what still needs support.",
+            route: "student" as RouteKey,
+            position: "bottom-right",
+            target: ".today-card .primary-button",
+          },
+        ];
+  const activeStep = steps[stepIndex] ?? steps[0];
+  const isLast = stepIndex >= steps.length - 1;
+  const [highlightStyle, setHighlightStyle] = useState<TourRect | null>(null);
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties | null>(null);
+  const [areaVisitStarted, setAreaVisitStarted] = useState(false);
+
+  useEffect(() => {
+    setAreaVisitStarted(false);
+  }, [stepIndex]);
+
+  useEffect(() => {
+    const measureTarget = () => {
+      const target = document.querySelector<HTMLElement>(activeStep.target);
+      if (!target) {
+        setHighlightStyle(null);
+        setPopoverStyle(null);
+        return;
+      }
+
+      const rect = target.getBoundingClientRect();
+      const padding = 8;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const viewportInset = 18;
+      const highlightLeft = Math.max(12, rect.left - padding);
+      const highlightTop = Math.max(12, rect.top - padding);
+      const highlightRight = Math.min(viewportWidth - 12, rect.right + padding);
+      const highlightBottom = Math.min(viewportHeight - 12, rect.bottom + padding);
+      const highlight: TourRect = {
+        left: highlightLeft,
+        top: highlightTop,
+        width: Math.max(0, highlightRight - highlightLeft),
+        height: Math.max(0, highlightBottom - highlightTop),
+      };
+      if (viewportWidth <= 920) {
+        setHighlightStyle(highlight);
+        setPopoverStyle(null);
+        return;
+      }
+      const popoverWidth = Math.min(430, viewportWidth - viewportInset * 2);
+      const estimatedPopoverHeight = 240;
+      const gap = 18;
+      const maxPopoverLeft = Math.max(viewportInset, viewportWidth - popoverWidth - viewportInset);
+      const maxPopoverTop = Math.max(viewportInset, viewportHeight - estimatedPopoverHeight - viewportInset);
+      const clampLeft = (value: number) => Math.min(Math.max(viewportInset, value), maxPopoverLeft);
+      const clampTop = (value: number) => Math.min(Math.max(viewportInset, value), maxPopoverTop);
+      const overlapsHighlight = (candidate: { left: number; top: number }) => {
+        const candidateRight = candidate.left + popoverWidth;
+        const candidateBottom = candidate.top + estimatedPopoverHeight;
+        return !(
+          candidateRight + gap <= highlight.left ||
+          candidate.left >= highlight.left + highlight.width + gap ||
+          candidateBottom + gap <= highlight.top ||
+          candidate.top >= highlight.top + highlight.height + gap
+        );
+      };
+      const firstSlide = stepIndex === 0;
+      const candidates = firstSlide
+        ? [
+            { left: rect.left, top: highlight.top - estimatedPopoverHeight - gap },
+            { left: rect.right - popoverWidth, top: highlight.top - estimatedPopoverHeight - gap },
+            { left: rect.left, top: highlight.top + highlight.height + gap },
+            { left: rect.right - popoverWidth, top: highlight.top + highlight.height + gap },
+            { left: viewportWidth - popoverWidth - viewportInset, top: viewportHeight - estimatedPopoverHeight - viewportInset },
+            { left: viewportInset, top: viewportHeight - estimatedPopoverHeight - viewportInset },
+          ]
+        : [
+            { left: rect.left, top: highlight.top + highlight.height + gap },
+            { left: highlight.left + highlight.width + gap, top: rect.top },
+            { left: highlight.left - popoverWidth - gap, top: rect.top },
+            { left: rect.left, top: highlight.top - estimatedPopoverHeight - gap },
+          ];
+      const popoverPosition =
+        candidates
+          .map((candidate) => ({ left: clampLeft(candidate.left), top: clampTop(candidate.top) }))
+          .find((candidate) => !overlapsHighlight(candidate)) ?? {
+          left: clampLeft(rect.left),
+          top: clampTop(rect.bottom + gap),
+        };
+
+      setHighlightStyle(highlight);
+      setPopoverStyle({ left: popoverPosition.left, top: popoverPosition.top, width: popoverWidth });
+    };
+
+    measureTarget();
+    window.addEventListener("resize", measureTarget);
+    window.addEventListener("scroll", measureTarget, true);
+    return () => {
+      window.removeEventListener("resize", measureTarget);
+      window.removeEventListener("scroll", measureTarget, true);
+    };
+  }, [activeStep.target, stepIndex]);
+
+  const backdropPieces = highlightStyle
+    ? [
+        { left: 0, top: 0, width: "100vw", height: highlightStyle.top },
+        { left: 0, top: highlightStyle.top, width: highlightStyle.left, height: highlightStyle.height },
+        {
+          left: highlightStyle.left + highlightStyle.width,
+          top: highlightStyle.top,
+          width: `calc(100vw - ${highlightStyle.left + highlightStyle.width}px)`,
+          height: highlightStyle.height,
+        },
+        {
+          left: 0,
+          top: highlightStyle.top + highlightStyle.height,
+          width: "100vw",
+          height: `calc(100vh - ${highlightStyle.top + highlightStyle.height}px)`,
+        },
+      ]
+    : [];
+  const cornerSize = 24;
+  const cornerPieces = highlightStyle
+    ? [
+        {
+          className: "top-left",
+          style: { left: highlightStyle.left, top: highlightStyle.top, width: cornerSize, height: cornerSize },
+        },
+        {
+          className: "top-right",
+          style: {
+            left: highlightStyle.left + highlightStyle.width - cornerSize,
+            top: highlightStyle.top,
+            width: cornerSize,
+            height: cornerSize,
+          },
+        },
+        {
+          className: "bottom-left",
+          style: {
+            left: highlightStyle.left,
+            top: highlightStyle.top + highlightStyle.height - cornerSize,
+            width: cornerSize,
+            height: cornerSize,
+          },
+        },
+        {
+          className: "bottom-right",
+          style: {
+            left: highlightStyle.left + highlightStyle.width - cornerSize,
+            top: highlightStyle.top + highlightStyle.height - cornerSize,
+            width: cornerSize,
+            height: cornerSize,
+          },
+        },
+      ]
+    : [];
+
+  return (
+    <div className="guided-tour" role="dialog" aria-modal="true" aria-label="ClassLoop guided walkthrough">
+      {highlightStyle ? (
+        <>
+          {backdropPieces.map((piece, index) => (
+            <div key={index} className="tour-backdrop-piece" style={piece} aria-hidden="true" />
+          ))}
+          {cornerPieces.map((piece) => (
+            <div
+              key={piece.className}
+              className={`tour-corner-mask ${piece.className}`}
+              style={piece.style}
+              aria-hidden="true"
+            />
+          ))}
+        </>
+      ) : (
+        <div className="tour-backdrop-full" aria-hidden="true" />
+      )}
+      <div
+        className={`tour-highlight ${highlightStyle ? "anchored" : activeStep.position}`}
+        style={(highlightStyle as CSSProperties | null) ?? undefined}
+        aria-hidden="true"
+      />
+      <section className={`tour-popover ${popoverStyle ? "anchored" : activeStep.position}`} style={popoverStyle ?? undefined}>
+        <span className="eyebrow">Step {stepIndex + 1} of {steps.length}</span>
+        <h2>{activeStep.title}</h2>
+        <p>{activeStep.detail}</p>
+        <div className="walkthrough-progress-bar" aria-label={`Walkthrough progress ${Math.round(((stepIndex + 1) / steps.length) * 100)}%`}>
+          <i style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }} />
+        </div>
+        <div className="tour-actions">
+          <button className="ghost-button" type="button" onClick={onClose}>
+            Skip
+          </button>
+          <button
+            className="text-button"
+            type="button"
+            onClick={() => {
+              if (areaVisitStarted) {
+                navigate(homeRoute);
+                setAreaVisitStarted(false);
+                return;
+              }
+              navigate(activeStep.route);
+              setAreaVisitStarted(true);
+            }}
+          >
+            {areaVisitStarted ? "Return home" : "Go to this area"}
+            <ChevronRight size={16} />
+          </button>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => (isLast ? onClose() : setStepIndex((current) => Math.min(steps.length - 1, current + 1)))}
+          >
+            {isLast ? "Finish" : "Next"}
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function Sidebar({
   route,
   auth,
@@ -972,7 +3426,7 @@ function Sidebar({
   onLogout: () => void;
   showDemoCard: boolean;
 }) {
-  const visibleNav = auth.role === "teacher" ? navItems : studentNavItems;
+  const visibleNavSections = auth.role === "teacher" ? teacherNavSections : studentNavSections;
   return (
     <aside className="sidebar">
       <button
@@ -989,16 +3443,26 @@ function Sidebar({
         </span>
       </button>
       <nav className="nav-list" aria-label="Primary">
-        {visibleNav.map((item) => {
-          const Icon = item.icon;
-          const active = route === item.route;
-          return (
-            <button key={item.route} className={active ? "nav-item active" : "nav-item"} onClick={() => navigate(item.route)}>
-              <Icon size={19} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
+        {visibleNavSections.map((section) => (
+          <div className="nav-section" key={section.label}>
+            <span className="nav-section-label">{section.label}</span>
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              const active = route === item.route;
+              return (
+                <button
+                  key={item.route}
+                  className={active ? "nav-item active" : "nav-item"}
+                  data-tour={`nav-${item.route}`}
+                  onClick={() => navigate(item.route)}
+                >
+                  <Icon size={19} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
       {showDemoCard && (
         <section className="sidebar-panel">
@@ -1020,17 +3484,33 @@ function Sidebar({
   );
 }
 
+function DemoAccountBanner() {
+  return (
+    <div className="demo-account-banner" role="status">
+      <div>
+        <strong>You are on a demo account.</strong>
+        <span>Please download the app to create your own account, save data, and keep your classroom workspace.</span>
+      </div>
+    </div>
+  );
+}
+
 function Topbar({
   route,
   latestSession,
   auth,
-  onLogout,
+  syncStatus,
+  onUpdateAccount,
+  onStartWalkthrough,
 }: {
   route: RouteKey;
   latestSession?: Session;
   auth: AuthSession;
-  onLogout: () => void;
+  syncStatus: SyncStatus;
+  onUpdateAccount: (settings: AccountSettingsInput) => Promise<{ ok: boolean; message?: string }>;
+  onStartWalkthrough: () => void;
 }) {
+  const [profileOpen, setProfileOpen] = useState(false);
   return (
     <header className="topbar">
       <div>
@@ -1044,18 +3524,29 @@ function Topbar({
         </h1>
       </div>
       <div className="topbar-actions">
-        <span className="account-pill">
-          {auth.role === "teacher" ? <UserRound size={16} /> : <GraduationCap size={16} />}
-          {auth.name}
-        </span>
+        <div className="profile-control">
+          <button className="account-pill" onClick={() => setProfileOpen((open) => !open)} aria-expanded={profileOpen}>
+            {auth.role === "teacher" ? <UserRound size={16} /> : <GraduationCap size={16} />}
+            {auth.name}
+          </button>
+          {profileOpen && (
+            <ProfileMenu auth={auth} syncStatus={syncStatus} onUpdateAccount={onUpdateAccount} onClose={() => setProfileOpen(false)} />
+          )}
+        </div>
         {auth.role === "teacher" && (
           <>
-            <button className="ghost-button" onClick={() => navigate("student")}>
-              <GraduationCap size={17} />
-              Student preview
+            <button
+              className="icon-button tutorial-button"
+              type="button"
+              onClick={onStartWalkthrough}
+              aria-label="Open interactive walkthrough"
+              title="Open interactive walkthrough"
+            >
+              <Lightbulb size={18} />
             </button>
             <button
               className="primary-button"
+              data-tour="new-session-button"
               onClick={() => navigate("new-session")}
               aria-label={latestSession ? `Create a new session after ${latestSession.title}` : "Create a new session"}
             >
@@ -1064,16 +3555,125 @@ function Topbar({
             </button>
           </>
         )}
-        <button className="ghost-button" onClick={onLogout}>
-          <LogOut size={17} />
-          Sign out
-        </button>
       </div>
     </header>
   );
 }
 
-function TeacherDashboard({ sessions, draft }: { sessions: Session[]; draft: Session | null }) {
+function ProfileMenu({
+  auth,
+  syncStatus,
+  onUpdateAccount,
+  onClose,
+}: {
+  auth: AuthSession;
+  syncStatus: SyncStatus;
+  onUpdateAccount: (settings: AccountSettingsInput) => Promise<{ ok: boolean; message?: string }>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(auth.name);
+  const [email, setEmail] = useState(auth.email);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const saveSettings = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setMessage("");
+    if (newPassword && newPassword !== confirmPassword) {
+      setMessage("New passwords do not match.");
+      return;
+    }
+    setSaving(true);
+    const result = await onUpdateAccount({ name, email, currentPassword, newPassword });
+    setSaving(false);
+    setMessage(result.message ?? (result.ok ? "Settings saved." : "Unable to save settings."));
+    if (result.ok) {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+  };
+
+  return (
+    <form className="profile-menu" onSubmit={saveSettings}>
+      <div className="profile-menu-header">
+        <div>
+          <strong>Profile settings</strong>
+          <small>{syncStatus === "shared" ? "Saved on this device" : "Saved in this browser"}</small>
+        </div>
+        <button type="button" className="text-button" onClick={onClose}>
+          Done
+        </button>
+      </div>
+      <label className="field compact">
+        <span>Name</span>
+        <input value={name} onChange={(event) => setName(event.target.value)} />
+      </label>
+      <label className="field compact">
+        <span>Email</span>
+        <input value={email} onChange={(event) => setEmail(event.target.value)} />
+      </label>
+      <label className="field compact">
+        <span>Current password</span>
+        <div className="input-with-icon password-control">
+          <KeyRound size={17} />
+          <input
+            type={showPassword ? "text" : "password"}
+            value={currentPassword}
+            onChange={(event) => setCurrentPassword(event.target.value)}
+            placeholder="Required to change password"
+          />
+          <button type="button" onClick={() => setShowPassword((show) => !show)} aria-label={showPassword ? "Hide password" : "Show password"}>
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
+      </label>
+      <label className="field compact">
+        <span>New password</span>
+        <input
+          type={showPassword ? "text" : "password"}
+          value={newPassword}
+          onChange={(event) => setNewPassword(event.target.value)}
+          placeholder="Leave blank to keep current"
+        />
+      </label>
+      <label className="field compact">
+        <span>Confirm new password</span>
+        <input
+          type={showPassword ? "text" : "password"}
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          placeholder="Confirm new password"
+        />
+      </label>
+      {message && <p className={message.includes("saved") ? "settings-message success" : "settings-message"}>{message}</p>}
+      <div className="profile-actions">
+        <button type="button" className="ghost-button" onClick={() => navigate("appearance")}>
+          <Palette size={17} />
+          Appearance
+        </button>
+        <button className="primary-button" type="submit" disabled={saving}>
+          <Save size={17} />
+          {saving ? "Saving..." : "Save settings"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function TeacherDashboard({
+  sessions,
+  draft,
+  billingProfile,
+}: {
+  sessions: Session[];
+  draft: Session | null;
+  billingProfile: BillingProfile;
+}) {
   const latest = sessions[0];
   const published = sessions.filter((session) => session.status === "published");
   const hasSessions = sessions.length > 0;
@@ -1081,6 +3681,8 @@ function TeacherDashboard({ sessions, draft }: { sessions: Session[]; draft: Ses
   const overdue = latest?.followUps.filter((followUp) => followUp.status === "overdue") ?? [];
   const absentStudents = latest ? Object.entries(latest.attendance).filter(([, status]) => status === "absent") : [];
   const quietStudents = latest?.participationEvents.filter((event) => event.approved && event.type === "quiet") ?? [];
+  const hasAttention = absentStudents.length > 0 || quietStudents.length > 0 || overdue.length > 0;
+  const currentPlanTier: PlanTier = isPaidPlan(billingProfile) ? "pro" : "free";
 
   return (
     <div className="page-stack">
@@ -1089,10 +3691,10 @@ function TeacherDashboard({ sessions, draft }: { sessions: Session[]; draft: Ses
           <span className="eyebrow">Live class follow-up loop</span>
           <h2>Turn messy class records into edited recaps, personal tasks, and completion check-ins.</h2>
           <p>
-            The teacher stays in control while ClassLoop extracts what happened, who needs support, and what should happen
+            You stay in control while ClassLoop extracts what happened, who needs support, and what should happen
             next.
           </p>
-          <div className="hero-actions">
+          <div className="hero-actions" data-tour="dashboard-hero">
             <button className="primary-button large" onClick={() => navigate("new-session")}>
               <Wand2 size={19} />
               Create a session
@@ -1178,30 +3780,36 @@ function TeacherDashboard({ sessions, draft }: { sessions: Session[]; draft: Ses
         <Panel title="Attention queue" icon={AlertTriangle} action="Open analytics" onAction={() => navigate("analytics")}>
           {hasSessions ? (
             <div className="attention-list">
-              {absentStudents.map(([studentId]) => (
-                <AttentionItem
-                  key={studentId}
-                  icon={UserX}
-                  title={`${studentById(studentId, latestRoster).name} missed the latest session`}
-                  detail="Catch-up recap and review video assigned."
-                />
-              ))}
-              {quietStudents.map((event) => (
-                <AttentionItem
-                  key={event.id}
-                  icon={Mic2}
-                  title={`${studentById(event.studentId, latestRoster).name} was quiet`}
-                  detail="Confidence check-in and practice pair recommended."
-                />
-              ))}
-              {overdue.slice(0, 2).map((followUp) => (
-                <AttentionItem
-                  key={`${followUp.studentId}-${followUp.dueDate}`}
-                  icon={Clock3}
-                  title={`${studentById(followUp.studentId, latestRoster).name} has an overdue check-in`}
-                  detail={followUp.reminder}
-                />
-              ))}
+              {hasAttention ? (
+                <>
+                  {absentStudents.map(([studentId]) => (
+                    <AttentionItem
+                      key={studentId}
+                      icon={UserX}
+                      title={`${studentById(studentId, latestRoster).name} missed the latest session`}
+                      detail="Catch-up recap and review video assigned."
+                    />
+                  ))}
+                  {quietStudents.map((event) => (
+                    <AttentionItem
+                      key={event.id}
+                      icon={Mic2}
+                      title={`${studentById(event.studentId, latestRoster).name} was quiet`}
+                      detail="Confidence check-in and practice pair recommended."
+                    />
+                  ))}
+                  {overdue.slice(0, 2).map((followUp) => (
+                    <AttentionItem
+                      key={`${followUp.studentId}-${followUp.dueDate}`}
+                      icon={Clock3}
+                      title={`${studentById(followUp.studentId, latestRoster).name} has an overdue check-in`}
+                      detail={followUp.reminder}
+                    />
+                  ))}
+                </>
+              ) : (
+                <SupportSnapshotChart session={latest} />
+              )}
             </div>
           ) : (
             <InlineEmpty
@@ -1225,10 +3833,17 @@ function TeacherDashboard({ sessions, draft }: { sessions: Session[]; draft: Ses
             />
           )}
         </Panel>
-        <Panel title="Plan options" icon={ShieldCheck}>
+        <Panel title="Current plan" icon={ShieldCheck} action="View options" onAction={() => navigate("billing")}>
           <div className="plan-stack">
-            <PlanRow tier="Free" detail="Limited sessions, basic recaps, and class action items." />
-            <PlanRow tier="Pro" detail="Unlimited sessions, AI transcript processing, student dashboards, analytics, exports." />
+            {planCatalog.map((plan) => (
+              <PlanRow
+                key={plan.tier}
+                tier={plan.name}
+                detail={plan.detail}
+                price={plan.price}
+                current={currentPlanTier === plan.tier}
+              />
+            ))}
           </div>
         </Panel>
       </section>
@@ -1340,11 +3955,270 @@ function AttentionItem({
   );
 }
 
-function PlanRow({ tier, detail }: { tier: string; detail: string }) {
+function PlanRow({
+  tier,
+  detail,
+  price,
+  current,
+}: {
+  tier: string;
+  detail: string;
+  price?: string;
+  current?: boolean;
+}) {
   return (
-    <div className="plan-row">
-      <strong>{tier}</strong>
+    <div className={current ? "plan-row current" : "plan-row"}>
+      <strong>
+        {tier}
+        {price && <span>{price}</span>}
+      </strong>
       <span>{detail}</span>
+      {current && <small>Current plan</small>}
+    </div>
+  );
+}
+
+function SyncBillingPage({
+  billingProfile,
+  setBillingProfile,
+  currentState,
+  applyCloudState,
+  appendAudit,
+  sessionCount,
+}: {
+  billingProfile: BillingProfile;
+  setBillingProfile: (profile: BillingProfile) => void;
+  currentState: () => SharedState;
+  applyCloudState: (state: Partial<SharedState>) => void;
+  appendAudit: (action: string, detail: string, actor?: AuthSession | null) => void;
+  sessionCount: number;
+}) {
+  const backendStatus = getBackendStatus();
+  const [cloudEmail, setCloudEmail] = useState("");
+  const [cloudPassword, setCloudPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [connectedEmail, setConnectedEmail] = useState("");
+  const currentPlanTier: PlanTier = isPaidPlan(billingProfile) ? "pro" : "free";
+  const hasPro = currentPlanTier === "pro";
+
+  useEffect(() => {
+    getCloudSession().then((session) => setConnectedEmail(session?.user.email ?? ""));
+  }, []);
+
+  const refreshProfile = async () => {
+    try {
+      const profile = await getCloudProfile();
+      setBillingProfile(profile.billingProfile);
+      setMessage("Account plan refreshed from hosted sync.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to refresh account plan.");
+    }
+  };
+
+  const connectCloud = async (mode: "signin" | "signup") => {
+    const result =
+      mode === "signin"
+        ? await signIntoCloud(cloudEmail, cloudPassword)
+        : await createCloudAccount(cloudEmail, cloudPassword);
+    setMessage(result.message);
+    setConnectedEmail(result.session?.user.email ?? "");
+    if (result.ok) {
+      appendAudit("cloud_connect", `Connected hosted sync for ${cloudEmail}.`);
+      await refreshProfile();
+    }
+  };
+
+  const uploadCloud = async () => {
+    try {
+      await cloudRequest("/api/cloud-state", { method: "PUT", body: JSON.stringify(currentState()) });
+      setMessage("Uploaded this device's ClassLoop workspace to hosted sync.");
+      appendAudit("cloud_upload", "Uploaded workspace to hosted sync.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Cloud upload failed.");
+    }
+  };
+
+  const downloadCloud = async () => {
+    try {
+      const state = await cloudRequest<Partial<SharedState> | null>("/api/cloud-state");
+      if (!state) {
+        setMessage("No hosted workspace has been saved yet.");
+        return;
+      }
+      applyCloudState(state);
+      setMessage("Downloaded hosted workspace to this device.");
+      appendAudit("cloud_download", "Downloaded workspace from hosted sync.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Cloud download failed.");
+    }
+  };
+
+  const startCheckout = async (tier: Exclude<PlanTier, "free">) => {
+    try {
+      if (!backendStatus.webReady || !connectedEmail) {
+        setBillingProfile({ tier, status: "active" });
+        setMessage("Pro enabled on this device for local testing. Connect hosted sync and Stripe to make billing server-owned.");
+        appendAudit("plan_switch_local", `Switched local plan to ${tier}.`);
+        return;
+      }
+      const checkout = await createCheckoutSession(tier);
+      window.location.href = checkout.url;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Stripe Checkout is not configured yet.");
+    }
+  };
+
+  const openBillingPortal = async () => {
+    try {
+      if (!backendStatus.webReady || !connectedEmail) {
+        setMessage("Stripe billing management appears after Pro is connected to a cloud account and Stripe Checkout is complete.");
+        return;
+      }
+      const portal = await createBillingPortalSession();
+      window.location.href = portal.url;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Stripe Billing Portal is not configured yet.");
+    }
+  };
+
+  const downgradeToFree = () => {
+    setBillingProfile({ tier: "free", status: "not_configured" });
+    setMessage("Downgraded this device to the Free plan. Hosted subscriptions should also be canceled in Stripe when billing is connected.");
+    appendAudit("plan_downgrade", "Downgraded account to Free.");
+  };
+
+  const disconnect = async () => {
+    await signOutCloud();
+    setConnectedEmail("");
+    setMessage("Hosted sync disconnected on this device.");
+  };
+
+  return (
+    <div className="page-stack">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Plan options</span>
+          <h2>Save time on every class follow-up.</h2>
+          <p>
+            Free is for trying the workflow. Pro is for teachers who want unlimited follow-ups, live capture, multi-device
+            access, delivery logs, and reusable reports without rebuilding the same class record again.
+          </p>
+        </div>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        {hasPro ? (
+          <Panel title="Pro cloud sync" icon={RefreshCw}>
+            <div className="settings-stack">
+              <div className="integration-card">
+                <strong>{backendStatus.supabaseConfigured ? "Cloud sync ready" : "Cloud keys needed"}</strong>
+                <small>
+                  {backendStatus.supabaseConfigured
+                    ? "Sign in here to use the same ClassLoop workspace across browser, desktop, and another device."
+                    : "Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable multi-device Pro login."}
+                </small>
+              </div>
+              <div className="integration-card soft-note">
+                <strong>Normal login vs cloud email</strong>
+                <small>
+                  Normal login opens the account saved on this device. Cloud email is the hosted Pro account that syncs
+                  the same workspace across devices and keeps paid access tied to the account.
+                </small>
+              </div>
+              <label className="field compact">
+                <span>Cloud email</span>
+                <input value={cloudEmail} onChange={(event) => setCloudEmail(event.target.value)} placeholder="you@school.org" />
+              </label>
+              <label className="field compact">
+                <span>Cloud password</span>
+                <input type="password" value={cloudPassword} onChange={(event) => setCloudPassword(event.target.value)} />
+              </label>
+              <div className="button-row">
+                <button className="primary-button" type="button" onClick={() => connectCloud("signin")}>
+                  Sign in
+                </button>
+                <button className="ghost-button" type="button" onClick={() => connectCloud("signup")}>
+                  Create cloud account
+                </button>
+              </div>
+              {connectedEmail && <p className="settings-message success">Connected as {connectedEmail}</p>}
+              <div className="button-row">
+                <button className="ghost-button" type="button" onClick={uploadCloud} disabled={!connectedEmail}>
+                  Upload this device
+                </button>
+                <button className="ghost-button" type="button" onClick={downloadCloud} disabled={!connectedEmail}>
+                  Download cloud copy
+                </button>
+                <button className="text-button" type="button" onClick={refreshProfile} disabled={!connectedEmail}>
+                  Refresh plan
+                </button>
+                <button className="text-button" type="button" onClick={disconnect} disabled={!connectedEmail}>
+                  Disconnect
+                </button>
+                <button className="text-button" type="button" onClick={openBillingPortal}>
+                  Manage billing
+                </button>
+              </div>
+              {message && <p className="settings-message">{message}</p>}
+            </div>
+          </Panel>
+        ) : (
+          <Panel title="Why teachers upgrade" icon={Clock3}>
+            <div className="settings-stack">
+              <div className="integration-card active">
+                <strong>Save the repeat work</strong>
+                <small>Generate more than one class follow-up per day, reuse rosters, and avoid rebuilding student tasks manually.</small>
+              </div>
+              <div className="integration-card">
+                <strong>Capture class moments faster</strong>
+                <small>Unlock in-person and online meeting capture so you can draft from live class notes when transcript files are not ready.</small>
+              </div>
+              <div className="integration-card">
+                <strong>Work from more than one device</strong>
+                <small>Cloud login appears with Pro so your workspace can sync between desktop and browser.</small>
+              </div>
+              {message && <p className="settings-message">{message}</p>}
+            </div>
+          </Panel>
+        )}
+
+        <Panel title="Plan options" icon={ShieldCheck}>
+          <div className="plan-stack">
+            {planCatalog.map((plan) => (
+              <div key={plan.tier} className={currentPlanTier === plan.tier ? "plan-row current" : "plan-row"}>
+                <strong>
+                  {plan.name} <span>{plan.price}</span>
+                </strong>
+                <span>{plan.detail}</span>
+                {plan.tier === "free" ? (
+                  <>
+                    <small>Today: {Math.min(sessionCount, 1)}/1 Free session used.</small>
+                    {isPaidPlan(billingProfile) && (
+                      <button className="text-button" type="button" onClick={downgradeToFree}>
+                        Downgrade to Free
+                        <ChevronRight size={16} />
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <button className="text-button" type="button" onClick={() => startCheckout(plan.tier)}>
+                    {currentPlanTier === plan.tier && isPaidPlan(billingProfile) ? "Current plan" : `Upgrade to ${plan.name}`}
+                    <ChevronRight size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="integration-card">
+            <span>
+              <strong>Current account</strong>
+              <small>
+                {currentPlanTier.toUpperCase()} · {billingProfile.status}
+              </small>
+            </span>
+          </div>
+        </Panel>
+      </section>
     </div>
   );
 }
@@ -1366,14 +4240,60 @@ function TrendChart({ sessions }: { sessions: Session[] }) {
   );
 }
 
+function SupportSnapshotChart({ session }: { session?: Session }) {
+  if (!session) return null;
+  const completed = completionRate([session]);
+  const participation = classParticipationRate(session);
+  const averageReadiness = session.followUps.length
+    ? Math.round(session.followUps.reduce((sum, followUp) => sum + followUp.score, 0) / session.followUps.length)
+    : 0;
+  const rows = [
+    { label: "Participation", value: participation },
+    { label: "Completion", value: completed },
+    { label: "Readiness", value: averageReadiness },
+  ];
+
+  return (
+    <div className="support-snapshot">
+      <div>
+        <strong>No urgent follow-ups</strong>
+        <small>Latest session snapshot</small>
+      </div>
+      {rows.map((row) => (
+        <div key={row.label} className="snapshot-row">
+          <span>{row.label}</span>
+          <div>
+            <i style={{ width: `${Math.max(row.value, 4)}%` }} />
+          </div>
+          <small>{row.value}%</small>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ImportSession({
   ownerEmail,
   setDraft,
   onUseDemo,
+  recordingConsentRequired,
+  rosterTemplates,
+  classGroups,
+  canCreateSession,
+  canUseLiveCapture,
+  dailySessionsUsed,
+  planName,
 }: {
   ownerEmail: string;
   setDraft: (session: Session) => void;
   onUseDemo: () => void;
+  recordingConsentRequired: boolean;
+  rosterTemplates: RosterTemplate[];
+  classGroups: ClassGroup[];
+  canCreateSession: boolean;
+  canUseLiveCapture: boolean;
+  dailySessionsUsed: number;
+  planName: string;
 }) {
   const [title, setTitle] = useState("");
   const [template, setTemplate] = useState<SessionType>("General classroom");
@@ -1382,21 +4302,326 @@ function ImportSession({
   const [roster, setRoster] = useState("");
   const [resources, setResources] = useState("");
   const [fileName, setFileName] = useState("");
+  const [templateDetails, setTemplateDetails] = useState<Record<string, string>>({});
+  const [captureMode, setCaptureMode] = useState<SessionCaptureMode>("transcript");
+  const [captureStatus, setCaptureStatus] = useState<"idle" | "recording" | "stopped">("idle");
+  const [captureMessage, setCaptureMessage] = useState("");
+  const [planMessage, setPlanMessage] = useState("");
+  const [recordedSeconds, setRecordedSeconds] = useState(0);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState("");
+  const [recordedAudioLabel, setRecordedAudioLabel] = useState("");
+  const [showMeetingHelp, setShowMeetingHelp] = useState(false);
+  const [transcriptionAvailable, setTranscriptionAvailable] = useState(true);
+  const [recordingConsent, setRecordingConsent] = useState(!recordingConsentRequired);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<BlobPart[]>([]);
+  const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const captureTimerRef = useRef<number | null>(null);
+  const captureStartedAtRef = useRef<number | null>(null);
+  const liveSegmentCountRef = useRef(0);
+  const activeTemplateFields = templateDetailFields[template];
+  const matchingRosterTemplates = useMemo(
+    () => rosterTemplates.filter((templateItem) => templateItem.sessionType === template),
+    [rosterTemplates, template],
+  );
+  const [loadedRosterTemplateId, setLoadedRosterTemplateId] = useState("");
+  const matchingClassGroups = useMemo(
+    () => classGroups.filter((group) => group.defaultSessionType === template || !template),
+    [classGroups, template],
+  );
+  const [loadedClassGroupId, setLoadedClassGroupId] = useState("");
+
+  useEffect(() => {
+    const matchingTemplate = rosterTemplates.find((templateItem) => templateItem.sessionType === template);
+    if (!matchingTemplate) {
+      setLoadedRosterTemplateId("");
+      return;
+    }
+    if (!roster.trim()) {
+      setRoster(formatRosterFromStudents(matchingTemplate.students));
+      setLoadedRosterTemplateId(matchingTemplate.id);
+    }
+  }, [rosterTemplates, template]);
+
+  const stopCapture = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+    speechRecognitionRef.current?.stop();
+    speechRecognitionRef.current = null;
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    mediaStreamRef.current = null;
+    if (captureTimerRef.current) window.clearInterval(captureTimerRef.current);
+    captureTimerRef.current = null;
+
+    const duration = captureStartedAtRef.current
+      ? Math.max(1, Math.round((Date.now() - captureStartedAtRef.current) / 1000))
+      : recordedSeconds;
+    captureStartedAtRef.current = null;
+    setRecordedSeconds(duration);
+    setCaptureStatus("stopped");
+    setCaptureMessage(
+      `${captureModeLabels[captureMode]} stopped${transcriptionAvailable ? "." : ". Add notes if the browser did not create a live transcript."}`,
+    );
+  };
+
+  const startSpeechRecognition = (mode: SessionCaptureMode) => {
+    const SpeechRecognitionCtor = getSpeechRecognitionConstructor();
+    if (!SpeechRecognitionCtor) {
+      setTranscriptionAvailable(false);
+      setCaptureMessage("Capture is active, but live transcription is not available in this browser. Paste a platform transcript or add notes before generating.");
+      return;
+    }
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.onresult = (event) => {
+      let finalText = "";
+      for (let index = event.resultIndex ?? 0; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        if (result?.isFinal && result[0]?.transcript) {
+          finalText = appendCapturedText(finalText, result[0].transcript);
+        }
+      }
+      if (finalText) {
+        liveSegmentCountRef.current += 1;
+        const speakerLabel =
+          mode === "transcript"
+            ? captureModeLabels[mode]
+            : liveCaptureSpeakerLabel(mode, liveSegmentCountRef.current);
+        setTranscript((current) => appendCapturedText(current, `${speakerLabel}: ${finalText}`));
+      }
+    };
+    recognition.onerror = () => {
+      setTranscriptionAvailable(false);
+      setCaptureMessage("Capture is active, but transcription paused. Add short notes or paste the meeting transcript before generating.");
+    };
+    recognition.onend = null;
+    recognition.start();
+    speechRecognitionRef.current = recognition;
+    setTranscriptionAvailable(true);
+  };
+
+  const startCapture = async (mode: SessionCaptureMode) => {
+    if ((mode === "in_person" || mode === "audio" || mode === "online_meeting") && !canUseLiveCapture) {
+      setPlanMessage("Live in-person and online meeting capture are Pro features. Upgrade to Pro to unlock them.");
+      return;
+    }
+    if (recordingConsentRequired && !recordingConsent) {
+      setCaptureMessage("Confirm recording/capture permission before starting.");
+      return;
+    }
+    if (captureStatus === "recording") stopCapture();
+    setCaptureMode(mode);
+    setCaptureMessage("");
+    liveSegmentCountRef.current = 0;
+
+    try {
+      if (!navigator.mediaDevices) {
+        throw new Error("Media devices are unavailable in this browser.");
+      }
+      let stream: MediaStream;
+      let startedMessage = "";
+
+      if (mode === "online_meeting" && navigator.mediaDevices.getDisplayMedia) {
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+        const hasAudio = stream.getAudioTracks().length > 0;
+        startedMessage = hasAudio
+          ? "Online meeting capture is running. Share a tab or window with audio when your browser asks, and keep ClassLoop open."
+          : "Online meeting capture is running, but no meeting audio track was shared. Use platform captions/transcript if live text does not appear.";
+      } else {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        });
+        startedMessage =
+          mode === "online_meeting"
+            ? "This browser cannot capture meeting tab audio directly, so ClassLoop is using the microphone as best-effort notes."
+            : "In-person class capture is running. Place the device where discussion is clear and keep ClassLoop open.";
+      }
+
+      if (recordedAudioUrl) {
+        URL.revokeObjectURL(recordedAudioUrl);
+        setRecordedAudioUrl("");
+        setRecordedAudioLabel("");
+      }
+      recordedChunksRef.current = [];
+      if (typeof MediaRecorder !== "undefined") {
+        const audioTracks = stream.getAudioTracks();
+        const recorderStream = audioTracks.length ? new MediaStream(audioTracks) : stream;
+        const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+        const recorder = new MediaRecorder(recorderStream, mimeType ? { mimeType } : undefined);
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) recordedChunksRef.current.push(event.data);
+        };
+        recorder.onstop = () => {
+          if (!recordedChunksRef.current.length) return;
+          const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+          const nextUrl = URL.createObjectURL(blob);
+          setRecordedAudioUrl(nextUrl);
+          setRecordedAudioLabel(`${captureModeLabels[mode]} · ${Math.max(1, recordedSeconds || 1)}s`);
+        };
+        recorder.start();
+        mediaRecorderRef.current = recorder;
+      }
+
+      mediaStreamRef.current = stream;
+      captureStartedAtRef.current = Date.now();
+      setRecordedSeconds(0);
+      setCaptureStatus("recording");
+      setCaptureMessage(startedMessage);
+
+      captureTimerRef.current = window.setInterval(() => {
+        if (captureStartedAtRef.current) {
+          setRecordedSeconds(Math.max(1, Math.round((Date.now() - captureStartedAtRef.current) / 1000)));
+        }
+      }, 1000);
+
+      startSpeechRecognition(mode);
+    } catch {
+      setCaptureStatus("idle");
+      setCaptureMessage("Capture permission was not granted, or this browser cannot capture that source. You can still paste or upload the transcript.");
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      speechRecognitionRef.current?.stop();
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+      if (captureTimerRef.current) window.clearInterval(captureTimerRef.current);
+      if (recordedAudioUrl) URL.revokeObjectURL(recordedAudioUrl);
+    };
+  }, [recordedAudioUrl]);
 
   const loadSample = () => {
     setTitle("Geometry Review: Similar Triangles + Algebra");
     setTemplate("Math review");
+    setCaptureMode("transcript");
     setTranscript(sampleTranscript);
     setNotes(sampleNotes);
     setRoster(sampleRoster);
     setResources("https://example.com/similar-triangles-review");
+    setTemplateDetails({
+      practiceProblems: "Problems 7-12 on the similar triangles worksheet",
+      focusSkills: "AA similarity, corresponding sides, proportions, and missing side lengths",
+      commonMistakes: "Cross-multiplication order and matching the wrong sides",
+    });
     onUseDemo();
   };
 
+  const handleTranscriptFile = async (file?: File) => {
+    if (!file) return;
+    setFileName(file.name);
+    setCaptureMode("transcript");
+    setCaptureMessage(`Loaded ${file.name}.`);
+    setTranscript(await readTranscriptFileText(file));
+  };
+
   const generateDraft = () => {
-    const session = createGeneratedSession({ title, template, transcript, notes, roster, resources });
-    setDraft({ ...session, ownerEmail });
+    if (!canCreateSession) {
+      setPlanMessage(
+        `${planName} lets you generate 1 session per day. You have used ${Math.min(
+          dailySessionsUsed,
+          1,
+        )}/1 today. Upgrade to Pro for unlimited sessions, or come back after midnight.`,
+      );
+      return;
+    }
+    setPlanMessage("");
+    const detailNotes = activeTemplateFields
+      .map((field) => {
+        const value = templateDetails[field.id]?.trim();
+        return value ? `${field.label}: ${value}` : "";
+      })
+      .filter(Boolean)
+      .join("\n");
+    const captureNotes =
+      captureMode === "transcript"
+        ? ""
+        : [
+            `Capture method: ${captureModeLabels[captureMode]}.`,
+            recordedSeconds ? `Captured duration: ${recordedSeconds} seconds.` : "",
+            recordingConsent ? "Audio capture consent was confirmed before capture." : "",
+            captureMode === "in_person" || captureMode === "audio"
+              ? "Student voice identification is teacher-assisted. Live segments are labeled as unknown voices until you link them to roster students."
+              : "",
+            captureMode === "online_meeting"
+              ? "Online meeting capture used browser tab/window audio when available. Platform transcripts remain the most reliable source when live text is incomplete."
+              : "",
+            transcriptionAvailable ? "Live transcript was added when available." : "No live transcript was available; teacher notes should guide the draft.",
+          ]
+            .filter(Boolean)
+            .join("\n");
+    const transcriptSource =
+      captureMode !== "transcript"
+        ? transcript.trim()
+          ? "live_transcription"
+          : "audio_recording"
+        : fileName
+          ? "file"
+          : "paste";
+    const session = createGeneratedSession({
+      title,
+      template,
+      transcript,
+      notes: [notes, detailNotes, captureNotes].filter(Boolean).join("\n\n"),
+      roster,
+      resources,
+      captureMode,
+      captureSourceLabel: captureModeLabels[captureMode],
+      captureDurationSeconds: recordedSeconds || undefined,
+      transcriptSource,
+    });
+    const selectedGroup = classGroups.find((group) => group.id === loadedClassGroupId);
+    setDraft({
+      ...session,
+      ownerEmail,
+      classGroupId: selectedGroup?.id,
+      classGroupName: selectedGroup?.name,
+    });
     navigate("processing", { session: session.id });
+  };
+
+  const updateTemplateDetail = (id: string, value: string) => {
+    setTemplateDetails((current) => ({ ...current, [id]: value }));
+  };
+
+  const useSavedRoster = (templateId: string) => {
+    setLoadedRosterTemplateId(templateId);
+    setLoadedClassGroupId("");
+    const selectedTemplate = rosterTemplates.find((templateItem) => templateItem.id === templateId);
+    if (selectedTemplate) {
+      setRoster(formatRosterFromStudents(selectedTemplate.students));
+    }
+  };
+
+  const useClassGroup = (groupId: string) => {
+    setLoadedClassGroupId(groupId);
+    setLoadedRosterTemplateId("");
+    const selectedGroup = classGroups.find((group) => group.id === groupId);
+    if (selectedGroup) {
+      setTemplate(selectedGroup.defaultSessionType);
+      setRoster(formatRosterFromStudents(selectedGroup.students));
+    }
+  };
+
+  const chooseTemplate = (option: SessionType) => {
+    setTemplate(option);
+    setTemplateDetails({});
+    const savedRoster = rosterTemplates.find((templateItem) => templateItem.sessionType === option);
+    if (savedRoster) {
+      setRoster(formatRosterFromStudents(savedRoster.students));
+      setLoadedRosterTemplateId(savedRoster.id);
+      setLoadedClassGroupId("");
+    } else {
+      setLoadedRosterTemplateId("");
+    }
   };
 
   return (
@@ -1406,7 +4631,7 @@ function ImportSession({
           <div className="section-heading">
             <span className="eyebrow">New class record</span>
             <h2>Import a transcript, notes, or both.</h2>
-            <p>ClassLoop will draft the teacher review page, then wait for approval before students see anything.</p>
+            <p>ClassLoop will draft your review page, then wait for your approval before students see anything.</p>
           </div>
 
           <div className="form-grid">
@@ -1414,63 +4639,224 @@ function ImportSession({
               <span>Session title</span>
               <input value={title} onChange={(event) => setTitle(event.target.value)} />
             </label>
-            <div className="field wide">
+            <label className="field wide">
               <span>Session template</span>
-              <div className="template-grid">
+              <select value={template} onChange={(event) => chooseTemplate(event.target.value as SessionType)}>
                 {templateOptions.map((option) => (
-                  <button
-                    key={option}
-                    className={template === option ? "template-card selected" : "template-card"}
-                    onClick={() => setTemplate(option)}
-                  >
-                    <strong>{option}</strong>
-                    <small>{templateDescriptions[option]}</small>
-                  </button>
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
                 ))}
+              </select>
+              <small className="field-helper">{templateDescriptions[template]}</small>
+            </label>
+            {(matchingRosterTemplates.length > 0 || matchingClassGroups.length > 0) && (
+              <div className="saved-roster-row wide">
+                {matchingClassGroups.length > 0 && (
+                  <label className="field compact">
+                    <span>Preload class roster</span>
+                    <select value={loadedClassGroupId} onChange={(event) => useClassGroup(event.target.value)}>
+                      <option value="">Choose a saved class</option>
+                      {matchingClassGroups.map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.name} · {group.students.length} students
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {matchingRosterTemplates.length > 0 && (
+                  <label className="field compact">
+                    <span>Preload saved roster</span>
+                    <select value={loadedRosterTemplateId} onChange={(event) => useSavedRoster(event.target.value)}>
+                      <option value="">Choose a saved roster</option>
+                      {matchingRosterTemplates.map((templateItem) => (
+                        <option key={templateItem.id} value={templateItem.id}>
+                          {templateItem.name} · {templateItem.students.length} students
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </div>
+            )}
+            {activeTemplateFields.length > 0 && (
+              <div className="template-detail-card wide">
+                <div>
+                  <strong>{template} details</strong>
+                  <small>These optional fields shape the draft without adding extra review work later.</small>
+                </div>
+                <div className="template-detail-grid">
+                  {activeTemplateFields.map((field) => (
+                    <label key={field.id} className="field compact">
+                      <span>{field.label}</span>
+                      <textarea
+                        value={templateDetails[field.id] ?? ""}
+                        onChange={(event) => updateTemplateDetail(field.id, event.target.value)}
+                        placeholder={field.placeholder}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="capture-panel wide">
+              <div>
+                <span className="eyebrow">Capture source</span>
+                <h3>Use a transcript, in-person capture, or meeting audio.</h3>
+                <p>
+                  Transcript paste/upload stays the most reliable path. Live capture is best-effort, consent-first, and keeps speaker matching in your hands.
+                </p>
+              </div>
+              <div className="capture-mode-grid">
+                <button
+                  type="button"
+                  className={captureMode === "transcript" ? "capture-mode-card active" : "capture-mode-card"}
+                  onClick={() => setCaptureMode("transcript")}
+                >
+                  <UploadCloud size={18} />
+                  <strong>Transcript</strong>
+                  <small>Upload or paste Zoom, Meet, text, VTT, or notes.</small>
+                </button>
+                <button
+                  type="button"
+                  className={[
+                    "capture-mode-card",
+                    captureMode === "in_person" || captureMode === "audio" ? "active" : "",
+                    canUseLiveCapture ? "" : "locked",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onClick={() => {
+                    if (!canUseLiveCapture) {
+                      setPlanMessage("In-person live capture is available with Pro.");
+                      return;
+                    }
+                    setCaptureMode("in_person");
+                  }}
+                >
+                  <Mic2 size={18} />
+                  <strong>In-person class</strong>
+                  <small>Use the device microphone for live notes during classroom discussion.</small>
+                  {!canUseLiveCapture && <small className="pro-lock-note">Pro only</small>}
+                </button>
+                <button
+                  type="button"
+                  className={[
+                    "capture-mode-card",
+                    captureMode === "online_meeting" ? "active" : "",
+                    canUseLiveCapture ? "" : "locked",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onClick={() => {
+                    if (!canUseLiveCapture) {
+                      setPlanMessage("Online meeting capture is available with Pro.");
+                      return;
+                    }
+                    setCaptureMode("online_meeting");
+                    setShowMeetingHelp(true);
+                  }}
+                >
+                  <PlayCircle size={18} />
+                  <strong>Online meeting</strong>
+                  <small>Capture a tab or window with audio when the browser supports it.</small>
+                  {!canUseLiveCapture && <small className="pro-lock-note">Pro only</small>}
+                </button>
+              </div>
+              {captureMode !== "transcript" && (
+                <div className="capture-controls">
+                  <div>
+                    <strong>
+                      {captureStatus === "recording"
+                          ? "Recording now"
+                          : captureModeLabels[captureMode]}
+                    </strong>
+                    <small>
+                      {captureStatus === "recording"
+                        ? `${recordedSeconds}s captured`
+                        : captureMode === "online_meeting"
+                          ? "Start capture when the call begins. If live text is incomplete, paste the platform transcript afterward."
+                          : "Start capture before discussion, then stop before generating the draft."}
+                    </small>
+                  </div>
+                  {recordingConsentRequired && (
+                    <label className="capture-consent">
+                      <input
+                        type="checkbox"
+                        checked={recordingConsent}
+                        onChange={(event) => setRecordingConsent(event.target.checked)}
+                      />
+                      <span>I have permission to capture audio notes for this class session.</span>
+                    </label>
+                  )}
+                  <div className="capture-buttons">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={() => startCapture(captureMode)}
+                      disabled={captureStatus === "recording" || (recordingConsentRequired && !recordingConsent)}
+                    >
+                      <Mic2 size={17} />
+                      Start capture
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={stopCapture}
+                      disabled={captureStatus !== "recording"}
+                    >
+                      <CheckCircle2 size={17} />
+                      Stop
+                    </button>
+                  </div>
+                </div>
+              )}
+              {recordedAudioUrl && (
+                <div className="recording-review">
+                  <div>
+                    <strong>Recording ready</strong>
+                    <small>{recordedAudioLabel || `${captureModeLabels[captureMode]} captured`}</small>
+                  </div>
+                  <audio controls src={recordedAudioUrl} />
+                </div>
+              )}
+              {captureMode !== "transcript" && (
+                <div className="capture-guidance">
+                  <CheckCircle2 size={17} />
+                  <div>
+                    <strong>No voiceprints are created.</strong>
+                    <small>
+                      ClassLoop labels live speech as unknown voice segments. After the draft is created, link each segment to a roster student,
+                      add a new student, or leave it unassigned.
+                    </small>
+                  </div>
+                </div>
+              )}
+              {captureMessage && <p className="capture-message">{captureMessage}</p>}
             </div>
-            <label className="upload-zone wide">
-              <UploadCloud size={24} />
-              <strong>{fileName || "Upload transcript file"}</strong>
-              <small>Zoom, Meet, text, or VTT file.</small>
-              <input
-                type="file"
-                accept=".txt,.vtt,.srt,.doc,.docx"
-                onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
-              />
-            </label>
-            <label className="field">
-              <span>Paste transcript text</span>
-              <textarea
-                value={transcript}
-                onChange={(event) => setTranscript(event.target.value)}
-                placeholder="Paste the raw transcript here..."
-              />
-            </label>
-            <label className="field">
-              <span>Paste meeting notes</span>
-              <textarea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="Paste teacher notes, chat summaries, reminders, and homework here..."
-              />
-            </label>
-            <label className="field">
-              <span>Bulk roster</span>
-              <textarea
-                value={roster}
-                onChange={(event) => setRoster(event.target.value)}
-                placeholder="Name, email per line"
-              />
-            </label>
-            <label className="field">
-              <span>Resources and links</span>
-              <textarea
-                value={resources}
-                onChange={(event) => setResources(event.target.value)}
-                placeholder="Paste links or resources mentioned in class"
-              />
-            </label>
+            {captureMode === "transcript" && (
+              <>
+                <label className="upload-zone wide">
+                  <UploadCloud size={24} />
+                  <strong>{fileName || "Upload transcript file"}</strong>
+                  <small>Zoom, Meet, text, VTT, or SRT file.</small>
+                  <input
+                    type="file"
+                    accept=".txt,.vtt,.srt"
+                    onChange={(event) => handleTranscriptFile(event.target.files?.[0])}
+                  />
+                </label>
+                <label className="field paste-field large-paste wide">
+                  <span>Paste transcript text</span>
+                  <textarea
+                    value={transcript}
+                    onChange={(event) => setTranscript(event.target.value)}
+                    placeholder="Paste the raw transcript here..."
+                  />
+                </label>
+              </>
+            )}
           </div>
         </div>
 
@@ -1479,7 +4865,7 @@ function ImportSession({
             <span className="summary-icon">
               <Sparkles size={22} />
             </span>
-            <h3>AI draft will include</h3>
+            <h3>Draft will include</h3>
             <ul>
               <li>Clean teacher recap</li>
               <li>Homework and due dates</li>
@@ -1491,13 +4877,63 @@ function ImportSession({
               <PlayCircle size={18} />
               Use geometry sample
             </button>
-            <button className="primary-button full" onClick={generateDraft}>
+            <button className="primary-button full" onClick={generateDraft} disabled={!canCreateSession}>
               <Wand2 size={18} />
-              Generate AI draft
+              Generate draft
             </button>
+            {!canCreateSession && !planMessage && (
+              <p className="settings-message">
+                Free accounts can generate 1 session per day. This unlocks again after midnight, or you can upgrade to Pro.
+              </p>
+            )}
+            {(planMessage || !canCreateSession) && (
+              <>
+                {planMessage && <p className="settings-message">{planMessage}</p>}
+                <button className="ghost-button full" type="button" onClick={() => navigate("billing")}>
+                  View plan options
+                </button>
+              </>
+            )}
+          </div>
+          <div className="summary-input-card">
+            <div className="summary-fields">
+              <label className="field compact">
+                <span>Meeting notes</span>
+                <textarea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Quick reminders, homework notes, absences"
+                />
+              </label>
+              <label className="field compact">
+                <span>Roster</span>
+                <textarea
+                  value={roster}
+                  onChange={(event) => setRoster(event.target.value)}
+                  placeholder="Name, email per line"
+                />
+              </label>
+              <label className="field compact">
+                <span>Resources</span>
+                <textarea
+                  value={resources}
+                  onChange={(event) => setResources(event.target.value)}
+                  placeholder="Paste links or resources"
+                />
+              </label>
+            </div>
           </div>
         </aside>
       </section>
+      {showMeetingHelp && (
+        <MeetingCaptureHelpModal
+          onClose={() => setShowMeetingHelp(false)}
+          onStart={() => {
+            setShowMeetingHelp(false);
+            void startCapture("online_meeting");
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1526,7 +4962,7 @@ function Processing({ draft }: { draft: Session | null }) {
         <span className="processing-orbit">
           <Sparkles size={34} />
         </span>
-        <span className="eyebrow">AI draft in progress</span>
+        <span className="eyebrow">Draft in progress</span>
         <h2>{draft?.title ?? "Preparing draft"}</h2>
         <p>ClassLoop is turning the messy record into a teacher-editable follow-up loop.</p>
         <div className="processing-steps">
@@ -1545,18 +4981,20 @@ function Processing({ draft }: { draft: Session | null }) {
 function ReviewDraft({
   draft,
   setDraft,
-  publishDraft,
+  studentAccountEmails,
 }: {
   draft: Session | null;
   setDraft: (session: Session | null) => void;
-  publishDraft: () => void;
+  studentAccountEmails: string[];
 }) {
+  const [saveMessage, setSaveMessage] = useState("");
+
   if (!draft) {
     return (
       <EmptyState
         icon={Sparkles}
-        title="No AI draft yet"
-        detail="Import the sample geometry transcript to generate a teacher review page."
+        title="No draft yet"
+        detail="Import the sample geometry transcript to generate your review page."
         action="Create new session"
         onAction={() => navigate("new-session")}
       />
@@ -1564,6 +5002,7 @@ function ReviewDraft({
   }
 
   const update = (changes: Partial<Session>) => setDraft({ ...draft, ...changes });
+  const [activeReviewTab, setActiveReviewTab] = useState<"roster" | "recap" | "followup">("roster");
 
   const updateAction = (id: string, changes: Partial<ActionItem>) => {
     update({ actionItems: draft.actionItems.map((item) => (item.id === id ? { ...item, ...changes } : item)) });
@@ -1587,25 +5026,1083 @@ function ReviewDraft({
     });
   };
 
-  const saveDraft = () => setDraft({ ...draft });
+  const updateRoster = (students: Student[]) => setDraft(syncSessionRoster(draft, students));
+
+  const updateAttendance = (studentId: string, status: AttendanceStatus) => {
+    update({ attendance: { ...draft.attendance, [studentId]: status } });
+  };
+
+  const resolveUnmatchedParticipant = (participant: UnmatchedParticipant, mode: "add" | "link", studentId?: string) => {
+    setDraft(resolveParticipant(draft, participant, mode, studentId));
+  };
+
+  const saveDraft = () => {
+    setDraft({ ...draft });
+    setSaveMessage("Draft saved.");
+    window.setTimeout(() => setSaveMessage(""), 1800);
+  };
 
   return (
     <div className="page-stack review-page">
       <section className="review-banner">
         <div>
           <span className="eyebrow">Teacher control center</span>
-          <h2>Edit the AI draft before publishing.</h2>
+          <h2>Edit the draft before publishing.</h2>
           <p>
-            Student dashboards stay private until the teacher approves the recap, assignments, resources, and participation
+            Student dashboards stay private until you approve the recap, assignments, resources, and participation
             labels.
           </p>
         </div>
         <div className="review-actions">
           <button className="ghost-button" onClick={saveDraft}>
             <Save size={17} />
-            Save draft
+            {saveMessage || "Save draft"}
           </button>
-          <button className="primary-button" onClick={publishDraft}>
+          <button className="primary-button" onClick={() => navigate("publish-preview")}>
+            <Send size={17} />
+            Preview and publish
+          </button>
+        </div>
+      </section>
+
+      <Panel title="Teacher review" icon={FileText}>
+        <div className="review-tabs" role="tablist" aria-label="Review sections">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeReviewTab === "roster"}
+            className={activeReviewTab === "roster" ? "ghost-button active" : "ghost-button"}
+            onClick={() => setActiveReviewTab("roster")}
+          >
+            Roster & matching
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeReviewTab === "recap"}
+            className={activeReviewTab === "recap" ? "ghost-button active" : "ghost-button"}
+            onClick={() => setActiveReviewTab("recap")}
+          >
+            Class recap
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeReviewTab === "followup"}
+            className={activeReviewTab === "followup" ? "ghost-button active" : "ghost-button"}
+            onClick={() => setActiveReviewTab("followup")}
+          >
+            Follow-up
+          </button>
+        </div>
+      </Panel>
+
+      {activeReviewTab === "roster" && (
+        <section className="content-grid align-start">
+          <ParticipantResolutionPanel
+            participants={draft.unmatchedParticipants ?? []}
+            students={draft.students}
+            onResolve={resolveUnmatchedParticipant}
+          />
+          <RosterManager
+            students={draft.students}
+            attendance={draft.attendance}
+            studentAccountEmails={studentAccountEmails}
+            sessionTitle={draft.title}
+            onStudentsChange={updateRoster}
+            onAttendanceChange={updateAttendance}
+          />
+        </section>
+      )}
+
+      {activeReviewTab === "recap" && (
+        <section className="content-grid align-start">
+          <Panel title="Class recap" icon={FileText}>
+            <label className="field compact">
+              <span>Approved recap</span>
+              <textarea value={draft.recap} onChange={(event) => update({ recap: event.target.value })} />
+            </label>
+            <div className="question-list">
+              {draft.essentialQuestions.map((question, index) => (
+                <label key={question} className="field compact">
+                  <span>Essential question {index + 1}</span>
+                  <input
+                    value={question}
+                    onChange={(event) => {
+                      const next = [...draft.essentialQuestions];
+                      next[index] = event.target.value;
+                      update({ essentialQuestions: next });
+                    }}
+                  />
+                </label>
+              ))}
+            </div>
+          </Panel>
+        </section>
+      )}
+
+      {activeReviewTab === "followup" && (
+        <section className="content-grid align-start">
+          <Panel title="Action items" icon={ListChecks}>
+            <div className="editable-stack">
+              {draft.actionItems.map((item) => (
+                <div key={item.id} className="editable-item">
+                  <input value={item.title} onChange={(event) => updateAction(item.id, { title: event.target.value })} />
+                  <textarea
+                    value={item.description}
+                    onChange={(event) => updateAction(item.id, { description: event.target.value })}
+                  />
+                  <div className="inline-fields">
+                    <input
+                      type="date"
+                      value={item.dueDate}
+                      onChange={(event) => updateAction(item.id, { dueDate: event.target.value })}
+                    />
+                    <select
+                      value={item.status}
+                      onChange={(event) => updateAction(item.id, { status: event.target.value as TaskStatus })}
+                    >
+                      <option value="todo">To do</option>
+                      <option value="in_progress">In progress</option>
+                      <option value="complete">Complete</option>
+                      <option value="overdue">Overdue</option>
+                    </select>
+                  </div>
+                  <small>{item.source}</small>
+                </div>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="Resources" icon={LinkIcon}>
+            <div className="editable-stack">
+              {draft.resources.map((resource) => (
+                <div key={resource.id} className="editable-item">
+                  <input
+                    value={resource.title}
+                    onChange={(event) => updateResource(resource.id, { title: event.target.value })}
+                  />
+                  <input value={resource.url} onChange={(event) => updateResource(resource.id, { url: event.target.value })} />
+                  <input
+                    value={resource.relatedTopic}
+                    onChange={(event) => updateResource(resource.id, { relatedTopic: event.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="Student-specific follow-ups" icon={Users}>
+            <div className="followup-grid">
+              {draft.followUps.map((followUp) => {
+                const student = studentById(followUp.studentId, draft.students);
+                return (
+                  <article key={followUp.studentId} className="followup-card">
+                    <div className="student-line">
+                      <Avatar student={student} />
+                      <div>
+                        <strong>{student.name}</strong>
+                        <small>{attendanceLabel(draft.attendance[student.id] ?? "present")}</small>
+                      </div>
+                      <StatusPill status={followUp.status} />
+                    </div>
+                    <label className="field compact">
+                      <span>Personal reminder</span>
+                      <textarea
+                        value={followUp.reminder}
+                        onChange={(event) => updateFollowUp(followUp.studentId, { reminder: event.target.value })}
+                      />
+                    </label>
+                    <label className="field compact">
+                      <span>Catch-up note</span>
+                      <textarea
+                        value={followUp.catchUp}
+                        onChange={(event) => updateFollowUp(followUp.studentId, { catchUp: event.target.value })}
+                      />
+                    </label>
+                    <div className="inline-fields">
+                      <input
+                        type="date"
+                        value={followUp.dueDate}
+                        onChange={(event) => updateFollowUp(followUp.studentId, { dueDate: event.target.value })}
+                      />
+                      <select
+                        value={followUp.status}
+                        onChange={(event) => updateFollowUp(followUp.studentId, { status: event.target.value as TaskStatus })}
+                      >
+                        <option value="todo">To do</option>
+                        <option value="in_progress">In progress</option>
+                        <option value="submitted">Submitted</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="complete">Complete</option>
+                        <option value="overdue">Overdue</option>
+                      </select>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </Panel>
+
+          <Panel title="Participation signals" icon={SlidersHorizontal}>
+            <div className="signal-list">
+              {draft.participationEvents.map((event) => (
+                <div key={event.id} className="signal-row">
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={event.approved}
+                      onChange={(inputEvent) => updateParticipation(event.id, { approved: inputEvent.target.checked })}
+                    />
+                    <span />
+                  </label>
+                  <div>
+                    <strong>
+                      {studentById(event.studentId, draft.students).name} · {participationLabel(event.type)}
+                    </strong>
+                    <input value={event.text} onChange={(inputEvent) => updateParticipation(event.id, { text: inputEvent.target.value })} />
+                    <small>{Math.round(event.confidence * 100)}% confidence</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function RosterManager({
+  students,
+  attendance,
+  studentAccountEmails,
+  sessionTitle,
+  onStudentsChange,
+  onAttendanceChange,
+  showAttendance = true,
+  wrapPanel = true,
+  showCsvActions = true,
+}: {
+  students: Student[];
+  attendance: Record<string, AttendanceStatus>;
+  studentAccountEmails: string[];
+  sessionTitle: string;
+  onStudentsChange: (students: Student[]) => void;
+  onAttendanceChange: (studentId: string, status: AttendanceStatus) => void;
+  showAttendance?: boolean;
+  wrapPanel?: boolean;
+  showCsvActions?: boolean;
+}) {
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
+  const updateStudent = (studentId: string, changes: Partial<Student>) => {
+    onStudentsChange(students.map((student) => (student.id === studentId ? { ...student, ...changes } : student)));
+  };
+  const addStudent = () => onStudentsChange([...students, makeRosterStudent("", "", students.length)]);
+  const removeStudent = (studentId: string) => onStudentsChange(students.filter((student) => student.id !== studentId));
+  const linkAccount = (student: Student) => {
+    updateStudent(student.id, { linkedAccountEmail: normalizeEmail(student.email) });
+  };
+  const sendInvite = (student: Student) => {
+    const email = normalizeEmail(student.email);
+    if (!email) return;
+    const subject = encodeURIComponent(`ClassLoop follow-up for ${sessionTitle}`);
+    const body = encodeURIComponent(
+      `Hi ${student.name},\n\nYour teacher prepared a ClassLoop follow-up for ${sessionTitle}.\n\nYou can create or sign in to your ClassLoop student account with this email address to see your recap, resources, and tasks.\n\nThanks!`,
+    );
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`);
+    updateStudent(student.id, { inviteSentAt: new Date().toISOString() });
+  };
+  const importCsv = async (file?: File) => {
+    if (!file) return;
+    const importedStudents = rosterStudentsFromCsv(await file.text());
+    if (importedStudents.length) onStudentsChange(importedStudents);
+    if (csvInputRef.current) csvInputRef.current.value = "";
+  };
+
+  const content = (
+    <div className="roster-manager">
+        {showCsvActions && (
+        <div className="roster-template-actions">
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(event) => importCsv(event.target.files?.[0])}
+            hidden
+          />
+          <button className="ghost-button" type="button" onClick={() => csvInputRef.current?.click()}>
+            <UploadCloud size={17} />
+            Import CSV
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => downloadTextFile(`${slugify(sessionTitle, "classloop-roster")}.csv`, rosterToCsv(students), "text/csv")}
+          >
+            <ArrowUpRight size={17} />
+            Export CSV
+          </button>
+        </div>
+        )}
+        {students.map((student, index) => (
+          <article key={student.id} className={showAttendance ? "roster-row" : "roster-row without-attendance"}>
+            <Avatar student={student} />
+            <label className="field compact roster-name-field">
+              <span>Name</span>
+              <input value={student.name} onChange={(event) => updateStudent(student.id, { name: event.target.value })} />
+            </label>
+            <label className="field compact roster-email-field">
+              <span>Email</span>
+              <input value={student.email} onChange={(event) => updateStudent(student.id, { email: event.target.value })} />
+            </label>
+            {showAttendance && (
+              <label className="field compact roster-attendance-field">
+                <span>Attendance</span>
+                <select
+                  value={attendance[student.id] ?? "present"}
+                  onChange={(event) => onAttendanceChange(student.id, event.target.value as AttendanceStatus)}
+                >
+                  <option value="present">Present</option>
+                  <option value="late">Late</option>
+                  <option value="absent">Absent</option>
+                </select>
+              </label>
+            )}
+            <label className="field compact roster-aliases-field">
+              <span>Zoom names</span>
+              <input
+                value={(student.aliases ?? []).join(", ")}
+                onChange={(event) =>
+                  updateStudent(student.id, {
+                    aliases: event.target.value
+                      .split(",")
+                      .map((item) => item.trim())
+                      .filter(Boolean),
+                  })
+                }
+                placeholder={index === 0 ? "Maya C, Maya iPad" : "Optional aliases"}
+              />
+            </label>
+            <div className="student-access-cell">
+              <span>Student access</span>
+              <small>
+                {student.linkedAccountEmail
+                  ? `Linked to ${student.linkedAccountEmail}`
+                  : studentAccountEmails.includes(normalizeEmail(student.email))
+                    ? "Matching account found"
+                    : student.inviteSentAt
+                      ? "Email invite prepared"
+                      : "No account linked"}
+              </small>
+              <div>
+                <button className="text-button" type="button" onClick={() => linkAccount(student)} disabled={!student.email}>
+                  <Link2 size={16} />
+                  Link
+                </button>
+                <button className="text-button" type="button" onClick={() => sendInvite(student)} disabled={!student.email}>
+                  <Mail size={16} />
+                  Email
+                </button>
+              </div>
+            </div>
+            <button className="icon-button danger roster-remove-button" type="button" onClick={() => removeStudent(student.id)} aria-label={`Remove ${student.name}`}>
+              <Trash2 size={17} />
+            </button>
+          </article>
+        ))}
+        <button className="ghost-button full" type="button" onClick={addStudent}>
+          <UserPlus size={17} />
+          Add student
+        </button>
+      </div>
+  );
+
+  if (!wrapPanel) return content;
+  return (
+    <Panel title="Roster manager" icon={Users}>
+      {content}
+    </Panel>
+  );
+}
+
+function ClassGroupsPage({
+  groups,
+  rosterTemplates,
+  sessions,
+  ownerEmail,
+  onCreateFromTemplate,
+  onCreateTemplateFromGroup,
+  onCreateBlank,
+  onUpdate,
+  onDelete,
+}: {
+  groups: ClassGroup[];
+  rosterTemplates: RosterTemplate[];
+  sessions: Session[];
+  ownerEmail: string;
+  onCreateFromTemplate: (template: RosterTemplate) => void;
+  onCreateTemplateFromGroup: (group: ClassGroup) => void;
+  onCreateBlank: (group: ClassGroup) => void;
+  onUpdate: (groupId: string, changes: Partial<ClassGroup>) => void;
+  onDelete: (groupId: string) => void;
+}) {
+  const [activeGroupId, setActiveGroupId] = useState(groups[0]?.id ?? "");
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
+  const activeGroup = groups.find((group) => group.id === activeGroupId) ?? groups[0];
+  const activeAttendance =
+    activeGroup?.students.reduce<Record<string, AttendanceStatus>>((acc, student) => {
+      acc[student.id] = "present";
+      return acc;
+    }, {}) ?? {};
+  const groupSessions = activeGroup
+    ? sessions.filter((session) => session.classGroupId === activeGroup.id || session.classGroupName === activeGroup.name)
+    : [];
+
+  useEffect(() => {
+    if (groups.length && !groups.some((group) => group.id === activeGroupId)) setActiveGroupId(groups[0].id);
+    if (!groups.length && activeGroupId) setActiveGroupId("");
+  }, [activeGroupId, groups]);
+
+  const createBlankClass = () => {
+    const now = new Date().toISOString();
+    const group: ClassGroup = {
+      id: `class-group-${Date.now().toString(36)}`,
+      ownerEmail,
+      name: "New class",
+      defaultSessionType: "General classroom",
+      students: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    onCreateBlank(group);
+    setActiveGroupId(group.id);
+  };
+
+  const importCsvIntoActiveGroup = async (file?: File) => {
+    if (!file || !activeGroup) return;
+    const students = rosterStudentsFromCsv(await file.text());
+    if (students.length) onUpdate(activeGroup.id, { students });
+    if (csvInputRef.current) csvInputRef.current.value = "";
+  };
+
+  if (!groups.length) {
+    return (
+      <div className="page-stack class-group-page">
+        <section className="review-banner">
+          <div>
+            <span className="eyebrow">Class manager</span>
+            <h2>Keep each class roster ready for the next session.</h2>
+            <p>Create a class manually or turn an existing saved roster into a reusable class group.</p>
+          </div>
+          <button className="primary-button" type="button" onClick={createBlankClass}>
+            <UserPlus size={17} />
+            Create class
+          </button>
+        </section>
+        <section className={rosterTemplates.length > 0 ? "content-grid two-columns align-start" : "class-empty-center"}>
+          <EmptyState
+            icon={BookOpen}
+            title="No classes yet"
+            detail="Create a class or save one from a roster after publishing your first session."
+            action="Create class"
+            onAction={createBlankClass}
+          />
+          {rosterTemplates.length > 0 && (
+            <Panel title="Start from a saved roster" icon={Users}>
+              <div className="roster-template-list">
+                {rosterTemplates.map((template) => (
+                  <button key={template.id} className="roster-template-card" type="button" onClick={() => onCreateFromTemplate(template)}>
+                    <strong>{template.name}</strong>
+                    <span>{template.sessionType}</span>
+                    <small>{template.students.length} students</small>
+                  </button>
+                ))}
+              </div>
+            </Panel>
+          )}
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-stack class-group-page">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Class manager</span>
+          <h2>Reusable classes and course rosters.</h2>
+          <p>Each class keeps a roster, Zoom-name aliases, a default template, and its past published sessions.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={createBlankClass}>
+          <UserPlus size={17} />
+          New class
+        </button>
+      </section>
+
+      <section className="content-grid roster-template-layout align-start">
+        <Panel title="Classes" icon={BookOpen}>
+          <div className="roster-template-list">
+            {groups.map((group) => (
+              <button
+                key={group.id}
+                className={group.id === activeGroup.id ? "roster-template-card selected" : "roster-template-card"}
+                type="button"
+                onClick={() => setActiveGroupId(group.id)}
+              >
+                <strong>{group.name}</strong>
+                <span>{group.defaultSessionType}</span>
+                <small>{group.students.length} students</small>
+              </button>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Class details" icon={Settings2}>
+          <div className="roster-template-settings">
+            <label className="field compact">
+              <span>Class name</span>
+              <input value={activeGroup.name} onChange={(event) => onUpdate(activeGroup.id, { name: event.target.value })} />
+            </label>
+            <label className="field compact">
+              <span>Default template</span>
+              <select
+                value={activeGroup.defaultSessionType}
+                onChange={(event) => onUpdate(activeGroup.id, { defaultSessionType: event.target.value as SessionType })}
+              >
+                {templateOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="class-history-card">
+              <strong>{groupSessions.length}</strong>
+              <span>published sessions linked to this class</span>
+            </div>
+            <div className="roster-template-actions">
+              <input
+                ref={csvInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(event) => importCsvIntoActiveGroup(event.target.files?.[0])}
+                hidden
+              />
+              <button className="ghost-button" type="button" onClick={() => csvInputRef.current?.click()}>
+                <UploadCloud size={17} />
+                Import CSV
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() =>
+                  downloadTextFile(`${slugify(activeGroup.name, "classloop-class")}.csv`, rosterToCsv(activeGroup.students), "text/csv")
+                }
+              >
+                <ArrowUpRight size={17} />
+                Export CSV
+              </button>
+              <button className="ghost-button danger" type="button" onClick={() => onDelete(activeGroup.id)}>
+                <Trash2 size={17} />
+                Delete class
+              </button>
+              <button className="ghost-button" type="button" onClick={() => onCreateTemplateFromGroup(activeGroup)}>
+                <Save size={17} />
+                Add roster template
+              </button>
+            </div>
+          </div>
+          <RosterManager
+            students={activeGroup.students}
+            attendance={activeAttendance}
+            studentAccountEmails={[]}
+            sessionTitle={activeGroup.name}
+            onStudentsChange={(students) => onUpdate(activeGroup.id, { students })}
+            onAttendanceChange={() => undefined}
+            showAttendance={false}
+            wrapPanel={false}
+            showCsvActions={false}
+          />
+        </Panel>
+      </section>
+    </div>
+  );
+}
+
+function RosterTemplatesPage({
+  templates,
+  ownerEmail,
+  onCreate,
+  onUpdate,
+  onDelete,
+  onCreateClassGroup,
+}: {
+  templates: RosterTemplate[];
+  ownerEmail: string;
+  onCreate: (template: RosterTemplate) => void;
+  onUpdate: (templateId: string, changes: Partial<RosterTemplate>) => void;
+  onDelete: (templateId: string) => void;
+  onCreateClassGroup: (template: RosterTemplate) => void;
+}) {
+  const [activeTemplateId, setActiveTemplateId] = useState(templates[0]?.id ?? "");
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
+  const activeTemplate = templates.find((template) => template.id === activeTemplateId) ?? templates[0];
+  const activeAttendance =
+    activeTemplate?.students.reduce<Record<string, AttendanceStatus>>((acc, student) => {
+      acc[student.id] = "present";
+      return acc;
+    }, {}) ?? {};
+
+  useEffect(() => {
+    if (templates.length && !templates.some((template) => template.id === activeTemplateId)) {
+      setActiveTemplateId(templates[0].id);
+    }
+    if (!templates.length && activeTemplateId) {
+      setActiveTemplateId("");
+    }
+  }, [activeTemplateId, templates]);
+
+  const createTemplate = () => {
+    const now = new Date().toISOString();
+    const template: RosterTemplate = {
+      id: `roster-template-${Date.now().toString(36)}`,
+      ownerEmail,
+      name: "New roster",
+      sessionType: "General classroom",
+      students: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    onCreate(template);
+    setActiveTemplateId(template.id);
+  };
+
+  const importCsvIntoActiveTemplate = async (file?: File) => {
+    if (!file || !activeTemplate) return;
+    const students = rosterStudentsFromCsv(await file.text());
+    if (students.length) {
+      onUpdate(activeTemplate.id, { students });
+    }
+    if (csvInputRef.current) csvInputRef.current.value = "";
+  };
+
+  if (!templates.length) {
+    return (
+      <div className="page-stack roster-template-page">
+        <section className="review-banner">
+          <div>
+            <span className="eyebrow">Roster manager</span>
+            <h2>Save rosters once, reuse them later.</h2>
+            <p>After you publish a session, ClassLoop can save that class roster for future sessions with the same template.</p>
+          </div>
+          <button className="primary-button" type="button" onClick={createTemplate}>
+            <UserPlus size={17} />
+            Create roster
+          </button>
+        </section>
+        <EmptyState
+          icon={Users}
+          title="No saved rosters yet"
+          detail="Publish your first session or create a roster here to reuse students across future lessons."
+          action="Create roster"
+          onAction={createTemplate}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-stack roster-template-page">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Roster manager</span>
+          <h2>Saved class rosters.</h2>
+          <p>Pick a roster here, then ClassLoop will offer it automatically when you create a matching session type.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={createTemplate}>
+          <UserPlus size={17} />
+          New roster
+        </button>
+      </section>
+
+      <section className="content-grid roster-template-layout align-start">
+        <Panel title="Saved rosters" icon={Users}>
+          <div className="roster-template-list">
+            {templates.map((template) => (
+              <button
+                key={template.id}
+                className={template.id === activeTemplate.id ? "roster-template-card selected" : "roster-template-card"}
+                type="button"
+                onClick={() => setActiveTemplateId(template.id)}
+              >
+                <strong>{template.name}</strong>
+                <span>{template.sessionType}</span>
+                <small>{template.students.length} students</small>
+              </button>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Roster details" icon={Settings2}>
+          <div className="roster-template-settings">
+            <label className="field compact">
+              <span>Roster name</span>
+              <input
+                value={activeTemplate.name}
+                onChange={(event) => onUpdate(activeTemplate.id, { name: event.target.value })}
+              />
+            </label>
+            <label className="field compact">
+              <span>Session type</span>
+              <select
+                value={activeTemplate.sessionType}
+                onChange={(event) => onUpdate(activeTemplate.id, { sessionType: event.target.value as SessionType })}
+              >
+                {templateOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="ghost-button danger" type="button" onClick={() => onDelete(activeTemplate.id)}>
+              <Trash2 size={17} />
+              Delete roster
+            </button>
+            <div className="roster-template-actions">
+              <input
+                ref={csvInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(event) => importCsvIntoActiveTemplate(event.target.files?.[0])}
+                hidden
+              />
+              <button className="ghost-button" type="button" onClick={() => csvInputRef.current?.click()}>
+                <UploadCloud size={17} />
+                Import CSV
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() =>
+                  downloadTextFile(
+                    `${slugify(activeTemplate.name, "classloop-roster")}.csv`,
+                    rosterToCsv(activeTemplate.students),
+                    "text/csv",
+                  )
+                }
+              >
+                <ArrowUpRight size={17} />
+                Export CSV
+              </button>
+              <button className="text-button" type="button" onClick={() => onCreateClassGroup(activeTemplate)}>
+                Save as class
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+          <RosterManager
+            students={activeTemplate.students}
+            attendance={activeAttendance}
+            studentAccountEmails={[]}
+            sessionTitle={activeTemplate.name}
+            onStudentsChange={(students) => onUpdate(activeTemplate.id, { students })}
+            onAttendanceChange={() => undefined}
+            showAttendance={false}
+            wrapPanel={false}
+            showCsvActions={false}
+          />
+        </Panel>
+      </section>
+    </div>
+  );
+}
+
+function SaveRosterTemplatePrompt({
+  session,
+  onSave,
+  onSkip,
+}: {
+  session: Session;
+  onSave: (name: string) => void;
+  onSkip: () => void;
+}) {
+  const [name, setName] = useState(`${session.type} roster`);
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="save-roster-title">
+      <form
+        className="password-reset-modal roster-template-modal"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave(name);
+        }}
+      >
+        <div className="modal-header">
+          <div>
+            <h2 id="save-roster-title">Save this roster?</h2>
+            <p>Reuse these {session.students.length} students the next time you create a {session.type.toLowerCase()} session.</p>
+          </div>
+        </div>
+        <label className="field compact">
+          <span>Roster name</span>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Period 4 Geometry"
+            autoFocus
+          />
+        </label>
+        <div className="modal-actions">
+          <button className="ghost-button" type="button" onClick={onSkip}>
+            Not now
+          </button>
+          <button className="primary-button" type="submit">
+            <Save size={17} />
+            Save roster
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function previewDiffForStudent(session: Session, student: Student) {
+  const followUp = session.followUps.find((item) => item.studentId === student.id);
+  const personalEvents = session.participationEvents.filter((event) => event.studentId === student.id && event.approved);
+  const personalActions = session.actionItems.filter((item) => item.ownerId === student.id);
+  const classActions = session.actionItems.filter((item) => !item.ownerId);
+  const attendance = session.attendance[student.id] ?? "present";
+  const reasons: Array<{ label: string; detail: string }> = [];
+
+  if (attendance === "absent") {
+    reasons.push({
+      label: "Missed session",
+      detail: "The preview emphasizes catch-up notes because this student was marked absent.",
+    });
+  } else if (attendance === "late") {
+    reasons.push({
+      label: "Arrived late",
+      detail: "The preview keeps the class recap prominent in case they missed the opening context.",
+    });
+  }
+
+  personalEvents.slice(0, 3).forEach((event) => {
+    reasons.push({
+      label: participationLabel(event.type),
+      detail: event.text,
+    });
+  });
+
+  personalActions.forEach((item) => {
+    reasons.push({
+      label: "Individual action item",
+      detail: item.title,
+    });
+  });
+
+  if (followUp?.reminder) {
+    reasons.push({
+      label: "Personal reminder",
+      detail: followUp.reminder,
+    });
+  }
+
+  const uniqueTaskCount = Math.max(0, (followUp?.tasks.length ?? 0) - classActions.length);
+
+  if (!reasons.length) {
+    reasons.push({
+      label: "Shared class baseline",
+      detail: "No individual attendance or participation differences were detected, so this student gets the shared recap, tasks, and resources.",
+    });
+  }
+
+  return {
+    followUp,
+    personalEvents,
+    reasons,
+    sharedTaskCount: classActions.length,
+    uniqueTaskCount,
+  };
+}
+
+function ParticipantResolutionPanel({
+  participants,
+  students,
+  onResolve,
+}: {
+  participants: UnmatchedParticipant[];
+  students: Student[];
+  onResolve: (participant: UnmatchedParticipant, mode: "add" | "link", studentId?: string) => void;
+}) {
+  const [selectedLinks, setSelectedLinks] = useState<Record<string, string>>({});
+
+  if (!participants.length) {
+    return (
+      <Panel title="Transcript speaker matching" icon={Link2}>
+        <div className="inline-empty compact-empty">
+          <span>
+            <CheckCircle2 size={20} />
+          </span>
+          <div>
+            <strong>All transcript speakers match the roster</strong>
+            <p>When a Zoom display name does not match a student, ClassLoop will pause here before using it.</p>
+          </div>
+        </div>
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel title="Resolve transcript speakers" icon={Link2}>
+      <div className="participant-stack">
+        {participants.map((participant) => {
+          const selectedStudentId =
+            selectedLinks[participant.name] ?? participant.suggestedStudentId ?? students[0]?.id ?? "";
+          return (
+            <article key={participant.name} className="participant-card">
+              <div>
+                <span className="eyebrow">Zoom name found</span>
+                <h4>{participant.name}</h4>
+                <p>
+                  Add this exact display name as a new student, or link it to an existing roster student for future sessions.
+                </p>
+                {participant.lines[0] && <small>{participant.lines[0]}</small>}
+              </div>
+              <div className="participant-actions">
+                <button className="ghost-button" type="button" onClick={() => onResolve(participant, "add")}>
+                  <UserPlus size={17} />
+                  Add to roster
+                </button>
+                <div className="link-student-control">
+                  <select
+                    value={selectedStudentId}
+                    onChange={(event) =>
+                      setSelectedLinks((current) => ({ ...current, [participant.name]: event.target.value }))
+                    }
+                  >
+                    {students.map((student) => (
+                      <option key={student.id} value={student.id}>
+                        {student.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="primary-button"
+                    type="button"
+                    onClick={() => onResolve(participant, "link", selectedStudentId)}
+                    disabled={!selectedStudentId}
+                  >
+                    <Link2 size={17} />
+                    Link name
+                  </button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+}
+
+function PublishPreview({
+  draft,
+  selectedStudentId,
+  setSelectedStudentId,
+  setDraft,
+  publishDraft,
+}: {
+  draft: Session | null;
+  selectedStudentId: string;
+  setSelectedStudentId: (id: string) => void;
+  setDraft: (session: Session | null) => void;
+  publishDraft: (sessionOverride?: Session) => void;
+}) {
+  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus | null>(null);
+  const [deliveryMessage, setDeliveryMessage] = useState("");
+  const [integrationMessage, setIntegrationMessage] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const loadIntegrationStatus = async () => {
+    try {
+      const status = await apiJson<IntegrationStatus>("/api/integrations/status");
+      setIntegrationStatus(status);
+      setIntegrationMessage("");
+    } catch (error) {
+      setIntegrationMessage(error instanceof Error ? error.message : "Unable to load integration status.");
+    }
+  };
+
+  useEffect(() => {
+    loadIntegrationStatus();
+  }, []);
+
+  if (!draft) {
+    return (
+      <EmptyState
+        icon={Eye}
+        title="No draft to preview"
+        detail="Generate a draft first, then preview exactly what students will receive."
+        action="Back to review"
+        onAction={() => navigate("review")}
+      />
+    );
+  }
+
+  const activeStudentId = draft.students.some((student) => student.id === selectedStudentId)
+    ? selectedStudentId
+    : draft.students[0]?.id ?? selectedStudentId;
+  const student = studentById(activeStudentId, draft.students);
+  const followUp = draft.followUps.find((item) => item.studentId === activeStudentId);
+  const selectedPreviewDiff = previewDiffForStudent(draft, student);
+  const delivery = draft.emailDelivery ?? { status: "not_sent" as const, recipients: [], skipped: [] };
+  const emailSent = delivery.status === "sent";
+  const isPublished = draft.status === "published";
+  const recipientCount = studentEmailRecipients(draft).length;
+  const currentPublishAudit = draft.publishAudit ?? makePublishAudit(draft);
+  const updatePreviewSession = (sessionId: string, updater: (session: Session) => Session) => {
+    if (sessionId === draft.id) setDraft(updater(draft));
+  };
+  const updateDraft = (updater: (session: Session) => Session) => setDraft(updater(draft));
+  const sendStudentEmails = async () => {
+    if (emailSent || recipientCount === 0 || isSendingEmail) return;
+    if (!isPublished) {
+      setDeliveryMessage("Publish the session before sending recap emails.");
+      return;
+    }
+    setIsSendingEmail(true);
+    setDeliveryMessage("");
+    try {
+      const result = await apiJson<EmailDeliveryResult>("/api/email/send-recaps", {
+        method: "POST",
+        body: JSON.stringify({ sessionId: draft.id, ownerEmail: draft.ownerEmail }),
+      });
+      updateDraft((current) => markSessionEmailsSent(current, result));
+      setDeliveryMessage(`Sent through ${result.provider} to ${result.recipients.length} students.`);
+    } catch (error) {
+      setDeliveryMessage(error instanceof Error ? error.message : "Unable to send recap emails.");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+  return (
+    <div className="page-stack publish-preview-page">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Publish preview</span>
+          <h2>Review the student view before anything goes live.</h2>
+          <p>
+            Pick a student, scan the recap, tasks, resources, and check-in state, then publish when the student-facing
+            version looks right.
+          </p>
+        </div>
+        <div className="review-actions">
+          <button className="ghost-button" onClick={() => navigate("review")}>
+            <ChevronRight size={17} />
+            Back to edit
+          </button>
+          <button className="primary-button" onClick={() => publishDraft()}>
             <Send size={17} />
             Publish to students
           </button>
@@ -1613,152 +6110,177 @@ function ReviewDraft({
       </section>
 
       <section className="content-grid two-columns align-start">
-        <Panel title="Class recap" icon={FileText}>
-          <label className="field compact">
-            <span>Approved recap</span>
-            <textarea value={draft.recap} onChange={(event) => update({ recap: event.target.value })} />
-          </label>
-          <div className="question-list">
-            {draft.essentialQuestions.map((question, index) => (
-              <label key={question} className="field compact">
-                <span>Essential question {index + 1}</span>
-                <input
-                  value={question}
-                  onChange={(event) => {
-                    const next = [...draft.essentialQuestions];
-                    next[index] = event.target.value;
-                    update({ essentialQuestions: next });
-                  }}
-                />
-              </label>
-            ))}
-          </div>
-        </Panel>
-
-        <Panel title="Action items" icon={ListChecks}>
-          <div className="editable-stack">
-            {draft.actionItems.map((item) => (
-              <div key={item.id} className="editable-item">
-                <input value={item.title} onChange={(event) => updateAction(item.id, { title: event.target.value })} />
-                <textarea
-                  value={item.description}
-                  onChange={(event) => updateAction(item.id, { description: event.target.value })}
-                />
-                <div className="inline-fields">
-                  <input
-                    type="date"
-                    value={item.dueDate}
-                    onChange={(event) => updateAction(item.id, { dueDate: event.target.value })}
-                  />
-                  <select
-                    value={item.status}
-                    onChange={(event) => updateAction(item.id, { status: event.target.value as TaskStatus })}
-                  >
-                    <option value="todo">To do</option>
-                    <option value="in_progress">In progress</option>
-                    <option value="complete">Complete</option>
-                    <option value="overdue">Overdue</option>
-                  </select>
-                </div>
-                <small>{item.source}</small>
-              </div>
-            ))}
+        <Panel title="One-click student delivery" icon={Mail}>
+          <div className="delivery-card">
+            <div>
+              <strong>{emailSent ? "Recaps sent" : "Send recap and action items"}</strong>
+              <p>
+                {emailSent
+                  ? `Sent to ${delivery.recipients.length} students${delivery.sentAt ? ` on ${formatDate(delivery.sentAt)}` : ""}.`
+                  : isPublished
+                    ? `${recipientCount} students have deliverable roster or linked account emails.`
+                    : "Publish the session first, then send the approved recap and action items."}
+              </p>
+              {!emailSent && integrationStatus?.email?.configured && (
+                <small>
+                  Sender: {integrationStatus.email.from}
+                  {integrationStatus.email.replyTo ? ` · replies go to ${integrationStatus.email.replyTo}` : ""}
+                </small>
+              )}
+              {!emailSent && integrationStatus && !integrationStatus.email?.configured && (
+                <small>Configure a no-reply SMTP or Gmail sender in .env.local before sending.</small>
+              )}
+              {delivery.skipped.length > 0 && <small>Skipped: {delivery.skipped.join(", ")}</small>}
+              {delivery.failed?.length ? <small>Failed: {delivery.failed.join("; ")}</small> : null}
+              {deliveryMessage && <small>{deliveryMessage}</small>}
+              {integrationMessage && <small>{integrationMessage}</small>}
+            </div>
+            <button
+              className="primary-button full"
+              type="button"
+              onClick={sendStudentEmails}
+              disabled={!isPublished || emailSent || recipientCount === 0 || isSendingEmail}
+            >
+              {emailSent ? <CheckCircle2 size={17} /> : <Send size={17} />}
+              {emailSent ? "Emails sent" : isSendingEmail ? "Sending..." : "Send recap emails"}
+            </button>
           </div>
         </Panel>
       </section>
 
-      <Panel title="Student-specific follow-ups" icon={Users}>
-        <div className="followup-grid">
-          {draft.followUps.map((followUp) => {
-            const student = studentById(followUp.studentId, draft.students);
+      {(draft.deliveryLogs ?? []).length > 0 && (
+        <Panel title="Delivery log" icon={ClipboardCheck}>
+          <div className="delivery-log-list">
+            {(draft.deliveryLogs ?? []).map((log) => (
+              <div key={log.id} className="delivery-log-row">
+                <span>{log.provider.replace("_", " ")}</span>
+                <strong>{log.target}</strong>
+                <small>
+                  {log.message} · {formatDate(log.createdAt)}
+                </small>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
+
+      <Panel title="Publish audit" icon={ClipboardCheck}>
+        <div className="publish-audit-list">
+          {currentPublishAudit.slice(0, 8).map((entry, index) => {
+            const auditStudent = entry.studentId ? studentById(entry.studentId, draft.students) : null;
             return (
-              <article key={followUp.studentId} className="followup-card">
-                <div className="student-line">
-                  <Avatar student={student} />
-                  <div>
-                    <strong>{student.name}</strong>
-                    <small>{attendanceLabel(draft.attendance[student.id] ?? "present")}</small>
-                  </div>
-                  <StatusPill status={followUp.status} />
-                </div>
-                <label className="field compact">
-                  <span>Personal reminder</span>
-                  <textarea
-                    value={followUp.reminder}
-                    onChange={(event) => updateFollowUp(followUp.studentId, { reminder: event.target.value })}
-                  />
-                </label>
-                <label className="field compact">
-                  <span>Catch-up note</span>
-                  <textarea
-                    value={followUp.catchUp}
-                    onChange={(event) => updateFollowUp(followUp.studentId, { catchUp: event.target.value })}
-                  />
-                </label>
-                <div className="inline-fields">
-                  <input
-                    type="date"
-                    value={followUp.dueDate}
-                    onChange={(event) => updateFollowUp(followUp.studentId, { dueDate: event.target.value })}
-                  />
-                  <select
-                    value={followUp.status}
-                    onChange={(event) => updateFollowUp(followUp.studentId, { status: event.target.value as TaskStatus })}
-                  >
-                    <option value="todo">To do</option>
-                    <option value="in_progress">In progress</option>
-                    <option value="complete">Complete</option>
-                    <option value="overdue">Overdue</option>
-                  </select>
-                </div>
-              </article>
+              <div key={`${entry.type}-${entry.studentId ?? "class"}-${index}`} className="publish-audit-row">
+                <span>{auditStudent ? auditStudent.name : "Class-wide"}</span>
+                <strong>{entry.type.replace(/_/g, " ")}</strong>
+                <small>{entry.message}</small>
+              </div>
             );
           })}
         </div>
       </Panel>
 
       <section className="content-grid two-columns align-start">
-        <Panel title="Resources" icon={LinkIcon}>
-          <div className="editable-stack">
-            {draft.resources.map((resource) => (
-              <div key={resource.id} className="editable-item">
-                <input
-                  value={resource.title}
-                  onChange={(event) => updateResource(resource.id, { title: event.target.value })}
-                />
-                <input value={resource.url} onChange={(event) => updateResource(resource.id, { url: event.target.value })} />
-                <input
-                  value={resource.relatedTopic}
-                  onChange={(event) => updateResource(resource.id, { relatedTopic: event.target.value })}
-                />
-              </div>
+        <Panel title="Choose student preview" icon={GraduationCap}>
+          <div className="student-picker preview-picker">
+            {draft.students.map((item) => (
+              <button
+                key={item.id}
+                className={item.id === activeStudentId ? "student-picker-item active" : "student-picker-item"}
+                onClick={() => setSelectedStudentId(item.id)}
+              >
+                <Avatar student={item} />
+                <span>{item.name.split(" ")[0]}</span>
+              </button>
             ))}
           </div>
         </Panel>
+        <StudentVisibleEditor session={draft} studentId={activeStudentId} updateSession={updatePreviewSession} />
+        <div className="wide">
+          <Panel title="Per-student preview differences" icon={SlidersHorizontal}>
+            <div className="preview-diff-list">
+              {draft.students.map((item) => {
+                const diff = previewDiffForStudent(draft, item);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={item.id === activeStudentId ? "preview-diff-row active" : "preview-diff-row"}
+                    onClick={() => setSelectedStudentId(item.id)}
+                  >
+                    <Avatar student={item} />
+                    <span>
+                      <strong>{item.name}</strong>
+                      <small>
+                        {diff.personalEvents.length} signals · {diff.uniqueTaskCount} personalized tasks · {diff.sharedTaskCount} shared tasks
+                      </small>
+                    </span>
+                    <em>{diff.reasons[0]?.label}</em>
+                  </button>
+                );
+              })}
+            </div>
+          </Panel>
+        </div>
+      </section>
 
-        <Panel title="Participation signals" icon={SlidersHorizontal}>
-          <div className="signal-list">
-            {draft.participationEvents.map((event) => (
-              <div key={event.id} className="signal-row">
-                <label className="switch">
-                  <input
-                    type="checkbox"
-                    checked={event.approved}
-                    onChange={(inputEvent) => updateParticipation(event.id, { approved: inputEvent.target.checked })}
-                  />
-                  <span />
-                </label>
-                <div>
-                  <strong>
-                    {studentById(event.studentId, draft.students).name} · {participationLabel(event.type)}
-                  </strong>
-                  <input value={event.text} onChange={(inputEvent) => updateParticipation(event.id, { text: inputEvent.target.value })} />
-                  <small>{Math.round(event.confidence * 100)}% confidence</small>
-                </div>
-              </div>
-            ))}
+      <section className="student-preview-frame" aria-label={`Preview for ${student.name}`}>
+        <div className="student-preview-top">
+          <div>
+            <span className="eyebrow">Student portal preview</span>
+            <h3>{student.name}'s dashboard</h3>
+            <p>{student.email}</p>
           </div>
-        </Panel>
+          <StatusPill status={followUp?.status ?? "todo"} />
+        </div>
+        {followUp && (
+          <div className="student-preview-card">
+            <span className="eyebrow">Latest class</span>
+            <h4>{draft.title}</h4>
+            <p>{followUp.catchUp}</p>
+            <div className="tag-row">
+              <span>Due {formatDate(followUp.dueDate)}</span>
+              <span>{followUp.tasks.length} tasks</span>
+              <span>{draft.resources.length} resources</span>
+            </div>
+          </div>
+        )}
+        <div className="student-preview-columns">
+          <div>
+            <strong>Class-wide recap</strong>
+            <p>{draft.recap}</p>
+          </div>
+          <div>
+            <strong>Personal next steps</strong>
+            {followUp?.reminder && <p>{followUp.reminder}</p>}
+            <ul>
+              {(followUp?.tasks ?? []).map((task) => (
+                <li key={task}>{task}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <strong>Why this is assigned</strong>
+            {selectedPreviewDiff.reasons.length ? (
+              <ul>
+                {selectedPreviewDiff.reasons.slice(0, 4).map((reason) => (
+                  <li key={`${reason.label}-${reason.detail}`}>
+                    <b>{reason.label}:</b> {reason.detail}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>This student receives the shared recap and any class-wide work for the session.</p>
+            )}
+          </div>
+          <div>
+            <strong>Resources</strong>
+            <ul>
+              {draft.resources.map((resource) => (
+                <li key={resource.id}>{resource.title}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </section>
     </div>
   );
@@ -1768,11 +6290,14 @@ function SessionReport({
   sessions,
   fallback,
   editSession,
+  deleteSession,
 }: {
   sessions: Session[];
   fallback?: Session;
   editSession: (session: Session) => void;
+  deleteSession: (session: Session) => void;
 }) {
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const sessionId = getParam("session");
   const session = sessions.find((item) => item.id === sessionId) ?? fallback;
 
@@ -1804,6 +6329,68 @@ function SessionReport({
           <button className="ghost-button" onClick={() => editSession(session)}>
             <Settings2 size={17} />
             Edit draft
+          </button>
+          <div className="report-export">
+            <button
+              className="ghost-button"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={exportMenuOpen}
+              onClick={() => setExportMenuOpen((current) => !current)}
+            >
+              <ArrowUpRight size={17} />
+              Export
+              <ChevronDown size={16} />
+            </button>
+            {exportMenuOpen && (
+              <div className="report-export-menu" role="menu" aria-label="Export options">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    downloadTextFile(
+                      `${slugify(session.title, "classloop-session")}.json`,
+                      JSON.stringify(session, null, 2),
+                      "application/json",
+                    );
+                  }}
+                >
+                  <ArrowUpRight size={16} />
+                  Download JSON
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    downloadTextFile(
+                      `${slugify(session.title, "classloop-follow-through")}.csv`,
+                      sessionFollowThroughCsv(session),
+                      "text/csv",
+                    );
+                  }}
+                >
+                  <FileText size={16} />
+                  Download CSV
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    window.print();
+                  }}
+                >
+                  <ClipboardCheck size={16} />
+                  Print report
+                </button>
+              </div>
+            )}
+          </div>
+          <button className="ghost-button danger" type="button" onClick={() => deleteSession(session)}>
+            <Trash2 size={17} />
+            Delete session
           </button>
           <button className="primary-button" onClick={() => navigate("student")}>
             <GraduationCap size={17} />
@@ -1898,6 +6485,23 @@ function SessionReport({
           </table>
         </div>
       </Panel>
+
+      {(session.publishAudit ?? []).length > 0 && (
+        <Panel title="Publish audit" icon={ClipboardCheck}>
+          <div className="publish-audit-list">
+            {(session.publishAudit ?? []).map((entry, index) => {
+              const auditStudent = entry.studentId ? studentById(entry.studentId, session.students) : null;
+              return (
+                <div key={`${entry.type}-${entry.studentId ?? "class"}-${index}`} className="publish-audit-row">
+                  <span>{auditStudent ? auditStudent.name : "Class-wide"}</span>
+                  <strong>{entry.type.replace(/_/g, " ")}</strong>
+                  <small>{entry.message}</small>
+                </div>
+              );
+            })}
+          </div>
+        </Panel>
+      )}
     </div>
   );
 }
@@ -1908,17 +6512,19 @@ function StudentDashboard({
   setSelectedStudentId,
   markFollowUpComplete,
   auth,
+  updateSession,
 }: {
   sessions: Session[];
   selectedStudentId: string;
   setSelectedStudentId: (id: string) => void;
   markFollowUpComplete: (sessionId: string, studentId: string) => void;
   auth: AuthSession;
+  updateSession?: (sessionId: string, updater: (session: Session) => Session) => void;
 }) {
   const published = sessions.filter((session) => session.status === "published");
   const visibleSessions =
     auth.role === "student"
-      ? published.filter((session) => session.students.some((student) => normalizeEmail(student.email) === auth.email))
+      ? published.filter((session) => session.students.some((student) => studentMatchesEmail(student, auth.email)))
       : published;
 
   if (!visibleSessions.length) {
@@ -1953,7 +6559,7 @@ function StudentDashboard({
   }
 
   const matchedStudent =
-    auth.role === "student" ? roster.find((item) => normalizeEmail(item.email) === auth.email) : undefined;
+    auth.role === "student" ? roster.find((item) => studentMatchesEmail(item, auth.email)) : undefined;
   const activeStudentId = matchedStudent?.id ?? (roster.some((student) => student.id === selectedStudentId) ? selectedStudentId : roster[0].id);
   const student = studentById(activeStudentId, roster);
   const latestFollowUp = latest?.followUps.find((followUp) => followUp.studentId === activeStudentId);
@@ -2019,6 +6625,28 @@ function StudentDashboard({
         </section>
       )}
 
+      {auth.role === "student" && latest && latestFollowUp && (
+        <Panel title="Since your last visit" icon={SlidersHorizontal}>
+          <div className="student-change-list">
+            {previewDiffForStudent(latest, student)
+              .reasons.slice(0, 3)
+              .map((reason) => (
+                <div key={`${reason.label}-${reason.detail}`} className="student-change-row">
+                  <CheckCircle2 size={17} />
+                  <span>
+                    <strong>{reason.label}</strong>
+                    <small>{reason.detail}</small>
+                  </span>
+                </div>
+              ))}
+          </div>
+        </Panel>
+      )}
+
+      {auth.role === "teacher" && latest && latestFollowUp && updateSession && (
+        <StudentVisibleEditor session={latest} studentId={activeStudentId} updateSession={updateSession} compact />
+      )}
+
       <section className="content-grid two-columns align-start">
         <Panel title="My tasks" icon={ListChecks}>
           <div className="task-list">
@@ -2029,7 +6657,7 @@ function StudentDashboard({
                 onClick={() => navigate("student-session", { session: session.id })}
               >
                 <span className="task-check">
-                  {followUp.status === "complete" ? <CheckCircle2 size={18} /> : <Clock3 size={18} />}
+                  {["submitted", "reviewed", "complete"].includes(followUp.status) ? <CheckCircle2 size={18} /> : <Clock3 size={18} />}
                 </span>
                 <span>
                   <strong>{followUp.tasks[0]}</strong>
@@ -2069,23 +6697,40 @@ function StudentSessionDetail({
   selectedStudentId,
   markFollowUpComplete,
   auth,
+  updateSession,
 }: {
   sessions: Session[];
   selectedStudentId: string;
   markFollowUpComplete: (sessionId: string, studentId: string) => void;
   auth: AuthSession;
+  updateSession?: (sessionId: string, updater: (session: Session) => Session) => void;
 }) {
   const sessionId = getParam("session");
   const session = sessions.find((item) => item.id === sessionId) ?? sessions[0];
   const roster = session?.students ?? [];
   const emailMatchedStudent =
-    auth.role === "student" ? roster.find((student) => normalizeEmail(student.email) === auth.email) : undefined;
+    auth.role === "student" ? roster.find((student) => studentMatchesEmail(student, auth.email)) : undefined;
   const activeStudentId = emailMatchedStudent?.id ?? (roster.some((student) => student.id === selectedStudentId)
     ? selectedStudentId
     : roster[0]?.id ?? selectedStudentId);
   const student = studentById(activeStudentId, roster);
   const followUp = session?.followUps.find((item) => item.studentId === activeStudentId);
   const events = session?.participationEvents.filter((event) => event.studentId === activeStudentId && event.approved) ?? [];
+  const isFollowUpCompleted = ["submitted", "reviewed", "complete"].includes(followUp?.status ?? "");
+  const [isCelebratingCheckIn, setIsCelebratingCheckIn] = useState(false);
+
+  useEffect(() => {
+    if (!isCelebratingCheckIn) return;
+    const celebrationTimer = window.setTimeout(() => setIsCelebratingCheckIn(false), 1800);
+    return () => window.clearTimeout(celebrationTimer);
+  }, [isCelebratingCheckIn]);
+
+  const handleCompleteCheckIn = () => {
+    if (!session) return;
+    markFollowUpComplete(session.id, activeStudentId);
+    setIsCelebratingCheckIn(false);
+    window.setTimeout(() => setIsCelebratingCheckIn(true), 0);
+  };
 
   if (!session || !followUp) {
     return (
@@ -2113,11 +6758,30 @@ function StudentSessionDetail({
           <h2>{session.title}</h2>
           <p>{followUp.catchUp}</p>
         </div>
-        <button className="primary-button" onClick={() => markFollowUpComplete(session.id, activeStudentId)}>
-          <CheckCircle2 size={17} />
-          Complete check-in
-        </button>
+        <div
+          className={isCelebratingCheckIn ? "checkin-celebration is-celebrating" : "checkin-celebration"}
+          aria-live="polite"
+        >
+          <button
+            className={isFollowUpCompleted ? "primary-button checkin-button completed" : "primary-button checkin-button"}
+            onClick={handleCompleteCheckIn}
+          >
+            <CheckCircle2 size={17} />
+            {isFollowUpCompleted ? "Completed!" : "Complete check-in"}
+          </button>
+          {isCelebratingCheckIn && (
+            <span className="confetti-burst" aria-hidden="true">
+              {Array.from({ length: 14 }).map((_, index) => (
+                <span key={index} className="confetti-piece" />
+              ))}
+            </span>
+          )}
+        </div>
       </section>
+
+      {auth.role === "teacher" && updateSession && (
+        <StudentVisibleEditor session={session} studentId={activeStudentId} updateSession={updateSession} />
+      )}
 
       <section className="content-grid two-columns align-start">
         <Panel title="What happened" icon={FileText}>
@@ -2180,6 +6844,167 @@ function StudentSessionDetail({
   );
 }
 
+function StudentVisibleEditor({
+  session,
+  studentId,
+  updateSession,
+  compact = false,
+}: {
+  session: Session;
+  studentId: string;
+  updateSession: (sessionId: string, updater: (session: Session) => Session) => void;
+  compact?: boolean;
+}) {
+  const followUp = session.followUps.find((item) => item.studentId === studentId);
+  const student = studentById(studentId, session.students);
+  const submission = (session.submissions ?? []).find((item) => item.studentId === studentId);
+
+  if (!followUp) return null;
+
+  const updateCurrentSession = (updater: (session: Session) => Session) => updateSession(session.id, updater);
+  const updateFollowUp = (changes: Partial<StudentFollowUp>) => {
+    updateCurrentSession((current) => patchFollowUp(current, studentId, changes));
+  };
+  const updateTask = (index: number, value: string) => {
+    const tasks = [...followUp.tasks];
+    tasks[index] = value;
+    updateFollowUp({ tasks: tasks.filter((task) => task.trim()) });
+  };
+  const addTask = () => updateFollowUp({ tasks: [...followUp.tasks, "New follow-up task"] });
+  const removeTask = (index: number) => updateFollowUp({ tasks: followUp.tasks.filter((_, taskIndex) => taskIndex !== index) });
+  const updateResource = (resourceId: string, changes: Partial<Resource>) => {
+    updateCurrentSession((current) => ({
+      ...current,
+      resources: current.resources.map((resource) => (resource.id === resourceId ? { ...resource, ...changes } : resource)),
+    }));
+  };
+  const addResource = () => {
+    updateCurrentSession((current) => ({
+      ...current,
+      resources: [
+        ...current.resources,
+        {
+          id: `res-${Date.now().toString(36)}`,
+          title: "New resource",
+          url: "https://",
+          type: "link",
+          relatedTopic: current.title,
+        },
+      ],
+    }));
+  };
+  const removeResource = (resourceId: string) => {
+    updateCurrentSession((current) => ({
+      ...current,
+      resources: current.resources.filter((resource) => resource.id !== resourceId),
+    }));
+  };
+  const markReviewed = () => {
+    updateCurrentSession((current) => setStudentSubmission(current, studentId, "reviewed", "Reviewed by teacher."));
+  };
+
+  return (
+    <Panel title={`Edit ${student.name}'s student view`} icon={Settings2}>
+      <div className={compact ? "student-visible-editor compact-editor" : "student-visible-editor"}>
+        <div className="submission-state-card">
+          <div>
+            <span className="eyebrow">Completion state</span>
+            <strong>{statusLabel(followUp.status)}</strong>
+            <small>
+              {submission?.submittedAt
+                ? `Submitted ${formatDate(submission.submittedAt)}`
+                : "Student has not submitted this check-in yet."}
+              {submission?.reviewedAt ? ` · reviewed ${formatDate(submission.reviewedAt)}` : ""}
+            </small>
+          </div>
+          <button className="ghost-button" type="button" onClick={markReviewed} disabled={followUp.status === "reviewed"}>
+            <CheckCircle2 size={17} />
+            Mark reviewed
+          </button>
+        </div>
+        <label className="field compact">
+          <span>Student-facing recap</span>
+          <textarea
+            value={session.recap}
+            onChange={(event) => updateCurrentSession((current) => ({ ...current, recap: event.target.value }))}
+          />
+        </label>
+        <label className="field compact">
+          <span>Catch-up note</span>
+          <textarea value={followUp.catchUp} onChange={(event) => updateFollowUp({ catchUp: event.target.value })} />
+        </label>
+        <label className="field compact">
+          <span>Personal reminder</span>
+          <textarea value={followUp.reminder} onChange={(event) => updateFollowUp({ reminder: event.target.value })} />
+        </label>
+        <div className="inline-fields">
+          <label className="field compact">
+            <span>Due date</span>
+            <input type="date" value={followUp.dueDate} onChange={(event) => updateFollowUp({ dueDate: event.target.value })} />
+          </label>
+          <label className="field compact">
+            <span>Status</span>
+            <select value={followUp.status} onChange={(event) => updateFollowUp({ status: event.target.value as TaskStatus })}>
+              <option value="todo">To do</option>
+              <option value="in_progress">In progress</option>
+              <option value="submitted">Submitted</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="complete">Complete</option>
+              <option value="overdue">Overdue</option>
+            </select>
+          </label>
+        </div>
+        <div className="editable-subsection">
+          <div className="subsection-header">
+            <strong>Tasks</strong>
+            <button className="text-button" type="button" onClick={addTask}>
+              <PlusCircle size={16} />
+              Add task
+            </button>
+          </div>
+          {followUp.tasks.map((task, index) => (
+            <div key={`${task}-${index}`} className="editable-line">
+              <input value={task} onChange={(event) => updateTask(index, event.target.value)} />
+              <button className="icon-button danger" type="button" onClick={() => removeTask(index)} aria-label="Remove task">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+        {!compact && (
+          <div className="editable-subsection">
+            <div className="subsection-header">
+              <strong>Resources</strong>
+              <button className="text-button" type="button" onClick={addResource}>
+                <PlusCircle size={16} />
+                Add resource
+              </button>
+            </div>
+            {session.resources.map((resource) => (
+              <div key={resource.id} className="resource-edit-row">
+                <input value={resource.title} onChange={(event) => updateResource(resource.id, { title: event.target.value })} />
+                <input value={resource.url} onChange={(event) => updateResource(resource.id, { url: event.target.value })} />
+                <input
+                  value={resource.relatedTopic}
+                  onChange={(event) => updateResource(resource.id, { relatedTopic: event.target.value })}
+                />
+                <button
+                  className="icon-button danger"
+                  type="button"
+                  onClick={() => removeResource(resource.id)}
+                  aria-label={`Remove ${resource.title}`}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Panel>
+  );
+}
+
 function TeacherAnalytics({ sessions }: { sessions: Session[] }) {
   const published = sessions.filter((session) => session.status === "published");
 
@@ -2197,7 +7022,7 @@ function TeacherAnalytics({ sessions }: { sessions: Session[] }) {
 
   const latest = published[0];
   const totalFollowUps = published.flatMap((session) => session.followUps);
-  const completed = totalFollowUps.filter((followUp) => followUp.status === "complete").length;
+  const completed = totalFollowUps.filter((followUp) => ["submitted", "reviewed", "complete"].includes(followUp.status)).length;
   const overdue = totalFollowUps.filter((followUp) => followUp.status === "overdue").length;
   const roster = Array.from(new Map(published.flatMap((session) => session.students).map((student) => [student.id, student])).values());
   const participationTotals = roster.map((student) => {
@@ -2224,7 +7049,7 @@ function TeacherAnalytics({ sessions }: { sessions: Session[] }) {
           <span className="eyebrow">Participation and follow-through</span>
           <h2>See who spoke, who needs support, and who completed the loop.</h2>
           <p>
-            These analytics are private to the teacher and focused on support, not public ranking.
+            These analytics stay private to you and focused on support, not public ranking.
           </p>
         </div>
         <button className="ghost-button" onClick={() => navigate("new-session")}>
@@ -2306,6 +7131,408 @@ function TeacherAnalytics({ sessions }: { sessions: Session[] }) {
   );
 }
 
+function PrivacyControlsPage({
+  auth,
+  sessions,
+  accounts,
+  privacySettings,
+  setPrivacySettings,
+  auditLog,
+  appendAudit,
+  clearClassData,
+}: {
+  auth: AuthSession;
+  sessions: Session[];
+  accounts: Account[];
+  privacySettings: PrivacySettings;
+  setPrivacySettings: React.Dispatch<React.SetStateAction<PrivacySettings>>;
+  auditLog: AuditLogEntry[];
+  appendAudit: (action: string, detail: string, actor?: AuthSession | null) => void;
+  clearClassData: () => void;
+}) {
+  const exportData = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      teacher: { email: auth.email, name: auth.name },
+      sessions,
+      accounts: accounts.map(({ passwordHash, ...account }) => account),
+      privacySettings,
+      auditLog,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `classloop-export-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    appendAudit("export_data", "Exported teacher workspace data.");
+  };
+
+  const deleteClassData = () => {
+    if (!window.confirm("Delete this teacher workspace's class sessions and drafts? Accounts will remain.")) return;
+    clearClassData();
+    appendAudit("delete_class_data", "Deleted class sessions and current draft from the teacher workspace.");
+  };
+
+  return (
+    <div className="page-stack privacy-page">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Privacy controls</span>
+          <h2>Manage retention, recording consent, exports, and audit history.</h2>
+          <p>Use these controls before running ClassLoop with real student data or school accounts.</p>
+        </div>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title="Data retention" icon={ShieldCheck}>
+          <div className="settings-stack">
+            <label className="field compact">
+              <span>Keep class session data for this many days</span>
+              <input
+                type="number"
+                min={30}
+                max={2555}
+                value={privacySettings.retentionDays}
+                onChange={(event) =>
+                  setPrivacySettings((current) => ({
+                    ...current,
+                    retentionDays: Number(event.target.value) || current.retentionDays,
+                  }))
+                }
+              />
+            </label>
+            <button
+              className="ghost-button full"
+              type="button"
+              onClick={() => appendAudit("retention_review", `Reviewed ${sessions.length} sessions against retention settings.`)}
+            >
+              <Search size={17} />
+              Review retention
+            </button>
+          </div>
+        </Panel>
+
+        <Panel title="Recording consent" icon={Mic2}>
+          <div className="settings-stack">
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.recordingConsentRequired}
+                onChange={(event) =>
+                  setPrivacySettings((current) => ({ ...current, recordingConsentRequired: event.target.checked }))
+                }
+              />
+              <span>Require confirmation before live audio notes start.</span>
+            </label>
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.allowStudentExport}
+                onChange={(event) =>
+                  setPrivacySettings((current) => ({ ...current, allowStudentExport: event.target.checked }))
+                }
+              />
+              <span>Allow student-specific data exports from the workspace.</span>
+            </label>
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.auditLogEnabled}
+                onChange={(event) =>
+                  setPrivacySettings((current) => ({ ...current, auditLogEnabled: event.target.checked }))
+                }
+              />
+              <span>Keep audit history for sign-ins, publishing, exports, and data changes.</span>
+            </label>
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                checked={privacySettings.noTrainingOnStudentData}
+                onChange={(event) =>
+                  setPrivacySettings((current) => ({ ...current, noTrainingOnStudentData: event.target.checked }))
+                }
+              />
+              <span>No training on student data unless you explicitly allow it.</span>
+            </label>
+          </div>
+        </Panel>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title="Export or delete" icon={UploadCloud}>
+          <div className="settings-stack">
+            <button className="primary-button full" type="button" onClick={exportData}>
+              <UploadCloud size={17} />
+              Export workspace data
+            </button>
+            <button className="ghost-button full danger-soft" type="button" onClick={deleteClassData}>
+              <Trash2 size={17} />
+              Delete class data
+            </button>
+          </div>
+        </Panel>
+
+        <Panel title="Audit log" icon={ClipboardCheck}>
+          <div className="audit-list">
+            {auditLog.length ? (
+              auditLog.slice(0, 12).map((entry) => (
+                <div key={entry.id} className="audit-row">
+                  <strong>{entry.action.replace(/_/g, " ")}</strong>
+                  <span>{entry.detail}</span>
+                  <small>
+                    {entry.actorEmail} · {formatDate(entry.createdAt)}
+                  </small>
+                </div>
+              ))
+            ) : (
+              <p className="readable">No audit entries yet.</p>
+            )}
+          </div>
+        </Panel>
+      </section>
+    </div>
+  );
+}
+
+function TutorialPage({ auth }: { auth: AuthSession }) {
+  const isTeacher = auth.role === "teacher";
+  const homeRoute: RouteKey = isTeacher ? "dashboard" : "student";
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const teacherSteps = [
+    {
+      title: "Create a session",
+      eyebrow: "Start the loop",
+      detail: "Choose a template, paste a transcript or notes, add your roster, and include any links students should use.",
+      checklist: ["Open New session", "Pick the closest template", "Add transcript, notes, roster, and resources"],
+      action: "Create a session",
+      route: "new-session" as RouteKey,
+      icon: PlusCircle,
+    },
+    {
+      title: "Resolve speaker names",
+      eyebrow: "Match participation",
+      detail: "If a Zoom display name is not on the roster, add it as a student or link it to the right student account.",
+      checklist: ["Review unknown Zoom names", "Add real new students", "Link nicknames or device names to existing students"],
+      action: "Open draft review",
+      route: "review" as RouteKey,
+      icon: Link2,
+    },
+    {
+      title: "Review before publishing",
+      eyebrow: "Teacher control",
+      detail: "Edit the recap, action items, resources, attendance, participation labels, due dates, and each student preview.",
+      checklist: ["Fix the class recap", "Check due dates and resources", "Edit student-specific follow-ups"],
+      action: "Review draft",
+      route: "review" as RouteKey,
+      icon: ClipboardCheck,
+    },
+    {
+      title: "Publish the follow-up",
+      eyebrow: "Student-ready view",
+      detail: "Students only see the approved version. They get their own recap, tasks, resources, and completion check-in.",
+      checklist: ["Open publish preview", "Switch between students", "Publish once each preview looks right"],
+      action: "Preview publishing",
+      route: "publish-preview" as RouteKey,
+      icon: Send,
+    },
+    {
+      title: "Track follow-through",
+      eyebrow: "Close the loop",
+      detail: "Use analytics to see completion, quiet or absent students, and private support opportunities.",
+      checklist: ["Check completion", "Look for quiet or absent students", "Plan the next support touchpoint"],
+      action: "Open analytics",
+      route: "analytics" as RouteKey,
+      icon: BarChart3,
+    },
+  ];
+  const studentSteps = [
+    {
+      title: "Open your portal",
+      eyebrow: "Your class hub",
+      detail: "Sign in with the email your teacher used on the roster or the invite sent to you.",
+      checklist: ["Use your roster email", "Open My portal", "Choose the latest class"],
+      action: "Open my portal",
+      route: "student" as RouteKey,
+      icon: GraduationCap,
+    },
+    {
+      title: "Read the latest recap",
+      eyebrow: "Catch the context",
+      detail: "Start with what happened in class, then review the resources your teacher approved.",
+      checklist: ["Read the class recap", "Open the resources", "Check anything marked for catch-up"],
+      action: "View portal",
+      route: "student" as RouteKey,
+      icon: BookOpen,
+    },
+    {
+      title: "Complete your tasks",
+      eyebrow: "Do the work",
+      detail: "Your task list includes class-wide work plus any follow-up connected to your questions or catch-up needs.",
+      checklist: ["Review due dates", "Finish assigned work", "Use resources before marking complete"],
+      action: "View tasks",
+      route: "student" as RouteKey,
+      icon: ListChecks,
+    },
+    {
+      title: "Check in",
+      eyebrow: "Close your loop",
+      detail: "Mark work complete when you finish so your teacher can see that the loop is closed.",
+      checklist: ["Mark complete", "Revisit anything unfinished", "Ask for help if a task is unclear"],
+      action: "Open my portal",
+      route: "student" as RouteKey,
+      icon: CheckCircle2,
+    },
+  ];
+  const walkthroughSteps = isTeacher ? teacherSteps : studentSteps;
+  const activeStep = walkthroughSteps[activeStepIndex] ?? walkthroughSteps[0];
+  const ActiveIcon = activeStep.icon;
+  const isFirstStep = activeStepIndex === 0;
+  const isLastStep = activeStepIndex === walkthroughSteps.length - 1;
+  const progress = Math.round(((activeStepIndex + 1) / walkthroughSteps.length) * 100);
+  const skipWalkthrough = () => navigate(homeRoute);
+  const useCases = isTeacher
+    ? [
+        ["Daily classes", "Turn class notes and transcripts into next-step dashboards."],
+        ["Tutoring", "Send each learner a clean recap and targeted practice after a session."],
+        ["Clubs", "Track decisions, owners, quiet members, and follow-up tasks."],
+        ["Study groups", "Convert peer questions into shared resources and personal reminders."],
+      ]
+    : [
+        ["Missed class", "Catch up from the approved recap without searching through chat logs."],
+        ["Homework", "See what is due, why it matters, and when to finish it."],
+        ["Questions", "Review explanations connected to what you asked in class."],
+        ["Resources", "Keep links and practice materials in one place."],
+      ];
+
+  return (
+    <div className="page-stack tutorial-page">
+      <section className="walkthrough-hero">
+        <div>
+          <span className="eyebrow">Interactive walkthrough</span>
+          <h2>{isTeacher ? "Learn the class follow-up loop one step at a time." : "Learn how to use your student portal."}</h2>
+          <p>
+            {isTeacher
+              ? "Move through the workflow in order, or skip whenever you are ready to return to the dashboard."
+              : "Move through the portal basics, or skip whenever you want to return home."}
+          </p>
+        </div>
+        <button className="ghost-button large" onClick={skipWalkthrough}>
+          <ChevronRight size={18} />
+          Skip tutorial
+        </button>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title={`Step ${activeStepIndex + 1} of ${walkthroughSteps.length}`} icon={ActiveIcon}>
+          <div className="walkthrough-card">
+            <div className="walkthrough-progress-header">
+              <span>{activeStep.eyebrow}</span>
+              <strong>{progress}%</strong>
+            </div>
+            <div className="walkthrough-progress-bar" aria-label={`Tutorial progress ${progress}%`}>
+              <i style={{ width: `${progress}%` }} />
+            </div>
+            <div className="walkthrough-step-main">
+              <span className="walkthrough-icon">
+                <ActiveIcon size={24} />
+              </span>
+              <div>
+                <h3>{activeStep.title}</h3>
+                <p>{activeStep.detail}</p>
+              </div>
+            </div>
+            <ul className="walkthrough-checklist">
+              {activeStep.checklist.map((item) => (
+                <li key={item}>
+                  <CheckCircle2 size={17} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <div className="walkthrough-controls">
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => setActiveStepIndex((index) => Math.max(0, index - 1))}
+                disabled={isFirstStep}
+              >
+                Back
+              </button>
+              <button className="text-button" type="button" onClick={() => navigate(activeStep.route)}>
+                {activeStep.action}
+                <ChevronRight size={16} />
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => (isLastStep ? skipWalkthrough() : setActiveStepIndex((index) => Math.min(walkthroughSteps.length - 1, index + 1)))}
+              >
+                {isLastStep ? "Finish" : "Next"}
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            <button className="text-button walkthrough-skip" type="button" onClick={skipWalkthrough}>
+              Skip and return home
+            </button>
+          </div>
+        </Panel>
+
+        <Panel title={isTeacher ? "Workflow map" : "Portal map"} icon={ListChecks}>
+          <div className="walkthrough-map">
+            {walkthroughSteps.map((step, index) => (
+              <button
+                key={step.title}
+                className={index === activeStepIndex ? "walkthrough-map-item active" : "walkthrough-map-item"}
+                type="button"
+                onClick={() => setActiveStepIndex(index)}
+              >
+                <span>{index + 1}</span>
+                <div>
+                  <strong>{step.title}</strong>
+                  <small>{step.eyebrow}</small>
+                </div>
+              </button>
+            ))}
+          </div>
+        </Panel>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title="Common uses" icon={BookOpen}>
+          <div className="usage-grid">
+            {useCases.map(([title, detail]) => (
+              <article key={title} className="usage-card">
+                <strong>{title}</strong>
+                <p>{detail}</p>
+              </article>
+            ))}
+          </div>
+        </Panel>
+        {isTeacher && (
+          <Panel title="What to prepare for each session" icon={ClipboardCheck}>
+            <div className="session-prep-grid">
+              <div>
+                <strong>Required</strong>
+                <p>Session title, template, roster names, and either a transcript or teacher notes.</p>
+              </div>
+              <div>
+                <strong>Helpful</strong>
+                <p>Homework details, due date, resource links, student absences, and any participation notes.</p>
+              </div>
+              <div>
+                <strong>Before publishing</strong>
+                <p>Check speaker matches, review each student preview, and confirm the publish button sends the right follow-up.</p>
+              </div>
+            </div>
+          </Panel>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function DesignSystemPage({
   theme,
   setTheme,
@@ -2318,19 +7545,26 @@ function DesignSystemPage({
     const preset = themePresets[key];
     setTheme((current) => ({ ...current, key, accent: preset.accent }));
   };
+  const customPreviewStyle = theme.imageUrl.trim()
+    ? {
+        backgroundImage: `linear-gradient(135deg, rgba(8, 18, 32, 0.34), rgba(8, 18, 32, 0.78)), ${safeBackgroundUrl(theme.imageUrl)}`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }
+    : undefined;
 
   return (
     <div className="page-stack appearance-page">
       <section className="appearance-hero">
         <div>
-          <span className="eyebrow">Abyssal design system</span>
-          <h2>Image-backed screens with a premium AI classroom feel.</h2>
+          <span className="eyebrow">Experience settings</span>
+          <h2>Customize ClassLoop around your classroom.</h2>
           <p>
-            Choose a visual backdrop preset, tune the accent color, or paste an image URL to make ClassLoop feel more
-            like a polished product site while keeping the classroom workflow clear.
+            Choose a calmer workspace, tune the accent color, or use an image backdrop so the product feels comfortable
+            for your teaching style while staying easy to scan during a busy school day.
           </p>
         </div>
-        <div className={`live-theme-preview ${themePresets[theme.key].previewClass}`}>
+        <div className={`live-theme-preview ${themePresets[theme.key].previewClass}`} style={customPreviewStyle}>
           <span className="preview-glow" />
           <div className="preview-nav" />
           <div className="preview-card large">

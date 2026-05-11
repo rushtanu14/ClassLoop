@@ -2,23 +2,75 @@
   "name": "classloop",
   "version": "0.1.0",
   "private": true,
+  "description": "ClassLoop desktop and mobile-web classroom follow-up platform",
+  "author": "ClassLoop <classloop.donotreply@gmail.com>",
   "type": "module",
+  "main": "desktop/main.cjs",
   "scripts": {
+    "postinstall": "playwright install chromium",
     "dev": "vite --host 127.0.0.1",
-    "start": "npm run build && node server.mjs",
+    "start": "electron .",
     "build": "tsc && vite build",
-    "preview": "vite preview --host 127.0.0.1"
+    "test:import": "tsc -p tsconfig.test.json && node --experimental-specifier-resolution=node .test-build/tests/import-flow.test.js",
+    "test:browser": "playwright test",
+    "test:web": "playwright test -c playwright.web.config.ts",
+    "test:all": "npm run test:import && npm run test:browser && npm run test:web",
+    "package": "npm run build && electron-builder",
+    "package:mac": "npm run build && electron-builder --mac dmg zip --x64 --arm64",
+    "package:win": "npm run build && electron-builder --win nsis zip --x64 --arm64",
+    "package:linux": "npm run build && electron-builder --linux AppImage deb --x64 --arm64"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^5.0.4",
-    "vite": "^7.1.7",
-    "typescript": "^5.9.2",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "lucide-react": "^0.544.0"
+    "@supabase/supabase-js": "^2.105.4",
+    "lucide-react": "^0.468.0",
+    "nodemailer": "^8.0.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "stripe": "^22.1.1"
   },
   "devDependencies": {
-    "@types/react": "^19.1.13",
-    "@types/react-dom": "^19.1.9"
+    "@playwright/test": "^1.59.1",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^41.3.0",
+    "electron-builder": "^26.8.1",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  },
+  "build": {
+    "appId": "com.classloop.app",
+    "productName": "ClassLoop",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "desktop/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "desktop/main.cjs"
+    },
+    "mac": {
+      "category": "public.app-category.education",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "linux": {
+      "category": "Education",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
   }
 }

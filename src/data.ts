@@ -1,4 +1,15 @@
-import type { ActionItem, ParticipationEvent, Resource, Session, SessionType, Student, StudentFollowUp } from "./types";
+import type {
+  ActionItem,
+  ParticipationEvent,
+  Resource,
+  Session,
+  SessionCaptureMode,
+  SessionType,
+  Student,
+  StudentFollowUp,
+  StudentSubmission,
+  UnmatchedParticipant,
+} from "./types";
 
 export const sampleTranscript = `Teacher: Today we are reviewing similar triangles and how AA similarity lets us prove triangles are similar when two angle pairs match.
 Teacher: We will use proportions to find missing side lengths. Remember, corresponding sides need to be matched in the same order.
@@ -38,9 +49,22 @@ export type ImportDraftInput = {
   notes: string;
   roster: string;
   resources: string;
+  captureMode?: SessionCaptureMode;
+  captureSourceLabel?: string;
+  captureDurationSeconds?: number;
+  transcriptSource?: "file" | "paste" | "live_transcription" | "audio_recording";
+};
+
+export type TranscriptTextFile = {
+  name?: string;
+  text: () => Promise<string>;
 };
 
 const avatarColors = ["#f59e0b", "#0ea5e9", "#8b5cf6", "#10b981", "#ef4444", "#14b8a6", "#6366f1", "#d946ef"];
+
+export async function readTranscriptFileText(file: TranscriptTextFile) {
+  return file.text();
+}
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -58,6 +82,132 @@ function unique<T>(items: T[]) {
   return Array.from(new Set(items));
 }
 
+function normalizeSpeakerName(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function compactSpeakerName(value: string) {
+  return normalizeSpeakerName(value).replace(/\s+/g, "");
+}
+
+const genericSpeakerLabelPattern = /^(student|learner|participant|attendee|speaker|user|guest)\b/i;
+
+function stripGenericSpeakerLabel(value: string) {
+  return value
+    .replace(/^\s*(student|learner|participant|attendee|speaker|user|guest)\s*\(([^)]+)\)\s*$/i, "$2")
+    .replace(/^\s*(student|learner|participant|attendee|speaker|user|guest)\s*[-:#]?\s*/i, "")
+    .replace(/^\(([^)]+)\)$/i, "$1")
+    .trim();
+}
+
+function normalizedSpeakerCandidates(value: string) {
+  const candidates = [value, stripGenericSpeakerLabel(value)];
+  for (const match of value.matchAll(/\(([^)]+)\)/g)) {
+    candidates.push(match[1]);
+  }
+  return unique(candidates.map(normalizeSpeakerName).filter(Boolean));
+}
+
+function isTranscriptMetadataSpeaker(speaker: string) {
+  const normalized = normalizeSpeakerName(speaker);
+  return (
+    !normalized ||
+    /^(teacher|instructor|professor|facilitator|host|classloop|meeting title|meeting date|meeting id|meeting passcode|passcode|date|duration|participants?|transcript|transcription|recording|audio|chat|question|questions|answer|answers|summary|agenda|topic|topics|resources?|links?|name|email|attendance|zoom names?|student access|speaker|speakers|speaker matching|transcript speaker matching|start time|end time|timezone|language|notes|practice problems?|skills? to reinforce|common mistakes?|project or repo|debug targets?|workshop deliverable|decisions made|owners?|next checkpoint|peer questions?|practice goals?)$/i.test(
+      normalized,
+    ) ||
+    /^\d+$/.test(normalized) ||
+    /\d{1,2}\s+\d{2}/.test(normalized) ||
+    /^(mon|tue|wed|thu|fri|sat|sun)\b/i.test(normalized)
+  );
+}
+
+function isTeacherLikeSpeaker(speaker: string) {
+  const normalized = normalizeSpeakerName(speaker);
+  return /^(ms|mrs|mr|mx|dr|prof|professor)\s+[a-z]/i.test(normalized);
+}
+
+type SpeakerLine = {
+  speaker: string;
+  text: string;
+  line: string;
+};
+
+function parseSpeakerLine(line: string): SpeakerLine | null {
+  const trimmed = line.trim();
+  const vttVoice = trimmed.match(/^(?:<v\s+([^>]+)>|<v\.([^>]+)>)(.*?)$/i);
+  if (vttVoice) {
+    const speaker = (vttVoice[1] || vttVoice[2] || "").replace(/\s+/g, " ").trim();
+    const text = vttVoice[3].replace(/<\/v>$/i, "").trim();
+    if (speaker && text && !isTranscriptMetadataSpeaker(speaker) && !isTeacherLikeSpeaker(speaker)) {
+      return { speaker, text, line: trimmed };
+    }
+  }
+
+  const match = trimmed.match(
+    /^(?:\[[^\]]+\]\s*)?(?:(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?\s+)?([^:\n]{2,80}):\s*(.+)$/i,
+  );
+  if (!match) return null;
+  const speaker = match[1].replace(/\s+/g, " ").trim();
+  if (
+    !speaker ||
+    /^https?$/i.test(speaker) ||
+    /-->|webvtt|zoom meeting|recording transcript/i.test(speaker) ||
+    !/[a-z]/i.test(speaker) ||
+    isTranscriptMetadataSpeaker(speaker) ||
+    isTeacherLikeSpeaker(speaker)
+  ) {
+    return null;
+  }
+  return { speaker, text: match[2].trim(), line: trimmed };
+}
+
+function isTimestampLine(line: string) {
+  return /^(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?(?:\s*-->\s*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?)?$/.test(
+    line.trim(),
+  ) || /^\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}/.test(line.trim());
+}
+
+function isLikelySpeakerNameLine(line: string) {
+  const trimmed = stripGenericSpeakerLabel(line.trim());
+  const normalized = normalizeSpeakerName(trimmed);
+  return Boolean(
+    trimmed &&
+      !/^webvtt$/i.test(trimmed) &&
+      normalized.split(" ").length <= 5 &&
+      /^[a-z][a-z .'-]+$/i.test(trimmed) &&
+      !isTranscriptMetadataSpeaker(trimmed) &&
+      !isTeacherLikeSpeaker(trimmed),
+  );
+}
+
+export function extractTranscriptSpeakers(text: string) {
+  const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const parsedLines: SpeakerLine[] = [];
+
+  lines.forEach((line, index) => {
+    const parsed = parseSpeakerLine(line);
+    if (parsed) {
+      parsedLines.push(parsed);
+      return;
+    }
+
+    const next = lines[index + 1] ?? "";
+    const afterNext = lines[index + 2] ?? "";
+    if (isLikelySpeakerNameLine(line) && isTimestampLine(next) && afterNext && !isTimestampLine(afterNext)) {
+      parsedLines.push({
+        speaker: stripGenericSpeakerLabel(line),
+        text: afterNext,
+        line: `${line}: ${afterNext}`,
+      });
+    }
+  });
+
+  return parsedLines.filter((line) => !isTranscriptMetadataSpeaker(line.speaker));
+}
+
 function toDateInput(date: Date) {
   return date.toISOString().slice(0, 10);
 }
@@ -70,34 +220,179 @@ function nextFriday() {
   return toDateInput(date);
 }
 
+function isRosterMetadataText(value: string) {
+  const normalized = normalizeSpeakerName(value);
+  return (
+    !normalized ||
+    /^(class roster|roster|demo session|teacher|instructor|period|spring|fall|winter|summer|student name email|student name|name email|student email|students?|participants?)\b/i.test(
+      normalized,
+    ) ||
+    /\b(period|spring|fall|winter|summer)\s+\d{1,4}\b/i.test(normalized) ||
+    isTeacherLikeSpeaker(value)
+  );
+}
+
+function cleanRosterNameChunk(value: string) {
+  let text = value
+    .replace(/\r/g, "\n")
+    .replace(/[|<>;,]+/g, "\n")
+    .replace(/[–—]/g, " ");
+
+  text = text.replace(/[\s\S]*#?\s*(?:student\s*)?name\s*email\s*/i, "");
+  const segments = text
+    .split(/\n+/)
+    .map((segment) => segment.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .filter((segment) => !isRosterMetadataText(segment));
+  const candidate = segments[segments.length - 1] ?? text;
+  return candidate
+    .replace(/^\s*#?\s*(?:student\s*)?\d+[\s.)-]*/i, "")
+    .replace(/^\s*(?:student|learner)\s+/i, "")
+    .replace(/\b(?:first|last|student|name|email)\b/gi, " ")
+    .replace(/[#()[\]{}]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseDelimitedRosterRows(roster: string) {
+  const entries: Array<{ name: string; email: string }> = [];
+  roster
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      const emails = line.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,24}/gi) ?? [];
+      if (emails.length !== 1 || isRosterMetadataText(line)) return;
+      const email = emails[0].toLowerCase();
+      const beforeEmail = line.slice(0, line.toLowerCase().indexOf(email));
+      const parts = beforeEmail
+        .split(/[,\t|;]+/)
+        .map((part) => cleanRosterNameChunk(part))
+        .filter(Boolean)
+        .filter((part) => !/^\d+$/.test(part))
+        .filter((part) => !isRosterMetadataText(part));
+      const name = parts.join(" ").replace(/\s+/g, " ").trim() || cleanRosterNameChunk(beforeEmail);
+      if (isPlausibleRosterName(name)) entries.push({ name, email });
+    });
+
+  const seenEmails = new Set<string>();
+  return entries.filter((entry) => {
+    if (seenEmails.has(entry.email)) return false;
+    seenEmails.add(entry.email);
+    return true;
+  });
+}
+
+function isPlausibleRosterName(name: string) {
+  const normalized = normalizeSpeakerName(name);
+  return Boolean(
+    normalized &&
+      !isRosterMetadataText(name) &&
+      /[a-z]/i.test(name) &&
+      !/@/.test(name) &&
+      !genericSpeakerLabelPattern.test(name.trim()) &&
+      normalized.split(" ").length <= 5,
+  );
+}
+
+function studentFromRosterEntry(name: string, email: string, index: number): Student {
+  const cleanName = name.trim() || `Student ${index + 1}`;
+  const cleanEmail = email.trim().toLowerCase();
+  return {
+    id: slugify(cleanName, `student-${index + 1}`),
+    name: cleanName,
+    email: cleanEmail || `${slugify(cleanName, `student-${index + 1}`)}@classloop.local`,
+    avatarColor: avatarColors[index % avatarColors.length],
+  };
+}
+
+function compactNameToken(value: string) {
+  return normalizeSpeakerName(value).replace(/\s+/g, "");
+}
+
+function splitGluedNameAndEmail(baseName: string, rawEmail: string) {
+  const [rawLocal, ...domainParts] = rawEmail.split("@");
+  const domain = domainParts.join("@").toLowerCase();
+  const baseTokens = normalizeSpeakerName(baseName).split(" ").filter(Boolean);
+  if (!rawLocal || !domain || !baseTokens.length) {
+    return { name: baseName, email: rawEmail.toLowerCase() };
+  }
+
+  const localLower = rawLocal.toLowerCase();
+  const initials = baseTokens.map((token) => token.charAt(0)).join("");
+  let bestSplit: { name: string; email: string } | null = null;
+
+  for (let index = 1; index < rawLocal.length - 1; index += 1) {
+    const gluedNameSuffix = rawLocal.slice(0, index);
+    const emailLocal = rawLocal.slice(index);
+    const suffixToken = compactNameToken(gluedNameSuffix);
+    const emailToken = compactNameToken(emailLocal);
+    const firstInitialPattern = `${baseTokens[0].charAt(0)}${suffixToken}`;
+    const allInitialsPattern = `${initials}${suffixToken}`;
+
+    if (emailToken === firstInitialPattern || emailToken === allInitialsPattern) {
+      bestSplit = {
+        name: `${baseName} ${gluedNameSuffix}`.replace(/\s+/g, " ").trim(),
+        email: `${emailLocal.toLowerCase()}@${domain}`,
+      };
+    }
+  }
+
+  return bestSplit ?? { name: baseName, email: rawEmail.toLowerCase() };
+}
+
+function parseEmailRosterEntries(roster: string) {
+  const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,24}(?=\d|[^A-Z0-9]|$)/gi;
+  const matches = Array.from(roster.matchAll(emailPattern));
+  const entries: Array<{ name: string; email: string }> = [];
+  let previousEmailEnd = 0;
+
+  matches.forEach((match) => {
+    const rawEmail = match[0].replace(/[.,;:)]+$/, "");
+    const matchIndex = match.index ?? 0;
+    const baseName = cleanRosterNameChunk(roster.slice(previousEmailEnd, matchIndex));
+    previousEmailEnd = matchIndex + match[0].length;
+    const { name, email } = splitGluedNameAndEmail(baseName, rawEmail);
+    if (isPlausibleRosterName(name)) {
+      entries.push({ name, email });
+    }
+  });
+
+  const seenEmails = new Set<string>();
+  return entries.filter((entry) => {
+    if (seenEmails.has(entry.email)) return false;
+    seenEmails.add(entry.email);
+    return true;
+  });
+}
+
 function parseRoster(roster: string, transcript: string): Student[] {
+  const delimitedEntries = parseDelimitedRosterRows(roster);
+  if (delimitedEntries.length) {
+    return delimitedEntries.map((entry, index) => studentFromRosterEntry(entry.name, entry.email, index));
+  }
+
+  const emailEntries = parseEmailRosterEntries(roster);
+  if (emailEntries.length) {
+    return emailEntries.map((entry, index) => studentFromRosterEntry(entry.name, entry.email, index));
+  }
+
   const rosterStudents = roster
     .split(/\n+/)
     .map((line) => line.trim())
     .filter(Boolean)
+    .filter((line) => !isRosterMetadataText(line))
     .map((line, index) => {
       const emailMatch = line.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
       const email = emailMatch?.[0] ?? "";
-      const name = line
-        .replace(email, "")
-        .replace(/[<>,;]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-      return {
-        id: slugify(name || `Student ${index + 1}`, `student-${index + 1}`),
-        name: name || `Student ${index + 1}`,
-        email: email || `${slugify(name || `student-${index + 1}`, `student-${index + 1}`)}@classloop.local`,
-        avatarColor: avatarColors[index % avatarColors.length],
-      };
-    });
+      const name = cleanRosterNameChunk(line.replace(email, ""));
+      return isPlausibleRosterName(name) ? studentFromRosterEntry(name, email, index) : null;
+    })
+    .filter((student): student is Student => Boolean(student));
 
   if (rosterStudents.length) return rosterStudents;
 
-  const speakerNames = transcript
-    .split(/\n+/)
-    .map((line) => line.match(/^([^:]{2,40}):/)?.[1]?.trim())
-    .filter((name): name is string => Boolean(name))
-    .filter((name) => !/^(teacher|instructor|professor|facilitator|host)$/i.test(name));
+  const speakerNames = extractTranscriptSpeakers(transcript).map((line) => line.speaker);
 
   return unique(speakerNames).map((name, index) => ({
     id: slugify(name, `student-${index + 1}`),
@@ -108,7 +403,13 @@ function parseRoster(roster: string, transcript: string): Student[] {
 }
 
 function cleanLine(line: string) {
-  return line.replace(/^[-*]\s*/, "").replace(/^[^:]{2,40}:\s*/, "").trim();
+  const parsed = parseSpeakerLine(line);
+  return (parsed?.text ?? line).replace(/^[-*]\s*/, "").replace(/^[^:]{2,40}:\s*/, "").trim();
+}
+
+function shortText(value: string, maxLength = 96) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength - 1).trim()}...` : normalized;
 }
 
 function extractTopics(title: string, text: string, template: SessionType) {
@@ -147,6 +448,133 @@ function extractAssignment(text: string) {
   return line || "Review the session recap and complete the assigned follow-up check.";
 }
 
+function stripCaptureMetadata(text: string) {
+  return text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter((line) => {
+      const normalized = cleanLine(line);
+      return (
+        normalized &&
+        !/^(capture method|captured duration|audio capture consent|student voice identification|online meeting capture|live transcript|no live transcript)/i.test(
+          normalized,
+        )
+      );
+    })
+    .join("\n")
+    .trim();
+}
+
+function extractRecapSummary(text: string, template: SessionType, topics: string[], assignment: string, resourcesCount: number) {
+  const lower = text.toLowerCase();
+  const hasActivity = /peanut butter and jelly|pb&j|sandwich.*robot|robot.*sandwich/i.test(lower);
+  const hasPrecision = /precision problem|precision in programming|ambiguous .* instruction|precise enough|exact instruction/i.test(lower);
+  const hasDecomposition = /decompose|decomposition|smaller parts|function/i.test(lower);
+  const hasPython = /python/i.test(lower);
+  const hasPoll = /nearpod poll|poll launched|78% of you said|best example of an algorithm|map is data/i.test(lower);
+  const lessonGoals = topics.filter((topic) => !/(main lesson ideas|student questions|next steps|meeting|review topics|core math concepts)/i.test(topic)).slice(0, 3);
+  const topicPhrase = lessonGoals.length ? lessonGoals.join(", ") : "the class topic";
+  const recapLines = [`This ${template.toLowerCase()} session focused on ${topicPhrase}.`];
+
+  if (hasActivity) {
+    recapLines.push(
+      "Students practiced writing exact, step-by-step instructions by programming a peanut butter and jelly sandwich for a robot.",
+    );
+  }
+
+  if (hasPrecision) {
+    recapLines.push(
+      "The class explored the precision problem, where vague instructions can cause a program to fail.",
+    );
+  }
+
+  if (hasDecomposition) {
+    recapLines.push(
+      "We connected that work to problem decomposition by breaking the task into smaller steps that can become functions.",
+    );
+  }
+
+  if (hasPoll) {
+    recapLines.push("A quick Nearpod poll checked whether students understood algorithms versus data.");
+  }
+
+  if (hasPython) {
+    recapLines.push("The teacher announced a transition to Python next week so students can apply these ideas in code.");
+  }
+
+  if (assignment && !/review the session recap/i.test(assignment)) {
+    recapLines.push(`Homework: ${assignment}`);
+  }
+
+  if (resourcesCount) {
+    recapLines.push(`Shared ${resourcesCount} video resource${resourcesCount === 1 ? "" : "s"} in chat for extra review.`);
+  }
+
+  return recapLines.join(" ");
+}
+
+function generateEssentialQuestions(text: string, topics: string[], dueDate: string) {
+  const lower = text.toLowerCase();
+  const questions: string[] = [];
+
+  if (/(precision problem|precise enough|vague .* instruction|ambiguous .* instruction)/i.test(lower)) {
+    questions.push("What makes an instruction precise enough for an algorithm or robot?");
+  } else {
+    questions.push(`What were the most important takeaways about ${topics[0] ?? "today's lesson"}?`);
+  }
+
+  if (/(decompose|decomposition|smaller parts|function)/i.test(lower)) {
+    questions.push("How can you break a complex task into smaller, more manageable steps?");
+  } else {
+    questions.push("Which students need support or catch-up before the next session?");
+  }
+
+  if (/(nearpod poll|poll launched|78% of you said|best example of an algorithm|map is data)/i.test(lower)) {
+    questions.push("Why is a sequence of directions an algorithm while a map is just a representation of data?");
+  } else {
+    questions.push(`What follow-up work should be completed by ${dueDate}?`);
+  }
+
+  return questions;
+}
+
+function eventTypeFromText(text: string) {
+  if (text.includes("?")) return "asked_question" as const;
+  if (/(because|so|should|equals|answer|i think|we can|it is|therefore|the fix|the reason)/i.test(text)) {
+    return "answered_question" as const;
+  }
+  return "chat" as const;
+}
+
+function detectsMisconception(text: string) {
+  return /(wrong|mistake|confus|hard|stuck|error|bug|doesn't|does not|not sure|missed|forgot|failed|incorrect)/i.test(text);
+}
+
+function studentReadinessScore({
+  attendance,
+  isQuiet,
+  askedQuestion,
+  hasMisconception,
+  answeredQuestion,
+  usefulChat,
+}: {
+  attendance: "present" | "absent" | "late";
+  isQuiet: boolean;
+  askedQuestion: boolean;
+  hasMisconception: boolean;
+  answeredQuestion: boolean;
+  usefulChat: boolean;
+}) {
+  if (attendance === "absent") return 22;
+  let score = attendance === "late" ? 45 : 52;
+  if (usefulChat) score += 6;
+  if (askedQuestion) score += 7;
+  if (answeredQuestion) score += 13;
+  if (isQuiet) score -= 18;
+  if (hasMisconception) score -= 16;
+  return Math.max(18, Math.min(88, score));
+}
+
 function parseResources(resourcesText: string, sessionText: string, relatedTopic: string): Resource[] {
   const combined = `${resourcesText}\n${sessionText}`;
   const urls = unique((combined.match(/https?:\/\/[^\s)]+/g) ?? []).map((url) => url.replace(/[.,;]+$/, "")));
@@ -173,22 +601,83 @@ function parseResources(resourcesText: string, sessionText: string, relatedTopic
   });
 }
 
+function speakerMatchesStudent(speaker: string, student: Student) {
+  const first = student.name.split(" ")[0];
+  const tokens = normalizeSpeakerName(student.name).split(" ").filter(Boolean);
+  const last = tokens[tokens.length - 1] ?? "";
+  const firstInitial = tokens[0]?.charAt(0) ?? "";
+  const lastInitial = last.charAt(0);
+  const aliases = student.aliases ?? [];
+  const normalizedSpeakers = normalizedSpeakerCandidates(speaker);
+  const normalizedStudentCandidates = [
+    student.name,
+    first,
+    last && `${first} ${lastInitial}`,
+    last && `${firstInitial} ${last}`,
+    ...aliases,
+  ].flatMap(normalizedSpeakerCandidates);
+  return normalizedSpeakers.some((speakerCandidate) =>
+    normalizedStudentCandidates.some(
+      (studentCandidate) =>
+        speakerCandidate === studentCandidate ||
+        compactSpeakerName(speakerCandidate) === compactSpeakerName(studentCandidate),
+    ),
+  );
+}
+
 function lineForStudent(lines: string[], student: Student) {
   const first = student.name.split(" ")[0];
   const speakerPattern = new RegExp(`^(${escapeRegExp(student.name)}|${escapeRegExp(first)})\\s*:`, "i");
-  return lines.filter((line) => speakerPattern.test(line));
+  return lines.filter((line) => {
+    const parsed = parseSpeakerLine(line);
+    return parsed ? speakerMatchesStudent(parsed.speaker, student) : speakerPattern.test(line);
+  });
+}
+
+function suggestedStudentIdForSpeaker(name: string, roster: Student[]) {
+  const speakerCandidates = normalizedSpeakerCandidates(name);
+  return roster.find((student) =>
+    speakerCandidates.some((candidate) => {
+      const firstToken = candidate.split(" ")[0];
+      const firstInitial = firstToken.charAt(0);
+      const studentName = normalizeSpeakerName(student.name);
+      return studentName.startsWith(firstToken) || (firstInitial && studentName.charAt(0) === firstInitial);
+    }),
+  )?.id;
+}
+
+function findUnmatchedParticipants(sessionText: string, roster: Student[], hasExplicitRoster: boolean): UnmatchedParticipant[] {
+  if (!hasExplicitRoster) return [];
+  const speakerLines = extractTranscriptSpeakers(sessionText);
+  const speakers = unique(speakerLines.map((line) => line.speaker));
+  return speakers
+    .filter((speaker) => !roster.some((student) => speakerMatchesStudent(speaker, student)))
+    .map((speaker) => ({
+      name: speaker,
+      lines: speakerLines.filter((line) => line.speaker === speaker).map((line) => line.line).slice(0, 3),
+      suggestedStudentId: suggestedStudentIdForSpeaker(speaker, roster),
+    }));
 }
 
 export function createGeneratedSession(input: ImportDraftInput): Session {
   const suffix = Date.now().toString(36);
-  const sessionText = `${input.transcript}\n${input.notes}`.trim();
+  const rawSessionText = `${input.transcript}\n${input.notes}`.trim();
+  const sessionText = stripCaptureMetadata(rawSessionText);
+  const hasSubstantiveSessionText = Boolean(sessionText.trim());
   const sessionTitle = input.title || `${input.template} session`;
   const roster = parseRoster(input.roster, input.transcript);
+  const hasExplicitRoster = Boolean(input.roster.trim());
+  const unmatchedParticipants = findUnmatchedParticipants(sessionText, roster, hasExplicitRoster);
   const topics = extractTopics(sessionTitle, sessionText, input.template);
-  const assignment = extractAssignment(sessionText);
+  const assignment = hasSubstantiveSessionText ? extractAssignment(sessionText) : "Confirm the student follow-up task before publishing.";
   const dueDate = nextFriday();
   const lines = sessionText.split(/\n+/).map((line) => line.trim()).filter(Boolean);
   const resources = parseResources(input.resources, sessionText, topics[0] ?? input.template);
+  const recap = hasSubstantiveSessionText
+    ? extractRecapSummary(sessionText, input.template, topics, assignment, resources.length)
+    : `This ${input.template.toLowerCase()} draft was created from a recorded session without enough transcript text yet. Add the main takeaways, assignments, and any student-specific context before publishing.`;
+  const essentialQuestions = generateEssentialQuestions(sessionText, topics, dueDate);
+  const speakerLines = extractTranscriptSpeakers(sessionText);
 
   const attendance = roster.reduce<Record<string, "present" | "absent" | "late">>((acc, student) => {
     const first = student.name.split(" ")[0].toLowerCase();
@@ -207,14 +696,13 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
   const participationEvents: ParticipationEvent[] = roster.flatMap((student) => {
     const first = student.name.split(" ")[0];
     const lower = sessionText.toLowerCase();
-    const spoken = lineForStudent(lines, student);
+    const parsedSpoken = speakerLines
+      .filter((line) => speakerMatchesStudent(line.speaker, student))
+      .map((line) => line.line);
+    const spoken = unique([...parsedSpoken, ...lineForStudent(lines, student)]);
     const events: ParticipationEvent[] = spoken.slice(0, 2).map((line, index) => {
       const clean = cleanLine(line);
-      const type = clean.includes("?")
-        ? "asked_question"
-        : /(because|so|should|equals|answer|i think|we can|it is)/i.test(clean)
-          ? "answered_question"
-          : "chat";
+      const type = eventTypeFromText(clean);
       return {
         id: `p-${student.id}-${index}-${suffix}`,
         studentId: student.id,
@@ -260,10 +748,24 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     const isAbsent = attendance[student.id] === "absent";
     const isQuiet = events.some((event) => event.type === "quiet");
     const askedQuestion = events.find((event) => event.type === "asked_question");
+    const answeredQuestion = events.find((event) => event.type === "answered_question");
+    const usefulChat = events.some((event) => event.type === "chat");
+    const misconceptionEvent = events.find((event) => detectsMisconception(event.text));
     const baseTasks = [assignment];
     if (isAbsent) baseTasks.unshift("Read the catch-up recap");
     if (isQuiet) baseTasks.push("Submit a quick confidence check-in");
-    if (askedQuestion) baseTasks.push("Review the answer to your class question");
+    if (askedQuestion) baseTasks.push(`Review the answer to your question: ${shortText(askedQuestion.text.replace(/^Asked:\s*/i, ""), 72)}`);
+    if (misconceptionEvent) baseTasks.push(`Redo the step connected to: ${shortText(misconceptionEvent.text.replace(/^(Asked|Contributed|Shared):\s*/i, ""), 72)}`);
+    if (answeredQuestion && !misconceptionEvent) baseTasks.push("Write one sentence explaining the idea you contributed in class.");
+
+    const readinessScore = studentReadinessScore({
+      attendance: attendance[student.id],
+      isQuiet,
+      askedQuestion: Boolean(askedQuestion),
+      hasMisconception: Boolean(misconceptionEvent),
+      answeredQuestion: Boolean(answeredQuestion),
+      usefulChat,
+    });
 
     return {
       studentId: student.id,
@@ -271,16 +773,24 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
         ? `Catch up on ${topics[0]} before starting the assigned work.`
         : isQuiet
           ? `Use the recap to check your confidence on ${topics[0]}, then send a quick check-in.`
-          : `Review ${topics[0]} and complete the assigned follow-up.`,
+          : misconceptionEvent
+            ? `Revisit the part of ${topics[0]} that caused confusion, then complete the class follow-up.`
+            : askedQuestion
+              ? `Start with the answer to your question, then complete the shared class follow-up.`
+              : `Review ${topics[0]} and complete the assigned follow-up.`,
       catchUp: isAbsent
         ? "You were marked absent for this session. Start with the recap, then use the resources and assigned work to catch up."
         : events.length
-          ? "ClassLoop found your participation in this session and connected it to the follow-up work."
+          ? misconceptionEvent
+            ? "Your dashboard includes the shared class recap plus extra review for the part that seemed confusing during class."
+            : askedQuestion
+              ? "Your dashboard includes the shared class recap plus a review task tied to the question you asked."
+              : "Your dashboard connects your class participation to the follow-up work."
           : "You were marked present. Use the recap and resources to confirm the main takeaways.",
       tasks: unique(baseTasks),
       dueDate,
       status: "todo",
-      score: isAbsent ? 30 : isQuiet ? 48 : events.length ? 74 : 62,
+      score: readinessScore,
     };
   });
 
@@ -288,10 +798,12 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     {
       id: `task-class-${suffix}`,
       title: assignment.length > 72 ? "Complete assigned follow-up work" : assignment,
-      description: `Class-level follow-up generated from the imported ${input.template.toLowerCase()} record.`,
+      description: hasSubstantiveSessionText
+        ? `Class-level follow-up generated from the imported ${input.template.toLowerCase()} record.`
+        : "No reliable transcript text was available, so confirm the actual student task before publishing.",
       dueDate,
       status: "todo",
-      source: "Detected from transcript, notes, or teacher-entered session details.",
+      source: "Detected from transcript, notes, or your session details.",
     },
     ...followUps
       .filter((followUp) => attendance[followUp.studentId] === "absent" || followUp.score < 55)
@@ -305,6 +817,12 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
         source: "Generated from attendance and participation signals.",
       })),
   ];
+  const submissions: StudentSubmission[] = roster.map((student) => ({
+    studentId: student.id,
+    sessionId: `session-generated-${suffix}`,
+    status: "todo",
+    note: "",
+  }));
 
   return {
     id: `session-generated-${suffix}`,
@@ -315,18 +833,27 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     students: roster,
     transcript: input.transcript,
     notes: input.notes,
-    recap: sessionText
-      ? `ClassLoop detected a ${input.template.toLowerCase()} focused on ${topics.slice(0, 3).join(", ")}. The draft connects the session record to student follow-ups, resources, attendance signals, and the next completion check.`
-      : `ClassLoop created a blank ${input.template.toLowerCase()} draft. Add transcript details or teacher notes to make the recap more specific.`,
-    essentialQuestions: [
-      `What were the most important takeaways about ${topics[0]}?`,
-      "Which students need support or catch-up before the next session?",
-      `What follow-up work should be completed by ${dueDate}?`,
-    ],
+    capture: {
+      mode: input.captureMode ?? "transcript",
+      sourceLabel: input.captureSourceLabel ?? "Transcript import",
+      capturedAt: new Date().toISOString(),
+      durationSeconds: input.captureDurationSeconds,
+      transcriptSource: input.transcriptSource ?? (input.transcript.trim() ? "paste" : "audio_recording"),
+    },
+    recap,
+    essentialQuestions,
     attendance,
     resources,
     actionItems,
     participationEvents,
     followUps,
+    submissions,
+    unmatchedParticipants,
+    transcriptAliases: {},
+    emailDelivery: {
+      status: "not_sent",
+      recipients: [],
+      skipped: [],
+    },
   };
 }
