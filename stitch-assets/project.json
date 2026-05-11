@@ -1,0 +1,378 @@
+{
+  "id": 822874682,
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [
+      {
+        "text": "{\"name\":\"projects/9884415059820275587\",\"title\":\"ClassLoop AI Education Platform\",\"visibility\":\"PRIVATE\",\"createTime\":\"2026-04-30T02:30:02.351611Z\",\"updateTime\":\"2026-04-30T03:55:45.919298Z\",\"projectType\":\"TEXT_TO_UI_PRO\",\"thumbnailScreenshot\":{\"name\":\"projects/9884415059820275587/files/5a67b04f17f3451888b17ac2215ef359\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ug8TxtBb8yuWih14XQoH6XlbqamaRKr--cWaE8f-QxbGDpwLfYq09SqlI54X3ykqRecptL9C6shF621w_YFUywoPLF2TVlsz0jkS8VNvKyf4X_97v6oqspslJRDts6M3Qjn11LNTZ3hV_3ja4o0QFZX-rGFWp392YjNjJUrxXwUnAMGjxYbNgpp3qE6DozPQyvAfBCzdoacm6EOl02Z2Wb3ftCbHyQlosL36p3_G8BJ75Cs6kQU14T6Uck\"},\"origin\":\"STITCH\",\"deviceType\":\"DESKTOP\",\"designTheme\":{\"colorMode\":\"DARK\",\"font\":\"MANROPE\",\"roundness\":\"ROUND_EIGHT\",\"customColor\":\"#0F172A\",\"headlineFont\":\"MANROPE\",\"bodyFont\":\"INTER\",\"labelFont\":\"INTER\",\"namedColors\":{\"background\":\"#051424\",\"error\":\"#ffb4ab\",\"error_container\":\"#93000a\",\"inverse_on_surface\":\"#233143\",\"inverse_primary\":\"#565e74\",\"inverse_surface\":\"#d4e4fa\",\"on_background\":\"#d4e4fa\",\"on_error\":\"#690005\",\"on_error_container\":\"#ffdad6\",\"on_primary\":\"#283044\",\"on_primary_container\":\"#798098\",\"on_primary_fixed\":\"#131b2e\",\"on_primary_fixed_variant\":\"#3f465c\",\"on_secondary\":\"#472a00\",\"on_secondary_container\":\"#5b3800\",\"on_secondary_fixed\":\"#2a1700\",\"on_secondary_fixed_variant\":\"#653e00\",\"on_surface\":\"#d4e4fa\",\"on_surface_variant\":\"#c6c6cd\",\"on_tertiary\":\"#00344d\",\"on_tertiary_container\":\"#0089c3\",\"on_tertiary_fixed\":\"#001e2f\",\"on_tertiary_fixed_variant\":\"#004c6e\",\"outline\":\"#909097\",\"outline_variant\":\"#45464d\",\"primary\":\"#bec6e0\",\"primary_container\":\"#0f172a\",\"primary_fixed\":\"#dae2fd\",\"primary_fixed_dim\":\"#bec6e0\",\"secondary\":\"#ffb95f\",\"secondary_container\":\"#ee9800\",\"secondary_fixed\":\"#ffddb8\",\"secondary_fixed_dim\":\"#ffb95f\",\"surface\":\"#051424\",\"surface_bright\":\"#2c3a4c\",\"surface_container\":\"#122131\",\"surface_container_high\":\"#1c2b3c\",\"surface_container_highest\":\"#273647\",\"surface_container_low\":\"#0d1c2d\",\"surface_container_lowest\":\"#010f1f\",\"surface_dim\":\"#051424\",\"surface_tint\":\"#bec6e0\",\"surface_variant\":\"#273647\",\"tertiary\":\"#89ceff\",\"tertiary_container\":\"#001a29\",\"tertiary_fixed\":\"#c9e6ff\",\"tertiary_fixed_dim\":\"#89ceff\"},\"designMd\":\"---\\nname: Lumina Class\\ncolors:\\n  surface: '#051424'\\n  surface-dim: '#051424'\\n  surface-bright: '#2c3a4c'\\n  surface-container-lowest: '#010f1f'\\n  surface-container-low: '#0d1c2d'\\n  surface-container: '#122131'\\n  surface-container-high: '#1c2b3c'\\n  surface-container-highest: '#273647'\\n  on-surface: '#d4e4fa'\\n  on-surface-variant: '#c6c6cd'\\n  inverse-surface: '#d4e4fa'\\n  inverse-on-surface: '#233143'\\n  outline: '#909097'\\n  outline-variant: '#45464d'\\n  surface-tint: '#bec6e0'\\n  primary: '#bec6e0'\\n  on-primary: '#283044'\\n  primary-container: '#0f172a'\\n  on-primary-container: '#798098'\\n  inverse-primary: '#565e74'\\n  secondary: '#ffb95f'\\n  on-secondary: '#472a00'\\n  secondary-container: '#ee9800'\\n  on-secondary-container: '#5b3800'\\n  tertiary: '#89ceff'\\n  on-tertiary: '#00344d'\\n  tertiary-container: '#001a29'\\n  on-tertiary-container: '#0089c3'\\n  error: '#ffb4ab'\\n  on-error: '#690005'\\n  error-container: '#93000a'\\n  on-error-container: '#ffdad6'\\n  primary-fixed: '#dae2fd'\\n  primary-fixed-dim: '#bec6e0'\\n  on-primary-fixed: '#131b2e'\\n  on-primary-fixed-variant: '#3f465c'\\n  secondary-fixed: '#ffddb8'\\n  secondary-fixed-dim: '#ffb95f'\\n  on-secondary-fixed: '#2a1700'\\n  on-secondary-fixed-variant: '#653e00'\\n  tertiary-fixed: '#c9e6ff'\\n  tertiary-fixed-dim: '#89ceff'\\n  on-tertiary-fixed: '#001e2f'\\n  on-tertiary-fixed-variant: '#004c6e'\\n  background: '#051424'\\n  on-background: '#d4e4fa'\\n  surface-variant: '#273647'\\ntypography:\\n  display-lg:\\n    fontFamily: Manrope\\n    fontSize: 48px\\n    fontWeight: '800'\\n    lineHeight: '1.1'\\n    letterSpacing: -0.02em\\n  headline-md:\\n    fontFamily: Manrope\\n    fontSize: 32px\\n    fontWeight: '700'\\n    lineHeight: '1.2'\\n  title-sm:\\n    fontFamily: Manrope\\n    fontSize: 20px\\n    fontWeight: '600'\\n    lineHeight: '1.4'\\n  body-base:\\n    fontFamily: Inter\\n    fontSize: 16px\\n    fontWeight: '400'\\n    lineHeight: '1.6'\\n  label-caps:\\n    fontFamily: Inter\\n    fontSize: 12px\\n    fontWeight: '600'\\n    lineHeight: '1'\\n    letterSpacing: 0.05em\\nrounded:\\n  sm: 0.25rem\\n  DEFAULT: 0.5rem\\n  md: 0.75rem\\n  lg: 1rem\\n  xl: 1.5rem\\n  full: 9999px\\nspacing:\\n  base: 4px\\n  xs: 8px\\n  sm: 16px\\n  md: 24px\\n  lg: 48px\\n  xl: 80px\\n  gutter: 24px\\n  margin-safe: 32px\\n---\\n\\n## Brand & Style\\n\\nThe design system is built on the intersection of academic authority and technological foresight. It moves away from the \\\"playful\\\" tropes of EdTech—bright primary colors and bubbly shapes—and instead adopts a **High-Contrast Modern** aesthetic that signals productivity and premium value. \\n\\nThe personality is focused yet supportive. The visual style utilizes **Glassmorphism** and **Tonal Layering** to create a sense of depth, simulating a physical workspace that is clean and organized. Key attributes include:\\n- **Premium Productivity:** High-contrast layouts that prioritize content legibility and focus.\\n- **Calm Intelligence:** Using deep, dark backgrounds to reduce eye strain during long classroom follow-up sessions.\\n- **Sophisticated AI:** Eschewing generic robot icons for abstract, glowing UI elements and subtle motion that suggest intelligent assistance.\\n\\n## Colors\\n\\nThe design system utilizes a \\\"Deep Night\\\" dark mode as its default state to create a premium, high-focus environment. \\n\\n- **Primary (Navy/Charcoal):** The foundation of the system. Used for backgrounds and primary containers to provide a professional, grounded feel.\\n- **Warm Education Accents (Amber):** Used sparingly for human-centric elements like student profiles, teacher feedback, and \\\"high-importance\\\" classroom alerts.\\n- **Cool AI Accents (Electric Blue & Violet):** Reserved specifically for AI-generated summaries, data visualizations, and automated insights.\\n- **High-Contrast Text:** Off-white and light silver are used to ensure maximum readability against the deep navy backgrounds, avoiding the harshness of pure white (#FFFFFF).\\n\\n## Typography\\n\\nTypography in the design system is used to create a clear informational hierarchy. **Manrope** is used for headlines to provide a modern, geometric character that feels premium and structural. **Inter** is used for body copy and data-heavy labels due to its exceptional legibility at small sizes and high x-height.\\n\\nKey rules:\\n- **Tight Headlines:** Large display text should have negative letter spacing to feel \\\"locked in\\\" and professional.\\n- **High Contrast:** Use font weight rather than just size to distinguish importance.\\n- **Labels:** Small labels should use uppercase with increased tracking to maintain a technical, organized feel.\\n\\n## Layout & Spacing\\n\\nThis design system employs a **Fixed Grid** model for centralized dashboards and a **Fluid Content** model for classroom feeds. It is built on an 8-pixel rhythm, ensuring all elements align to a consistent mathematical scale.\\n\\n- **Desktop Layout:** 12-column grid with 24px gutters. Content is typically contained within a 1280px max-width container.\\n- **Section Breathing Room:** Generous vertical spacing (80px+) between major sections to prevent the UI from feeling \\\"cramped\\\" or \\\"enterprise-gray.\\\"\\n- **Focus Padding:** High-density data areas (like grade lists) use 8px spacing, while analytical summaries use 24px+ to allow the AI insights to breathe.\\n\\n## Elevation & Depth\\n\\nDepth is conveyed through **Glassmorphism** and **Tonal Layering** rather than traditional drop shadows. \\n\\n1. **The Canvas:** The lowest level is the deep background (`#020617`).\\n2. **Glass Layers:** Cards and navigation use a backdrop blur (20px) with a semi-transparent fill and a subtle 1px border. This creates a \\\"frosted lens\\\" effect that feels light and modern.\\n3. **Inner Glow:** Instead of dark shadows, elevated components use a subtle \\\"inner glow\\\" (a top-aligned light stroke) to simulate a light source from above.\\n4. **AI Highlight:** Elements powered by AI utilize a soft, colored outer glow (using the violet/blue accent) to signify they are \\\"active\\\" or \\\"intelligent.\\\"\\n\\n## Shapes\\n\\nThe shape language is \\\"Softly Architectural.\\\" It avoids the extreme roundness of consumer apps but stays away from the aggressive sharpness of legacy software.\\n\\n- **Primary Components:** (Cards, Modals) use a 1rem (16px) radius to feel approachable.\\n- **Action Elements:** (Buttons, Inputs) use a 0.5rem (8px) radius to feel precise and tool-like.\\n- **Interaction Feedback:** Hover states often transition from a standard radius to a slightly tighter one, giving a \\\"compressed\\\" feel upon interaction.\\n\\n## Components\\n\\n### Buttons\\n- **Primary:** Solid navy background with a subtle gradient and a white label. 1px stroke for definition.\\n- **Secondary:** Ghost style with a 1px border and a glass background.\\n- **AI Action:** A specialized button featuring a subtle violet-to-blue shimmering gradient.\\n\\n### Cards\\nCards are the core of the design system. They feature a `20px` backdrop blur, a semi-transparent dark fill, and a `1px` border that is slightly lighter than the background. They should never have heavy drop shadows.\\n\\n### Input Fields\\nInputs are dark with a \\\"sunken\\\" feel. When focused, the border transitions to the primary accent color (Amber or Blue depending on context) with a soft outer glow.\\n\\n### Chips & Badges\\nUsed for categorizing classroom topics. Badges use a low-opacity fill of the accent color (e.g., 10% Amber) with high-contrast text for a sophisticated \\\"tag\\\" look.\\n\\n### AI Follow-up List\\nA specialized list component where items are separated by subtle horizontal rules. AI-generated items feature a vertical \\\"logic bar\\\" on the left side in the accent violet color.\",\"colorVariant\":\"FIDELITY\",\"overridePrimaryColor\":\"#0F172A\",\"overrideSecondaryColor\":\"#F59E0B\",\"overrideTertiaryColor\":\"#0EA5E9\",\"overrideNeutralColor\":\"#94A3B8\",\"spacingScale\":2,\"typography\":{\"body-base\":{\"fontFamily\":\"Inter\",\"fontSize\":\"16px\",\"fontWeight\":\"400\",\"lineHeight\":\"1.6\"},\"display-lg\":{\"fontFamily\":\"Manrope\",\"fontSize\":\"48px\",\"fontWeight\":\"800\",\"lineHeight\":\"1.1\",\"letterSpacing\":\"-0.02em\"},\"headline-md\":{\"fontFamily\":\"Manrope\",\"fontSize\":\"32px\",\"fontWeight\":\"700\",\"lineHeight\":\"1.2\"},\"label-caps\":{\"fontFamily\":\"Inter\",\"fontSize\":\"12px\",\"fontWeight\":\"600\",\"lineHeight\":\"1\",\"letterSpacing\":\"0.05em\"},\"title-sm\":{\"fontFamily\":\"Manrope\",\"fontSize\":\"20px\",\"fontWeight\":\"600\",\"lineHeight\":\"1.4\"}},\"spacing\":{\"base\":\"4px\",\"gutter\":\"24px\",\"lg\":\"48px\",\"margin-safe\":\"32px\",\"md\":\"24px\",\"sm\":\"16px\",\"xl\":\"80px\",\"xs\":\"8px\"}},\"screenInstances\":[{\"id\":\"00f9a5dae5f54741b44adeb7ddafe826\",\"sourceScreen\":\"projects/9884415059820275587/screens/00f9a5dae5f54741b44adeb7ddafe826\",\"x\":1024,\"y\":1946,\"width\":1280,\"height\":1760},{\"id\":\"011011b9aacd474b8ee05e4fc6f5e0af\",\"sourceScreen\":\"projects/9884415059820275587/screens/011011b9aacd474b8ee05e4fc6f5e0af\",\"x\":5056,\"y\":1946,\"width\":1280,\"height\":1312},{\"id\":\"13d2fda92bd44b5c9e65ffb77f14095e\",\"sourceScreen\":\"projects/9884415059820275587/screens/13d2fda92bd44b5c9e65ffb77f14095e\",\"x\":6336,\"width\":1280,\"height\":1081},{\"id\":\"17f926f0-8a09-453e-853e-fce4a181b893\",\"sourceScreen\":\"projects/9884415059820275587/screens/10816407230833933282\",\"width\":512,\"height\":895,\"type\":\"SCREEN_INSTANCE\"},{\"id\":\"23e5974376c242f8848a4032e9b1f1e7\",\"sourceScreen\":\"projects/9884415059820275587/screens/23e5974376c242f8848a4032e9b1f1e7\",\"x\":4992,\"width\":1280,\"height\":1690},{\"id\":\"357bc2b336b54fdc9d88a59bf0f6180b\",\"sourceScreen\":\"projects/9884415059820275587/screens/357bc2b336b54fdc9d88a59bf0f6180b\",\"x\":6400,\"y\":1946,\"width\":1280,\"height\":1696},{\"id\":\"419f106da2da498d964ff1af6b332f2f\",\"sourceScreen\":\"projects/9884415059820275587/screens/419f106da2da498d964ff1af6b332f2f\",\"x\":3648,\"width\":1280,\"height\":1043},{\"id\":\"45df732e-3b70-47e4-9f63-688c6d4aea13\",\"sourceScreen\":\"projects/9884415059820275587/screens/17136717431701867266\",\"y\":9847,\"width\":512,\"height\":909,\"type\":\"SCREEN_INSTANCE\"},{\"id\":\"4a3f9fe79407495cb1722b90a9456e87\",\"sourceScreen\":\"projects/9884415059820275587/screens/4a3f9fe79407495cb1722b90a9456e87\",\"x\":3264,\"y\":9847,\"width\":1280,\"height\":2067},{\"id\":\"5b8c5762-cfc5-43bf-957c-75f3771bedc2\",\"sourceScreen\":\"projects/9884415059820275587/screens/10816407230833932000\",\"x\":576,\"width\":512,\"height\":1024,\"type\":\"SCREEN_INSTANCE\"},{\"id\":\"6523674a5e4646bfb335c13096e6bc00\",\"sourceScreen\":\"projects/9884415059820275587/screens/6523674a5e4646bfb335c13096e6bc00\",\"x\":576,\"y\":9847,\"width\":1280,\"height\":1282},{\"id\":\"67cea888270945719218018162bd578c\",\"sourceScreen\":\"projects/9884415059820275587/screens/67cea888270945719218018162bd578c\",\"x\":3520,\"y\":6303,\"width\":1280,\"height\":1472},{\"id\":\"76988b404ed741a29e368b86798b2ddf\",\"sourceScreen\":\"projects/9884415059820275587/screens/76988b404ed741a29e368b86798b2ddf\",\"x\":1600,\"y\":6303,\"width\":512,\"height\":286},{\"id\":\"97dca0420db04cddadb4cf3686b8eb2e\",\"sourceScreen\":\"projects/9884415059820275587/screens/97dca0420db04cddadb4cf3686b8eb2e\",\"x\":5632,\"y\":9847,\"width\":512,\"height\":512},{\"id\":\"a3b2e865f5ee478f95e4aff630db7f59\",\"sourceScreen\":\"projects/9884415059820275587/screens/a3b2e865f5ee478f95e4aff630db7f59\",\"x\":1920,\"y\":9847,\"width\":1280,\"height\":1487},{\"id\":\"assets-25f5fea2b6034540a6129ab9b02ce240-1777520331324\",\"y\":1946,\"width\":960,\"height\":540,\"sourceAsset\":\"assets/25f5fea2b6034540a6129ab9b02ce240\",\"type\":\"DESIGN_SYSTEM_INSTANCE\"},{\"id\":\"assets-978d1633b0b04e53b912d36220a66150-1777520880047\",\"y\":6303,\"width\":960,\"height\":540,\"sourceAsset\":\"assets/978d1633b0b04e53b912d36220a66150\",\"type\":\"DESIGN_SYSTEM_INSTANCE\"},{\"id\":\"assets-e5832ad79227417c995697b6e5ecf069-1777516229283\",\"x\":64,\"y\":1280,\"width\":960,\"height\":540,\"sourceAsset\":\"assets/e5832ad79227417c995697b6e5ecf069\",\"type\":\"DESIGN_SYSTEM_INSTANCE\"},{\"id\":\"assets-f62c5ce9690a472cb2bf7cf672759df5-1777521092218\",\"x\":4608,\"y\":9847,\"width\":960,\"height\":540,\"sourceAsset\":\"assets/f62c5ce9690a472cb2bf7cf672759df5\",\"type\":\"DESIGN_SYSTEM_INSTANCE\"},{\"id\":\"b5d9421a-d121-4eb2-b0cf-61af95c7e996\",\"sourceScreen\":\"projects/9884415059820275587/screens/14358423604131024326\",\"x\":2762,\"y\":5023,\"width\":512,\"height\":1024,\"type\":\"SCREEN_INSTANCE\"},{\"id\":\"bb27c323d7ed4cc48f0898a46ba47840\",\"sourceScreen\":\"projects/9884415059820275587/screens/bb27c323d7ed4cc48f0898a46ba47840\",\"x\":4864,\"y\":6303,\"width\":1280,\"height\":1177},{\"id\":\"bcfefa87c56f4b16a214ce803f5df91d\",\"sourceScreen\":\"projects/9884415059820275587/screens/bcfefa87c56f4b16a214ce803f5df91d\",\"x\":2304,\"width\":1280,\"height\":1299},{\"id\":\"c43e776e4e12452fb105857d5665a2b1\",\"sourceScreen\":\"projects/9884415059820275587/screens/c43e776e4e12452fb105857d5665a2b1\",\"x\":6208,\"y\":9847,\"width\":512,\"height\":512},{\"id\":\"cc57e53c1bd14269a81267d4c00ec02a\",\"sourceScreen\":\"projects/9884415059820275587/screens/cc57e53c1bd14269a81267d4c00ec02a\",\"x\":7680,\"width\":1280,\"height\":1499},{\"id\":\"ce541b60fdd2407eb1fa1e873b80ed9d\",\"sourceScreen\":\"projects/9884415059820275587/screens/ce541b60fdd2407eb1fa1e873b80ed9d\",\"x\":3712,\"y\":1946,\"width\":1280,\"height\":1690},{\"id\":\"d128c195-d3c7-488c-9b43-f87935d8172e\",\"sourceScreen\":\"projects/9884415059820275587/screens/10816407230833930718\",\"x\":1152,\"width\":512,\"height\":768,\"type\":\"SCREEN_INSTANCE\"},{\"id\":\"e1d5a29c93144e2ea75d0b50bd8d0e5b\",\"sourceScreen\":\"projects/9884415059820275587/screens/e1d5a29c93144e2ea75d0b50bd8d0e5b\",\"x\":1024,\"y\":6303,\"width\":512,\"height\":286},{\"id\":\"f12011aa-706b-41b5-ad10-2cee91cf2602\",\"sourceScreen\":\"projects/9884415059820275587/screens/10816407230833933532\",\"x\":1728,\"width\":512,\"height\":854,\"hidden\":true,\"type\":\"SCREEN_INSTANCE\"},{\"id\":\"f707efda8d614d0988297b97591578bd\",\"sourceScreen\":\"projects/9884415059820275587/screens/f707efda8d614d0988297b97591578bd\",\"x\":2368,\"y\":1946,\"width\":1280,\"height\":1343},{\"id\":\"fac51b06b74240ac9cf3408b10fe13c6\",\"sourceScreen\":\"projects/9884415059820275587/screens/fac51b06b74240ac9cf3408b10fe13c6\",\"x\":2176,\"y\":6303,\"width\":1280,\"height\":1644}],\"metadata\":{\"userRole\":\"OWNER\"}}",
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "createTime": "2026-04-30T02:30:02.351611Z",
+      "designTheme": {
+        "bodyFont": "INTER",
+        "colorMode": "DARK",
+        "colorVariant": "FIDELITY",
+        "customColor": "#0F172A",
+        "designMd": "---\nname: Lumina Class\ncolors:\n  surface: '#051424'\n  surface-dim: '#051424'\n  surface-bright: '#2c3a4c'\n  surface-container-lowest: '#010f1f'\n  surface-container-low: '#0d1c2d'\n  surface-container: '#122131'\n  surface-container-high: '#1c2b3c'\n  surface-container-highest: '#273647'\n  on-surface: '#d4e4fa'\n  on-surface-variant: '#c6c6cd'\n  inverse-surface: '#d4e4fa'\n  inverse-on-surface: '#233143'\n  outline: '#909097'\n  outline-variant: '#45464d'\n  surface-tint: '#bec6e0'\n  primary: '#bec6e0'\n  on-primary: '#283044'\n  primary-container: '#0f172a'\n  on-primary-container: '#798098'\n  inverse-primary: '#565e74'\n  secondary: '#ffb95f'\n  on-secondary: '#472a00'\n  secondary-container: '#ee9800'\n  on-secondary-container: '#5b3800'\n  tertiary: '#89ceff'\n  on-tertiary: '#00344d'\n  tertiary-container: '#001a29'\n  on-tertiary-container: '#0089c3'\n  error: '#ffb4ab'\n  on-error: '#690005'\n  error-container: '#93000a'\n  on-error-container: '#ffdad6'\n  primary-fixed: '#dae2fd'\n  primary-fixed-dim: '#bec6e0'\n  on-primary-fixed: '#131b2e'\n  on-primary-fixed-variant: '#3f465c'\n  secondary-fixed: '#ffddb8'\n  secondary-fixed-dim: '#ffb95f'\n  on-secondary-fixed: '#2a1700'\n  on-secondary-fixed-variant: '#653e00'\n  tertiary-fixed: '#c9e6ff'\n  tertiary-fixed-dim: '#89ceff'\n  on-tertiary-fixed: '#001e2f'\n  on-tertiary-fixed-variant: '#004c6e'\n  background: '#051424'\n  on-background: '#d4e4fa'\n  surface-variant: '#273647'\ntypography:\n  display-lg:\n    fontFamily: Manrope\n    fontSize: 48px\n    fontWeight: '800'\n    lineHeight: '1.1'\n    letterSpacing: -0.02em\n  headline-md:\n    fontFamily: Manrope\n    fontSize: 32px\n    fontWeight: '700'\n    lineHeight: '1.2'\n  title-sm:\n    fontFamily: Manrope\n    fontSize: 20px\n    fontWeight: '600'\n    lineHeight: '1.4'\n  body-base:\n    fontFamily: Inter\n    fontSize: 16px\n    fontWeight: '400'\n    lineHeight: '1.6'\n  label-caps:\n    fontFamily: Inter\n    fontSize: 12px\n    fontWeight: '600'\n    lineHeight: '1'\n    letterSpacing: 0.05em\nrounded:\n  sm: 0.25rem\n  DEFAULT: 0.5rem\n  md: 0.75rem\n  lg: 1rem\n  xl: 1.5rem\n  full: 9999px\nspacing:\n  base: 4px\n  xs: 8px\n  sm: 16px\n  md: 24px\n  lg: 48px\n  xl: 80px\n  gutter: 24px\n  margin-safe: 32px\n---\n\n## Brand & Style\n\nThe design system is built on the intersection of academic authority and technological foresight. It moves away from the \"playful\" tropes of EdTech—bright primary colors and bubbly shapes—and instead adopts a **High-Contrast Modern** aesthetic that signals productivity and premium value. \n\nThe personality is focused yet supportive. The visual style utilizes **Glassmorphism** and **Tonal Layering** to create a sense of depth, simulating a physical workspace that is clean and organized. Key attributes include:\n- **Premium Productivity:** High-contrast layouts that prioritize content legibility and focus.\n- **Calm Intelligence:** Using deep, dark backgrounds to reduce eye strain during long classroom follow-up sessions.\n- **Sophisticated AI:** Eschewing generic robot icons for abstract, glowing UI elements and subtle motion that suggest intelligent assistance.\n\n## Colors\n\nThe design system utilizes a \"Deep Night\" dark mode as its default state to create a premium, high-focus environment. \n\n- **Primary (Navy/Charcoal):** The foundation of the system. Used for backgrounds and primary containers to provide a professional, grounded feel.\n- **Warm Education Accents (Amber):** Used sparingly for human-centric elements like student profiles, teacher feedback, and \"high-importance\" classroom alerts.\n- **Cool AI Accents (Electric Blue & Violet):** Reserved specifically for AI-generated summaries, data visualizations, and automated insights.\n- **High-Contrast Text:** Off-white and light silver are used to ensure maximum readability against the deep navy backgrounds, avoiding the harshness of pure white (#FFFFFF).\n\n## Typography\n\nTypography in the design system is used to create a clear informational hierarchy. **Manrope** is used for headlines to provide a modern, geometric character that feels premium and structural. **Inter** is used for body copy and data-heavy labels due to its exceptional legibility at small sizes and high x-height.\n\nKey rules:\n- **Tight Headlines:** Large display text should have negative letter spacing to feel \"locked in\" and professional.\n- **High Contrast:** Use font weight rather than just size to distinguish importance.\n- **Labels:** Small labels should use uppercase with increased tracking to maintain a technical, organized feel.\n\n## Layout & Spacing\n\nThis design system employs a **Fixed Grid** model for centralized dashboards and a **Fluid Content** model for classroom feeds. It is built on an 8-pixel rhythm, ensuring all elements align to a consistent mathematical scale.\n\n- **Desktop Layout:** 12-column grid with 24px gutters. Content is typically contained within a 1280px max-width container.\n- **Section Breathing Room:** Generous vertical spacing (80px+) between major sections to prevent the UI from feeling \"cramped\" or \"enterprise-gray.\"\n- **Focus Padding:** High-density data areas (like grade lists) use 8px spacing, while analytical summaries use 24px+ to allow the AI insights to breathe.\n\n## Elevation & Depth\n\nDepth is conveyed through **Glassmorphism** and **Tonal Layering** rather than traditional drop shadows. \n\n1. **The Canvas:** The lowest level is the deep background (`#020617`).\n2. **Glass Layers:** Cards and navigation use a backdrop blur (20px) with a semi-transparent fill and a subtle 1px border. This creates a \"frosted lens\" effect that feels light and modern.\n3. **Inner Glow:** Instead of dark shadows, elevated components use a subtle \"inner glow\" (a top-aligned light stroke) to simulate a light source from above.\n4. **AI Highlight:** Elements powered by AI utilize a soft, colored outer glow (using the violet/blue accent) to signify they are \"active\" or \"intelligent.\"\n\n## Shapes\n\nThe shape language is \"Softly Architectural.\" It avoids the extreme roundness of consumer apps but stays away from the aggressive sharpness of legacy software.\n\n- **Primary Components:** (Cards, Modals) use a 1rem (16px) radius to feel approachable.\n- **Action Elements:** (Buttons, Inputs) use a 0.5rem (8px) radius to feel precise and tool-like.\n- **Interaction Feedback:** Hover states often transition from a standard radius to a slightly tighter one, giving a \"compressed\" feel upon interaction.\n\n## Components\n\n### Buttons\n- **Primary:** Solid navy background with a subtle gradient and a white label. 1px stroke for definition.\n- **Secondary:** Ghost style with a 1px border and a glass background.\n- **AI Action:** A specialized button featuring a subtle violet-to-blue shimmering gradient.\n\n### Cards\nCards are the core of the design system. They feature a `20px` backdrop blur, a semi-transparent dark fill, and a `1px` border that is slightly lighter than the background. They should never have heavy drop shadows.\n\n### Input Fields\nInputs are dark with a \"sunken\" feel. When focused, the border transitions to the primary accent color (Amber or Blue depending on context) with a soft outer glow.\n\n### Chips & Badges\nUsed for categorizing classroom topics. Badges use a low-opacity fill of the accent color (e.g., 10% Amber) with high-contrast text for a sophisticated \"tag\" look.\n\n### AI Follow-up List\nA specialized list component where items are separated by subtle horizontal rules. AI-generated items feature a vertical \"logic bar\" on the left side in the accent violet color.",
+        "font": "MANROPE",
+        "headlineFont": "MANROPE",
+        "labelFont": "INTER",
+        "namedColors": {
+          "background": "#051424",
+          "error": "#ffb4ab",
+          "error_container": "#93000a",
+          "inverse_on_surface": "#233143",
+          "inverse_primary": "#565e74",
+          "inverse_surface": "#d4e4fa",
+          "on_background": "#d4e4fa",
+          "on_error": "#690005",
+          "on_error_container": "#ffdad6",
+          "on_primary": "#283044",
+          "on_primary_container": "#798098",
+          "on_primary_fixed": "#131b2e",
+          "on_primary_fixed_variant": "#3f465c",
+          "on_secondary": "#472a00",
+          "on_secondary_container": "#5b3800",
+          "on_secondary_fixed": "#2a1700",
+          "on_secondary_fixed_variant": "#653e00",
+          "on_surface": "#d4e4fa",
+          "on_surface_variant": "#c6c6cd",
+          "on_tertiary": "#00344d",
+          "on_tertiary_container": "#0089c3",
+          "on_tertiary_fixed": "#001e2f",
+          "on_tertiary_fixed_variant": "#004c6e",
+          "outline": "#909097",
+          "outline_variant": "#45464d",
+          "primary": "#bec6e0",
+          "primary_container": "#0f172a",
+          "primary_fixed": "#dae2fd",
+          "primary_fixed_dim": "#bec6e0",
+          "secondary": "#ffb95f",
+          "secondary_container": "#ee9800",
+          "secondary_fixed": "#ffddb8",
+          "secondary_fixed_dim": "#ffb95f",
+          "surface": "#051424",
+          "surface_bright": "#2c3a4c",
+          "surface_container": "#122131",
+          "surface_container_high": "#1c2b3c",
+          "surface_container_highest": "#273647",
+          "surface_container_low": "#0d1c2d",
+          "surface_container_lowest": "#010f1f",
+          "surface_dim": "#051424",
+          "surface_tint": "#bec6e0",
+          "surface_variant": "#273647",
+          "tertiary": "#89ceff",
+          "tertiary_container": "#001a29",
+          "tertiary_fixed": "#c9e6ff",
+          "tertiary_fixed_dim": "#89ceff"
+        },
+        "overrideNeutralColor": "#94A3B8",
+        "overridePrimaryColor": "#0F172A",
+        "overrideSecondaryColor": "#F59E0B",
+        "overrideTertiaryColor": "#0EA5E9",
+        "roundness": "ROUND_EIGHT",
+        "spacing": {
+          "base": "4px",
+          "gutter": "24px",
+          "lg": "48px",
+          "margin-safe": "32px",
+          "md": "24px",
+          "sm": "16px",
+          "xl": "80px",
+          "xs": "8px"
+        },
+        "spacingScale": 2,
+        "typography": {
+          "body-base": {
+            "fontFamily": "Inter",
+            "fontSize": "16px",
+            "fontWeight": "400",
+            "lineHeight": "1.6"
+          },
+          "display-lg": {
+            "fontFamily": "Manrope",
+            "fontSize": "48px",
+            "fontWeight": "800",
+            "letterSpacing": "-0.02em",
+            "lineHeight": "1.1"
+          },
+          "headline-md": {
+            "fontFamily": "Manrope",
+            "fontSize": "32px",
+            "fontWeight": "700",
+            "lineHeight": "1.2"
+          },
+          "label-caps": {
+            "fontFamily": "Inter",
+            "fontSize": "12px",
+            "fontWeight": "600",
+            "letterSpacing": "0.05em",
+            "lineHeight": "1"
+          },
+          "title-sm": {
+            "fontFamily": "Manrope",
+            "fontSize": "20px",
+            "fontWeight": "600",
+            "lineHeight": "1.4"
+          }
+        }
+      },
+      "deviceType": "DESKTOP",
+      "metadata": {
+        "userRole": "OWNER"
+      },
+      "name": "projects/9884415059820275587",
+      "origin": "STITCH",
+      "projectType": "TEXT_TO_UI_PRO",
+      "screenInstances": [
+        {
+          "height": 1760,
+          "id": "00f9a5dae5f54741b44adeb7ddafe826",
+          "sourceScreen": "projects/9884415059820275587/screens/00f9a5dae5f54741b44adeb7ddafe826",
+          "width": 1280,
+          "x": 1024,
+          "y": 1946
+        },
+        {
+          "height": 1312,
+          "id": "011011b9aacd474b8ee05e4fc6f5e0af",
+          "sourceScreen": "projects/9884415059820275587/screens/011011b9aacd474b8ee05e4fc6f5e0af",
+          "width": 1280,
+          "x": 5056,
+          "y": 1946
+        },
+        {
+          "height": 1081,
+          "id": "13d2fda92bd44b5c9e65ffb77f14095e",
+          "sourceScreen": "projects/9884415059820275587/screens/13d2fda92bd44b5c9e65ffb77f14095e",
+          "width": 1280,
+          "x": 6336
+        },
+        {
+          "height": 895,
+          "id": "17f926f0-8a09-453e-853e-fce4a181b893",
+          "sourceScreen": "projects/9884415059820275587/screens/10816407230833933282",
+          "type": "SCREEN_INSTANCE",
+          "width": 512
+        },
+        {
+          "height": 1690,
+          "id": "23e5974376c242f8848a4032e9b1f1e7",
+          "sourceScreen": "projects/9884415059820275587/screens/23e5974376c242f8848a4032e9b1f1e7",
+          "width": 1280,
+          "x": 4992
+        },
+        {
+          "height": 1696,
+          "id": "357bc2b336b54fdc9d88a59bf0f6180b",
+          "sourceScreen": "projects/9884415059820275587/screens/357bc2b336b54fdc9d88a59bf0f6180b",
+          "width": 1280,
+          "x": 6400,
+          "y": 1946
+        },
+        {
+          "height": 1043,
+          "id": "419f106da2da498d964ff1af6b332f2f",
+          "sourceScreen": "projects/9884415059820275587/screens/419f106da2da498d964ff1af6b332f2f",
+          "width": 1280,
+          "x": 3648
+        },
+        {
+          "height": 909,
+          "id": "45df732e-3b70-47e4-9f63-688c6d4aea13",
+          "sourceScreen": "projects/9884415059820275587/screens/17136717431701867266",
+          "type": "SCREEN_INSTANCE",
+          "width": 512,
+          "y": 9847
+        },
+        {
+          "height": 2067,
+          "id": "4a3f9fe79407495cb1722b90a9456e87",
+          "sourceScreen": "projects/9884415059820275587/screens/4a3f9fe79407495cb1722b90a9456e87",
+          "width": 1280,
+          "x": 3264,
+          "y": 9847
+        },
+        {
+          "height": 1024,
+          "id": "5b8c5762-cfc5-43bf-957c-75f3771bedc2",
+          "sourceScreen": "projects/9884415059820275587/screens/10816407230833932000",
+          "type": "SCREEN_INSTANCE",
+          "width": 512,
+          "x": 576
+        },
+        {
+          "height": 1282,
+          "id": "6523674a5e4646bfb335c13096e6bc00",
+          "sourceScreen": "projects/9884415059820275587/screens/6523674a5e4646bfb335c13096e6bc00",
+          "width": 1280,
+          "x": 576,
+          "y": 9847
+        },
+        {
+          "height": 1472,
+          "id": "67cea888270945719218018162bd578c",
+          "sourceScreen": "projects/9884415059820275587/screens/67cea888270945719218018162bd578c",
+          "width": 1280,
+          "x": 3520,
+          "y": 6303
+        },
+        {
+          "height": 286,
+          "id": "76988b404ed741a29e368b86798b2ddf",
+          "sourceScreen": "projects/9884415059820275587/screens/76988b404ed741a29e368b86798b2ddf",
+          "width": 512,
+          "x": 1600,
+          "y": 6303
+        },
+        {
+          "height": 512,
+          "id": "97dca0420db04cddadb4cf3686b8eb2e",
+          "sourceScreen": "projects/9884415059820275587/screens/97dca0420db04cddadb4cf3686b8eb2e",
+          "width": 512,
+          "x": 5632,
+          "y": 9847
+        },
+        {
+          "height": 1487,
+          "id": "a3b2e865f5ee478f95e4aff630db7f59",
+          "sourceScreen": "projects/9884415059820275587/screens/a3b2e865f5ee478f95e4aff630db7f59",
+          "width": 1280,
+          "x": 1920,
+          "y": 9847
+        },
+        {
+          "height": 540,
+          "id": "assets-25f5fea2b6034540a6129ab9b02ce240-1777520331324",
+          "sourceAsset": "assets/25f5fea2b6034540a6129ab9b02ce240",
+          "type": "DESIGN_SYSTEM_INSTANCE",
+          "width": 960,
+          "y": 1946
+        },
+        {
+          "height": 540,
+          "id": "assets-978d1633b0b04e53b912d36220a66150-1777520880047",
+          "sourceAsset": "assets/978d1633b0b04e53b912d36220a66150",
+          "type": "DESIGN_SYSTEM_INSTANCE",
+          "width": 960,
+          "y": 6303
+        },
+        {
+          "height": 540,
+          "id": "assets-e5832ad79227417c995697b6e5ecf069-1777516229283",
+          "sourceAsset": "assets/e5832ad79227417c995697b6e5ecf069",
+          "type": "DESIGN_SYSTEM_INSTANCE",
+          "width": 960,
+          "x": 64,
+          "y": 1280
+        },
+        {
+          "height": 540,
+          "id": "assets-f62c5ce9690a472cb2bf7cf672759df5-1777521092218",
+          "sourceAsset": "assets/f62c5ce9690a472cb2bf7cf672759df5",
+          "type": "DESIGN_SYSTEM_INSTANCE",
+          "width": 960,
+          "x": 4608,
+          "y": 9847
+        },
+        {
+          "height": 1024,
+          "id": "b5d9421a-d121-4eb2-b0cf-61af95c7e996",
+          "sourceScreen": "projects/9884415059820275587/screens/14358423604131024326",
+          "type": "SCREEN_INSTANCE",
+          "width": 512,
+          "x": 2762,
+          "y": 5023
+        },
+        {
+          "height": 1177,
+          "id": "bb27c323d7ed4cc48f0898a46ba47840",
+          "sourceScreen": "projects/9884415059820275587/screens/bb27c323d7ed4cc48f0898a46ba47840",
+          "width": 1280,
+          "x": 4864,
+          "y": 6303
+        },
+        {
+          "height": 1299,
+          "id": "bcfefa87c56f4b16a214ce803f5df91d",
+          "sourceScreen": "projects/9884415059820275587/screens/bcfefa87c56f4b16a214ce803f5df91d",
+          "width": 1280,
+          "x": 2304
+        },
+        {
+          "height": 512,
+          "id": "c43e776e4e12452fb105857d5665a2b1",
+          "sourceScreen": "projects/9884415059820275587/screens/c43e776e4e12452fb105857d5665a2b1",
+          "width": 512,
+          "x": 6208,
+          "y": 9847
+        },
+        {
+          "height": 1499,
+          "id": "cc57e53c1bd14269a81267d4c00ec02a",
+          "sourceScreen": "projects/9884415059820275587/screens/cc57e53c1bd14269a81267d4c00ec02a",
+          "width": 1280,
+          "x": 7680
+        },
+        {
+          "height": 1690,
+          "id": "ce541b60fdd2407eb1fa1e873b80ed9d",
+          "sourceScreen": "projects/9884415059820275587/screens/ce541b60fdd2407eb1fa1e873b80ed9d",
+          "width": 1280,
+          "x": 3712,
+          "y": 1946
+        },
+        {
+          "height": 768,
+          "id": "d128c195-d3c7-488c-9b43-f87935d8172e",
+          "sourceScreen": "projects/9884415059820275587/screens/10816407230833930718",
+          "type": "SCREEN_INSTANCE",
+          "width": 512,
+          "x": 1152
+        },
+        {
+          "height": 286,
+          "id": "e1d5a29c93144e2ea75d0b50bd8d0e5b",
+          "sourceScreen": "projects/9884415059820275587/screens/e1d5a29c93144e2ea75d0b50bd8d0e5b",
+          "width": 512,
+          "x": 1024,
+          "y": 6303
+        },
+        {
+          "height": 854,
+          "hidden": true,
+          "id": "f12011aa-706b-41b5-ad10-2cee91cf2602",
+          "sourceScreen": "projects/9884415059820275587/screens/10816407230833933532",
+          "type": "SCREEN_INSTANCE",
+          "width": 512,
+          "x": 1728
+        },
+        {
+          "height": 1343,
+          "id": "f707efda8d614d0988297b97591578bd",
+          "sourceScreen": "projects/9884415059820275587/screens/f707efda8d614d0988297b97591578bd",
+          "width": 1280,
+          "x": 2368,
+          "y": 1946
+        },
+        {
+          "height": 1644,
+          "id": "fac51b06b74240ac9cf3408b10fe13c6",
+          "sourceScreen": "projects/9884415059820275587/screens/fac51b06b74240ac9cf3408b10fe13c6",
+          "width": 1280,
+          "x": 2176,
+          "y": 6303
+        }
+      ],
+      "thumbnailScreenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ug8TxtBb8yuWih14XQoH6XlbqamaRKr--cWaE8f-QxbGDpwLfYq09SqlI54X3ykqRecptL9C6shF621w_YFUywoPLF2TVlsz0jkS8VNvKyf4X_97v6oqspslJRDts6M3Qjn11LNTZ3hV_3ja4o0QFZX-rGFWp392YjNjJUrxXwUnAMGjxYbNgpp3qE6DozPQyvAfBCzdoacm6EOl02Z2Wb3ftCbHyQlosL36p3_G8BJ75Cs6kQU14T6Uck",
+        "name": "projects/9884415059820275587/files/5a67b04f17f3451888b17ac2215ef359"
+      },
+      "title": "ClassLoop AI Education Platform",
+      "updateTime": "2026-04-30T03:55:45.919298Z",
+      "visibility": "PRIVATE"
+    }
+  }
+}

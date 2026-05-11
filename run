@@ -1,0 +1,12 @@
+#!/bin/zsh
+set -e
+
+cd "$(dirname "$0")"
+
+if [ ! -d node_modules ]; then
+  echo "Installing ClassLoop dependencies..."
+  npm install
+fi
+
+echo "Starting ClassLoop..."
+npm run start

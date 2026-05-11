@@ -1,0 +1,28 @@
+{
+  "id": 736827835,
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [
+      {
+        "text": "{\"name\":\"projects/9884415059820275587/screens/a3b2e865f5ee478f95e4aff630db7f59\",\"title\":\"Student Dashboard (Abyssal)\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/abab0deab67c4c9dad206f979c220954\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uhBtm8jWTdX-NZlmSfW74wir6efeUNXipUnM5S1xTbxt7Zfwo7lGmEHggR8yStO6vbenpyq9r-THtBvA_bVxKW4QpD9KHjUCQ0PjEmPIuGQOwqNjqCyLcGIklBUyubQDDZTvbPLHl-u2gSW-qzy8cS64w49p6-tIGpN9ZB9cHlbUGtX09FezljAz-I_xcQ1mgTrPGONYpFAhdOCNkNsjNAE01kNXD-wcWaGTj-VrvlkOpU4de5V6zKxwwA\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/076b8a73b05648e3b732e664503770b2\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzQ4YjA4Yjc2Y2E4NDRmNTdiNmVmNTFhM2M2NWRjZmE0EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2974\",\"deviceType\":\"DESKTOP\"}",
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "deviceType": "DESKTOP",
+      "height": "2974",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzQ4YjA4Yjc2Y2E4NDRmNTdiNmVmNTFhM2M2NWRjZmE0EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/9884415059820275587/files/076b8a73b05648e3b732e664503770b2"
+      },
+      "name": "projects/9884415059820275587/screens/a3b2e865f5ee478f95e4aff630db7f59",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uhBtm8jWTdX-NZlmSfW74wir6efeUNXipUnM5S1xTbxt7Zfwo7lGmEHggR8yStO6vbenpyq9r-THtBvA_bVxKW4QpD9KHjUCQ0PjEmPIuGQOwqNjqCyLcGIklBUyubQDDZTvbPLHl-u2gSW-qzy8cS64w49p6-tIGpN9ZB9cHlbUGtX09FezljAz-I_xcQ1mgTrPGONYpFAhdOCNkNsjNAE01kNXD-wcWaGTj-VrvlkOpU4de5V6zKxwwA",
+        "name": "projects/9884415059820275587/files/abab0deab67c4c9dad206f979c220954"
+      },
+      "title": "Student Dashboard (Abyssal)",
+      "width": "2560"
+    }
+  }
+}

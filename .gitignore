@@ -1,14 +1,5 @@
 node_modules
-.test-build
-.env.local
-.env.*.local
-dist/assets/index-*.js
-dist/assets/index-*.css
+dist
 .classloop-data.json
-.classloop-integrations.json
-.env.local
 .DS_Store
 *.log
-test-results
-playwright-report
-release

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;600;700;800;900&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed": "#0d1c32",
+                    "on-tertiary-fixed-variant": "#39475f",
+                    "tertiary-fixed-dim": "#b9c7e4",
+                    "on-background": "#dde3ea",
+                    "primary-fixed-dim": "#00dbe9",
+                    "primary": "#dbfcff",
+                    "primary-container": "#00f0ff",
+                    "inverse-primary": "#006970",
+                    "on-error": "#690005",
+                    "background": "#0e1419",
+                    "primary-fixed": "#7df4ff",
+                    "on-secondary-fixed": "#221045",
+                    "on-tertiary-container": "#525f79",
+                    "on-secondary": "#37265b",
+                    "surface-container-high": "#242b30",
+                    "on-primary": "#00363a",
+                    "surface-container-lowest": "#080f14",
+                    "surface-container": "#1a2025",
+                    "surface-variant": "#2f363b",
+                    "on-primary-fixed": "#002022",
+                    "surface-container-highest": "#2f363b",
+                    "on-primary-fixed-variant": "#004f54",
+                    "secondary-container": "#4e3d74",
+                    "on-secondary-container": "#bfabea",
+                    "surface": "#0e1419",
+                    "on-surface": "#dde3ea",
+                    "on-surface-variant": "#b9cacb",
+                    "tertiary": "#f4f6ff",
+                    "inverse-surface": "#dde3ea",
+                    "on-tertiary": "#233148",
+                    "surface-container-low": "#161c21",
+                    "on-secondary-fixed-variant": "#4e3d74",
+                    "error-container": "#93000a",
+                    "outline-variant": "#3b494b",
+                    "surface-dim": "#0e1419",
+                    "outline": "#849495",
+                    "error": "#ffb4ab",
+                    "secondary": "#d1bcfc",
+                    "secondary-fixed-dim": "#d1bcfc",
+                    "on-primary-container": "#006970",
+                    "tertiary-container": "#ccdaf8",
+                    "tertiary-fixed": "#d6e3ff",
+                    "secondary-fixed": "#eaddff",
+                    "surface-tint": "#00dbe9",
+                    "inverse-on-surface": "#2b3137",
+                    "surface-bright": "#333a40",
+                    "on-error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "8px",
+                    "margin-page": "64px",
+                    "container-max": "1280px",
+                    "gutter": "24px",
+                    "section-gap": "120px"
+            },
+            "fontFamily": {
+                    "headline-xl": ["Epilogue"],
+                    "body-md": ["Manrope"],
+                    "headline-md": ["Epilogue"],
+                    "body-lg": ["Manrope"],
+                    "headline-lg": ["Epilogue"],
+                    "label-caps": ["Manrope"]
+            },
+            "fontSize": {
+                    "headline-xl": ["72px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-md": ["32px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "label-caps": ["12px", {"lineHeight": "1.4", "letterSpacing": "0.2em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0e1419;
+            color: #dde3ea;
+            overflow-x: hidden;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glow-node {
+            background: rgba(0, 240, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+        }
+        .hero-mask {
+            mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+        }
+    </style>
+</head>
+<body class="font-body-md selection:bg-primary-container selection:text-on-primary-container">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-0 h-screen flex flex-col p-6 z-40 bg-slate-950/40 backdrop-blur-3xl border-r border-white/10 w-72 shadow-2xl shadow-cyan-900/20">
+<div class="mb-12 px-4">
+<h1 class="text-xl font-bold text-cyan-400 font-headline-md tracking-tighter">Abyssal</h1>
+<p class="font-label-caps text-[10px] text-slate-500 uppercase tracking-[0.3em]">Ethereal Learning</p>
+</div>
+<nav class="flex flex-col gap-2 flex-grow">
+<a class="flex items-center gap-3 bg-white/10 text-cyan-400 rounded-lg px-4 py-3 shadow-[0_0_15px_rgba(0,240,255,0.15)] border border-cyan-400/20 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-['Epilogue'] text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-slate-400 px-4 py-3 hover:bg-white/5 hover:text-slate-100 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">waves</span>
+<span class="font-['Epilogue'] text-sm font-medium">Deep Currents</span>
+</a>
+<a class="flex items-center gap-3 text-slate-400 px-4 py-3 hover:bg-white/5 hover:text-slate-100 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">library_books</span>
+<span class="font-['Epilogue'] text-sm font-medium">Knowledge Reef</span>
+</a>
+<a class="flex items-center gap-3 text-slate-400 px-4 py-3 hover:bg-white/5 hover:text-slate-100 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">school</span>
+<span class="font-['Epilogue'] text-sm font-medium">Educator Portal</span>
+</a>
+<a class="flex items-center gap-3 text-slate-400 px-4 py-3 hover:bg-white/5 hover:text-slate-100 transition-colors duration-200 mt-auto" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-['Epilogue'] text-sm font-medium">Settings</span>
+</a>
+</nav>
+<button class="mt-6 w-full py-4 bg-primary-container text-on-primary font-bold rounded-xl shadow-[0_0_20px_rgba(0,240,255,0.3)] active:scale-95 transition-all">
+            New Discovery
+        </button>
+</aside>
+<!-- Main Content -->
+<main class="ml-72 min-h-screen relative">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-50 flex items-center justify-between w-full px-12 py-6 bg-slate-950/30 backdrop-blur-2xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
+<div class="flex items-center gap-8">
+<h2 class="text-2xl font-black tracking-tighter text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.4)] font-headline-md">Abyssal Academy</h2>
+<div class="hidden md:flex gap-6">
+<a class="text-cyan-400 border-b-2 border-cyan-400 pb-1 font-['Epilogue'] text-sm transition-all" href="#">Overview</a>
+<a class="text-slate-400 hover:text-cyan-300 transition-all font-['Epilogue'] text-sm" href="#">Curriculum</a>
+<a class="text-slate-400 hover:text-cyan-300 transition-all font-['Epilogue'] text-sm" href="#">Analytics</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-cyan-400 transition-colors cursor-pointer">notifications</span>
+<span class="absolute -top-1 -right-1 w-2 h-2 bg-cyan-400 rounded-full"></span>
+</div>
+<span class="material-symbols-outlined text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer">explore</span>
+<div class="w-10 h-10 rounded-full border-2 border-cyan-400/30 overflow-hidden bg-slate-800">
+<img alt="Instructor profile avatar" class="w-full h-full object-cover" data-alt="A professional close-up portrait of a refined academic instructor in a dark, atmospheric setting. The lighting is soft and directional, highlighting the contours of their face with a cool, cinematic cyan tint. The background is a blurred, deep navy blue library environment, creating a sense of sophisticated wisdom and calm authority." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjQDHVZXh83Svv-EiFdqOyW8ONLxmTkvVS5i4A-9uqIxaBndm2iJ39o7RCJM4KF81yypzhv7xQCkQFqN8S7gKrOXpuU46kzhVN15AjGpicZ9HE7a3XcVQnDn-zAzgsfLT-8nC5atfOqmq0_XOC3mkLlnJdJbvhv9rSbVBYu0irFkKoTFo76xhn-fvgFbQa21EZRf1SDc05tc5pKpPvC4lAV3cP1YVXvm7uhwTpjFC7cC4pL1_ptPJWN60QtFjYJOZ1ADt4Dk37UPY"/>
+</div>
+</div>
+</header>
+<!-- Hero Section -->
+<section class="relative h-[819px] flex items-center px-12 overflow-hidden">
+<div class="absolute inset-0 z-0">
+<img alt="Massive Hero Background" class="w-full h-full object-cover opacity-40 hero-mask" data-alt="A massive, cinematic landscape of a deep-sea canyon with ethereal bioluminescent flora glowing in vibrant cyan and soft lavender. The water is dark and obsidian, filled with floating micro-particles that catch the light like distant stars. High-contrast shadows and atmospheric depth create a mysterious, immersive oceanic abyss, serving as a powerful background for high-end digital interfaces." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeJNqufDskMqBlno18EehCycPl9ZGN0K9drH2_oSuVKFpDLYRk4F2Ao5xW4c8LHHx0fQ6gqWNdw1tet4X8DB3JqOTYtcaeOvyEcVVN6eZY1WxMT92dDktGIfz_O6OAZFjQJBDXebIcSHMBOAHIybOe740L2pRwW0Qa-x0CtwryWL83r3ehapdOC-a0sSlnryNjfYaZMqnGqvDy-Fl5PliIX9ockBD-m48CXrOcDKx5SwrrjIlbNOjuWfggc2y48LCVy_ABxBXpIEw"/>
+<div class="absolute inset-0 bg-gradient-to-r from-background via-transparent to-transparent"></div>
+</div>
+<div class="relative z-10 max-w-3xl">
+<span class="font-label-caps text-cyan-400 tracking-[0.4em] mb-4 block">COMMAND CENTER</span>
+<h1 class="font-headline-xl text-on-background mb-6">Welcome back,<br/><span class="text-primary-container">Instructor Kai</span></h1>
+<p class="font-body-lg text-on-surface-variant max-w-xl mb-12">The depths of the knowledge reef are shifting. Your students are currently engaged in 12 active streams across the abyssal zones.</p>
+<!-- Glowing Nodes -->
+<div class="flex gap-8">
+<div class="glow-node px-8 py-6 rounded-2xl border border-cyan-400/20 group hover:border-cyan-400/50 transition-all duration-500">
+<div class="flex items-center gap-4 mb-2">
+<span class="material-symbols-outlined text-cyan-400" style="font-variation-settings: 'FILL' 1;">insights</span>
+<span class="font-label-caps text-slate-400">Participation</span>
+</div>
+<div class="text-4xl font-headline-md text-white">94%</div>
+<div class="h-1 w-full bg-slate-800 rounded-full mt-4 overflow-hidden">
+<div class="h-full bg-cyan-400 w-[94%] shadow-[0_0_10px_#00f0ff]"></div>
+</div>
+</div>
+<div class="glow-node px-8 py-6 rounded-2xl border border-cyan-400/20 group hover:border-cyan-400/50 transition-all duration-500">
+<div class="flex items-center gap-4 mb-2">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">pending_actions</span>
+<span class="font-label-caps text-slate-400">Pending</span>
+</div>
+<div class="text-4xl font-headline-md text-white">08</div>
+<p class="text-xs text-secondary mt-2 font-medium">+2 Since Sunrise</p>
+</div>
+<div class="glow-node px-8 py-6 rounded-2xl border border-cyan-400/20 group hover:border-cyan-400/50 transition-all duration-500">
+<div class="flex items-center gap-4 mb-2">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="font-label-caps text-slate-400">Attention</span>
+</div>
+<div class="text-4xl font-headline-md text-white">03</div>
+<p class="text-xs text-error mt-2 font-medium">Action Required</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Grid / Recent Sessions -->
+<section class="px-12 pb-24 -mt-20 relative z-20">
+<div class="flex items-end justify-between mb-12">
+<div>
+<h3 class="font-headline-lg text-white mb-2">Recent Currents</h3>
+<p class="font-body-md text-slate-400">Monitoring active learning cycles and knowledge absorption.</p>
+</div>
+<button class="flex items-center gap-2 text-cyan-400 font-label-caps hover:gap-4 transition-all group">
+                    VIEW ALL SESSIONS <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Session Card 1 -->
+<div class="glass-card rounded-3xl p-8 hover:translate-y-[-8px] transition-all duration-500 flex flex-col group">
+<div class="flex justify-between items-start mb-6">
+<div class="w-14 h-14 rounded-2xl bg-cyan-400/10 flex items-center justify-center border border-cyan-400/30">
+<span class="material-symbols-outlined text-cyan-400 text-3xl">psychology</span>
+</div>
+<span class="bg-cyan-400/20 text-cyan-400 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">Active Now</span>
+</div>
+<h4 class="font-headline-md text-white mb-2 group-hover:text-cyan-400 transition-colors">Neural Mapping 101</h4>
+<p class="font-body-md text-slate-400 mb-8 line-clamp-2">Visualizing complex synaptic connections within the Knowledge Reef environment.</p>
+<div class="mt-auto flex items-center justify-between">
+<div class="flex -space-x-3">
+<img alt="Student" class="w-8 h-8 rounded-full border-2 border-slate-900 object-cover" data-alt="Student avatar portrait with soft blue backlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDA8VwxX-yKm40zFInPRcSz363qX8MRToUtD8jb51r-AdlERjw0kIVKB70ZJ-kZ4Nuh4_zXQ7cmqdczqyg1x_CjJS2wcMHJ_cxlJk8K7jyRkLbsTUw3ZPNQR5nNgzlVNsUgM3P88bN-39_IYa6sifgGDRf5gI3o82mOzpgqv-3QK2vzp7ox10JTDtbplZq0KcbCd5G2I20XWsFQRXODd9rQ_DD_6QRKn7gofnsPTm0_rGqBKUbKmlXJPqYL2HPEI5t6hhCpxkVoJ7s"/>
+<img alt="Student" class="w-8 h-8 rounded-full border-2 border-slate-900 object-cover" data-alt="Student avatar portrait with warm rim light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6gak0VytGcfbld06v6bKykyxfHYeBZdBeqUFUe0G3ra8fYkzwgsrz2tPHM2NJHfzPXruqJkgkWK8tq85FodudUObZ1Syr9Vl8yOQknPjE_ewvjn4HlssttmrPEQzYa-qFrMtBCnQ8SyG0wtQR5LvErE4pMbzESI38tyAwHISyIfQpYsRUsxKosUJNcpE8IqHBCLGr5S7ff7tOknrtL6NntaJeZLi_3u5zvgaVyRTymDnzZXeC7doyo3ijg-G0wQAY2GruVNleMcA"/>
+<img alt="Student" class="w-8 h-8 rounded-full border-2 border-slate-900 object-cover" data-alt="Student avatar portrait looking thoughtful" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAc5aOBRmmSK_bviWZu_BsZDOJH3iD7UCmHlxsnDss84GWIRxRZkBTdHDOIvlMlLfG29TMUaOChOWMwlO1MhJsbTD-aXpLle3vTSDqy6aymk1Qr8IlquHbhODRR3jDKV2bDTPCnd5pL0tuzcBgXkVaUSyeoZ48HV557At9dks6mmevoJPYvGlfuvEnGNIKY-76ikFuw7AHwzazzgnU1CBQYRKVvVTpg7tYX3gL4emrNdeaKQICDjFvqWBJg5wgQd2wx45TuxH03jTM"/>
+<div class="w-8 h-8 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center text-[10px] text-slate-400">+18</div>
+</div>
+<span class="material-symbols-outlined text-slate-500 group-hover:text-cyan-400 transition-colors">more_vert</span>
+</div>
+</div>
+<!-- Session Card 2 -->
+<div class="glass-card rounded-3xl p-8 hover:translate-y-[-8px] transition-all duration-500 flex flex-col group border-secondary/20">
+<div class="flex justify-between items-start mb-6">
+<div class="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center border border-secondary/30">
+<span class="material-symbols-outlined text-secondary text-3xl">architecture</span>
+</div>
+<span class="bg-slate-800 text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">2h ago</span>
+</div>
+<h4 class="font-headline-md text-white mb-2 group-hover:text-secondary transition-colors">Abyssal Structures</h4>
+<p class="font-body-md text-slate-400 mb-8 line-clamp-2">Architectural principles of deep-sea pressure containment and luxury design.</p>
+<div class="mt-auto flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-sm font-medium text-slate-300">4.9 Knowledge Gain</span>
+</div>
+<span class="material-symbols-outlined text-slate-500 group-hover:text-secondary transition-colors">open_in_new</span>
+</div>
+</div>
+<!-- Session Card 3 -->
+<div class="glass-card rounded-3xl p-8 hover:translate-y-[-8px] transition-all duration-500 flex flex-col group">
+<div class="flex justify-between items-start mb-6">
+<div class="w-14 h-14 rounded-2xl bg-tertiary-fixed-dim/10 flex items-center justify-center border border-tertiary-fixed-dim/30">
+<span class="material-symbols-outlined text-tertiary-fixed-dim text-3xl">water_drop</span>
+</div>
+<span class="bg-slate-800 text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">Scheduled</span>
+</div>
+<h4 class="font-headline-md text-white mb-2 group-hover:text-tertiary-fixed-dim transition-colors">Luminous Echoes</h4>
+<p class="font-body-md text-slate-400 mb-8 line-clamp-2">Exploration of bioluminescent communication patterns in nomadic aquatic tribes.</p>
+<div class="mt-auto flex items-center justify-between">
+<div class="text-xs text-slate-500 uppercase tracking-widest">Tomorrow 09:00 AM</div>
+<div class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Students Needing Attention (Asymmetric Layout) -->
+<section class="px-12 py-24 bg-surface-container-lowest/50">
+<div class="max-w-container-max mx-auto grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+<div class="lg:col-span-5">
+<h2 class="font-headline-lg text-white mb-6">Students Needing Attention</h2>
+<p class="font-body-lg text-slate-400 mb-10">Real-time alerts for pupils drifting from the course trajectory. Early intervention secures the depth of learning.</p>
+<div class="space-y-6">
+<div class="flex items-center gap-6 p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+<img alt="Student" class="w-16 h-16 rounded-xl object-cover grayscale hover:grayscale-0 transition-all duration-700" data-alt="Close up student portrait with cinematic shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-PITY056aPbhpk25nJL2eQZ9N0kUCZfJCyQkod6hcbi6viTm-bzl6Oo73snpzOgR-9_Nfm9R6sPA6DqZ66BCEI-Q21J-ZLMWJ1q-BlMydNe_cqq5ZW-h990_o6SOU8TQ5xyRbmUgMDUwJ3cZ6pSO85l604Ynb5cNCADCphEJdfSUWmbrCReUHZgrwr0CU7lerFTY7pDx0ipF3iV1VKAWQcZzVzDD_OzPTF4fhXthq16sVGAJoC-pW6QBxz2WoAk6mP3RenKdc02o"/>
+<div>
+<h5 class="text-lg font-bold text-white">Julian Vane</h5>
+<p class="text-sm text-error">Low engagement in "Neural Mapping"</p>
+</div>
+<span class="material-symbols-outlined ml-auto text-slate-500">mail</span>
+</div>
+<div class="flex items-center gap-6 p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+<img alt="Student" class="w-16 h-16 rounded-xl object-cover grayscale hover:grayscale-0 transition-all duration-700" data-alt="Student portrait with cool blue ambient light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3xhwkPGDYIotpU8-ZYelcIfnPjD6cdkbSKcZMkkS-4j6GouCTGCfeskVAr0KLoHo5KHmiq9IVBz2vq6P-icuCtqgj6S3HPGiJOcJDjZDD0ZTW-mU6Cm8sHBD9HVvpI8zmQ_aWRn_vyWyxuAxc66uqZ1WjoMsl54ak6OY7XxtWBNdsJlgcoGR6Jtd601K5e5uP0ncZEG1qQdmWqaZ0qZB8RyXs6TQL3Vl96aZkY2UKYk37KXaUp7FeBxhJE1jp82ZFRt0aOH2kwow"/>
+<div>
+<h5 class="text-lg font-bold text-white">Elena Thorne</h5>
+<p class="text-sm text-error">Missed assessment: Abyssal Structures</p>
+</div>
+<span class="material-symbols-outlined ml-auto text-slate-500">mail</span>
+</div>
+</div>
+</div>
+<div class="lg:col-span-7 relative">
+<div class="aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative group">
+<img alt="Data Visualization" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" data-alt="A futuristic digital command center screen showing complex 3D data visualizations of aquatic currents. The aesthetic is cybernetic and sleek, featuring neon cyan wireframes over a deep charcoal background. The interface feels high-tech and sophisticated, glowing with purposeful information." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0ELfiqmI0OTvoeDvPtA732KKKEZ7GMGBZPCpYrKU_dB85Jg7ho3NCwzafG9JbwI8JFO5Q0XrD7B2IW9EggXN7v684YMR-ZX_EuwDFMV9dL5RsK55L0euvYCZD5IN8-ilyLlmcMr9_5NS-IiryntB11b49ZWqZXiDinY82SekT0dEQu_f36EtxGpWU_qO-dBwEg7GeDTa8Ppx5lYD6VwOGfR3ojTEe4MS0fyObOefsYoVCPBLdi8Cl5MOxVhrdF0Q3scaWGNU_HhI"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+<div class="absolute bottom-8 left-8 right-8 flex justify-between items-end">
+<div class="glass-card px-4 py-2 rounded-lg border border-white/20">
+<span class="font-label-caps text-xs">Live Flow Analytics</span>
+</div>
+<div class="flex gap-2">
+<div class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+<div class="w-2 h-2 rounded-full bg-cyan-400/50"></div>
+<div class="w-2 h-2 rounded-full bg-cyan-400/20"></div>
+</div>
+</div>
+</div>
+<!-- Floating UI element -->
+<div class="absolute -top-10 -right-10 glass-card p-6 rounded-2xl shadow-2xl border-white/20 hidden lg:block max-w-[200px]">
+<span class="material-symbols-outlined text-cyan-400 mb-2">trending_up</span>
+<p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Global Absorption</p>
+<p class="text-2xl font-headline-md text-white">+12.4%</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer / Contact Layer -->
+<footer class="px-12 py-12 border-t border-white/5 flex justify-between items-center bg-slate-950/20">
+<div class="flex items-center gap-10">
+<p class="text-sm text-slate-500 font-label-caps">© 2024 ABYSSAL ACADEMY</p>
+<div class="flex gap-6">
+<a class="text-xs text-slate-500 hover:text-cyan-400 transition-colors" href="#">PRIVACY</a>
+<a class="text-xs text-slate-500 hover:text-cyan-400 transition-colors" href="#">PROTOCOLS</a>
+<a class="text-xs text-slate-500 hover:text-cyan-400 transition-colors" href="#">SUPPORT</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="text-right">
+<p class="text-xs font-bold text-white uppercase tracking-tighter">Emergency Dive Support</p>
+<p class="text-[10px] text-cyan-400">Station A-12 Connected</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-cyan-400/10 border border-cyan-400/30 flex items-center justify-center cursor-pointer hover:bg-cyan-400/20 transition-all">
+<span class="material-symbols-outlined text-cyan-400">support_agent</span>
+</div>
+</div>
+</footer>
+</main>
+<!-- FAB (Suppressed based on rules for dashboard, but adding floating orb as "Interactive Orb" decoration) -->
+<div class="fixed bottom-12 right-12 z-50">
+<div class="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-600 to-primary-container shadow-[0_0_30px_rgba(0,240,255,0.4)] flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 transition-all group overflow-hidden">
+<span class="material-symbols-outlined text-on-primary-container text-3xl group-hover:rotate-12 transition-transform">auto_awesome</span>
+<div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+</div>
+</body></html>

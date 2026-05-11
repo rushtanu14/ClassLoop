@@ -1,0 +1,28 @@
+{
+  "id": 184463138,
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [
+      {
+        "text": "{\"name\":\"projects/9884415059820275587/screens/4a3f9fe79407495cb1722b90a9456e87\",\"title\":\"Teacher Dashboard (Abyssal)\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/f69505c210384595b8271be016ebab10\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uiftWoR5DClDT9UqG8cnIztf4h4wf8BamQ5w9rdwRnP1WtwNNOeT-5HxqbTYPuvNV0q1ApNStdy_cRi4Xz31KmsWil1t6QQhgrvbCQ-3zt8MzjWSunpx3kENsGAQXDwy-8QAYfMovO9ZTZVbTrMjciOCA8lApEeGSrqDvo09nlI6EM2NQglVeQ5KgUgVYcKCZNWZEISjYvsHa3vGLBzXPs9uiD3icSfstWNOQ2OsKSh4sa5Vf5VlB2okA\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/084ac19b8c43481cb868c4e95b44c980\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2ZmMzNmZWUxYjk0ZTRkYWU5ZWQ0MTgwMjc3OGUzMDU2EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"4134\",\"deviceType\":\"DESKTOP\"}",
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "deviceType": "DESKTOP",
+      "height": "4134",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2ZmMzNmZWUxYjk0ZTRkYWU5ZWQ0MTgwMjc3OGUzMDU2EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/9884415059820275587/files/084ac19b8c43481cb868c4e95b44c980"
+      },
+      "name": "projects/9884415059820275587/screens/4a3f9fe79407495cb1722b90a9456e87",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uiftWoR5DClDT9UqG8cnIztf4h4wf8BamQ5w9rdwRnP1WtwNNOeT-5HxqbTYPuvNV0q1ApNStdy_cRi4Xz31KmsWil1t6QQhgrvbCQ-3zt8MzjWSunpx3kENsGAQXDwy-8QAYfMovO9ZTZVbTrMjciOCA8lApEeGSrqDvo09nlI6EM2NQglVeQ5KgUgVYcKCZNWZEISjYvsHa3vGLBzXPs9uiD3icSfstWNOQ2OsKSh4sa5Vf5VlB2okA",
+        "name": "projects/9884415059820275587/files/f69505c210384595b8271be016ebab10"
+      },
+      "title": "Teacher Dashboard (Abyssal)",
+      "width": "2560"
+    }
+  }
+}

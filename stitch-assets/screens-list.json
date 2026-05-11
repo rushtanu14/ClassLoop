@@ -1,0 +1,371 @@
+{
+  "id": 23616350,
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [
+      {
+        "text": "{\"screens\":[{\"name\":\"projects/9884415059820275587/screens/10816407230833930718\",\"title\":\"image.png\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/10816407230833932125\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uhi_AyRpP82JbKmTFh_aqAsjYI7gQzT9sYNBLyzfbwrnuI7CLHrs6YfmzaSplCACPavSmI4Gbrzgg3uLP6ECf41GC1p0dzZnB-VtjiQaaa9f6ZFMY0Lk6GEuxPGSR2YDWO5JWBDH_zFB0SjfCc3xXalJfVD5lWRpq9W43HMFCaMYfaEesqcXkiP22tb-7ieXMfTaI_edlNLpMSgkT0iPC1haUvW0EghWPW7RyAjx3VNHHobfa_NM5J3fL7bCBzenyffVoycCb27MA\"},\"htmlCode\":{},\"width\":\"736\",\"height\":\"1104\"},{\"name\":\"projects/9884415059820275587/screens/ce541b60fdd2407eb1fa1e873b80ed9d\",\"title\":\"Import Session\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/7428ea92a1d346868883aeac54790c3f\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ujYSVRLhD0TCRQLzGlnkqKUVnfDGoxt3lAFJF37Twq1-fp-Eqi3Q9I9SYyAlo8t1pzSIKmKSJNdQ3BuT8MFaDBgNQusLAGlybiX4lktofqEXvQirytUJ2RFIGfkLk-YYXKhoKY03jMb0Ul7u2Lhojc3DcD50U7Fmkw1bZsUMYWKsp7OaiFzAk6iNKacffX26h5JQu3ZPmgQRdaelOYLXPPXoAHczg9kn0Y-yb1LzejwxfS-_uBp2IFqwAs\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/0dabaff4d79c44ea83fdedd141ae5c95\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzczZDgyNjQ5ZjgyNDQ0NjY4N2JmOTg3YWNkNTVlNGQ1EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2816\",\"height\":\"3718\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/97dca0420db04cddadb4cf3686b8eb2e\",\"title\":\"Abstract digital landscape representing deep learning and AI. Bioluminescent coral-like structures and glowing data nodes in a deep underwater abyss. High-contrast indigo and obsidian background with soft cyan and lavender light trails. Minimalist and cinematic, matching the aesthetic of {{DATA:IMAGE:IMAGE_13}}.\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/92a053994d22488ea6b83984700b68cf\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ughmDNzOCjn4gWNA6-hi3RwUCf1KIg31UnErf2gJSOFFg0BDCEqh3ydH4u5me8Wq1QerGfcqOYRksIRXe7GghR7mSryYve1LjPaRDhtj_9VOgRrvg-wg7G1ifeZKYftsge2ntmfrxFb30muO4abYitu0azw52_zBTSAnZURCB6lpzgHVCWjm0CWuGX6iBD7kKruSP7sizk89cdDI2ew0QtnDRrFbjE8Ui92q70HxvYh0COhg7sYZjjhLCQ\"},\"htmlCode\":{},\"width\":\"1024\",\"height\":\"1024\"},{\"name\":\"projects/9884415059820275587/screens/357bc2b336b54fdc9d88a59bf0f6180b\",\"title\":\"Teacher Analytics\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/10dec4e87bc1496c9c05ac0ea9ff4306\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uiT6RiciAU9wt2tZJIa35Y4qherWY6oT1QeKmeVBShbodLZPEClrlRMFnJtdNruYhCTeWyI8m4Q6Kv55N8bbVtWF5lyFapCv9aXPAj7-P8IBaoAHFHMB1ruYU-KapKBo4wBYAsChRPLLuTrpjahaw3lCH1vGMWGduuZqv6SPhembVOnFY-dH-TVAn_qEuT0Wslxp2h8u9zK9Zh5QV8Pv-0JaJ2xMoelAgpAAWqMDEu-EtLORJfcxgRISg\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/1a858c1ed1fa4b6b88317a4f84163969\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2ZjZjI2MTdmY2I3ZjQ5Nzc4NjlhNGMyNWMwYmU2ZWIyEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"3392\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/c43e776e4e12452fb105857d5665a2b1\",\"title\":\"A cinematic, high-fidelity hero image for an educational AI platform. A glowing, bioluminescent jellyfish-like structure representing a network of knowledge, floating in a deep midnight-blue oceanic void. Soft light rays filtering from above. High-contrast, ethereal, and premium, matching the style of {{DATA:IMAGE:IMAGE_13}}.\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/c173c8e848384f74a275edb372af628e\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uhCedAFq361l2vI1vEr2MmVoi2_iMiLZESxjhMk_X_OzM8VNP3lXfxKEjahBe9ceXs0LM9fWaFFKhk4PXvynVhzX_fw40dGjWgibHdLWYgghkBDwUl7_rWk7bSBIZfp2OIbkx0WF7D3js6Y0SAN3HhiMRDLev0c3KAhph7VmOuJi6O_Xw6dQ6f8sM8JD_mw-lNROL10bSGNb96dLciBiJ7d-DxkjBQFz4rfSI85EAwT0C-2jTV-liACB8Q\"},\"htmlCode\":{},\"width\":\"1024\",\"height\":\"1024\"},{\"name\":\"projects/9884415059820275587/screens/bcfefa87c56f4b16a214ce803f5df91d\",\"title\":\"Teacher Analytics\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/b95a35cf2e814ba1ae516efd6f957c8a\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uiKMgeG6F9ri-PlJcPECEHEceoo0NbtU248wCk84k-CI-G6i1x-t5U6kzJ_hgZ1nHcltyA1Ruv5AUaiz97VVxlr8Ffv-qz40dJgBwCeIMXrL1qKrAy9TARHiG7VDLCOP6PWR-snT6wShFSsiGHXjAAbhoZmuwDrHxlIzXA2uRQJ8sz87R2T5Xv6xhweheoPJqUd5XQ1dw1MpQbaelrTY9PIcfVYv45HiVWz7Hw_4to0qjmG3qWFvCT9lg\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/2998fba7cfb54f4db5568af49dbe5d3d\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2IwMDVjYWNkZDI3NDQ2NWViNWUzMzI3MGYzOTM0OTcyEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2598\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/f707efda8d614d0988297b97591578bd\",\"title\":\"AI Review & Edit\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/56260321e0814928b5464c714b4563ac\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ui4zdwcUtGbuvATA1OwFHoUhs3af5OdTVZFttpLE15UwWiCaBAPHV86YWZQE8s-6XhT5baCk9lEIbxr2Mar9dm7c4VBoidE8VRSIhq2Zlo2L5hYTVp7sLQMk-YsFmdkfaHCmYmmsbgHn2DYvaJIG16An5Y59U0ENJrNM1OBbtH9y5SiDiJQQdzul1EUqwESxXt0NpC21yBUAAHcfWc4ffy0ytatF19st_9nXSZHKcm9R6Vc2BXyKhvuNA\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/091473cf1a044cdaac0ad6520a483463\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2FkYTc2YWVkZWU3NjRjODE5MzczZjg5NGIxZDQyODg4EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2686\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/76988b404ed741a29e368b86798b2ddf\",\"title\":\"A cinematic, high-fidelity hero image for an educational AI dashboard. A lone figure looking through a telescope at a glowing, star-filled midnight sky. Deep indigo and obsidian color palette with glowing teal and cyan celestial nodes and connecting lines. Style is ethereal, high-contrast, and premium, matching {{DATA:IMAGE:IMAGE_8}}.\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/4b714a8d84bd4b109801e55d3d6cfac9\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ugaTTymvxrTm7AIK9NhwW1Gp1HG4_S5SMIswvcO-3aveBCKohIZIOnzbpt8di1CWqzWdp_RNjC1UjavkJc_2ibzDYVjVKqTF022PGUtRp5G-jd2uGxD1xNzA5JNQ-8NElMprpQTa8S-7hncVexuiitkdi7FzfPtJ-27SmbScRFQa2KXm_8Qo3Zp18_15ytGB6JauRyqQAsGbEQNdc1kwglkZMJ3GQX0MJ7WrhnTaMcRhZ4Pth-XekrRWcM\"},\"htmlCode\":{},\"width\":\"1376\",\"height\":\"768\"},{\"name\":\"projects/9884415059820275587/screens/17136717431701867266\",\"title\":\"image.png\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/17136717431701868111\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uiWcXVS2qWqt85hvon0fctItiPg9h6-jpyaAJBm8n89VXO_cbmFu-GBuyqPWIIGOJNZP504oHObWq-DkbWFVdCrUJkV3Fxeie5Da3GxpLgpR5sJVQzaCTSIWLXkYnPEJv_ko2dxcdF3lv3VF9XX4oy71byKGCfeihYtOMASMnxUW0L4GrjHyyOO8Kowlf_pFmY8qjTf3hQyJ7P11B7OxolRrdvJfU63EJX2XbnQuowd5waekNgFPtU4R0DEtK06NgGWQk8HjKswlQ\"},\"htmlCode\":{},\"width\":\"736\",\"height\":\"1307\"},{\"name\":\"projects/9884415059820275587/screens/e1d5a29c93144e2ea75d0b50bd8d0e5b\",\"title\":\"Abstract digital landscape representing AI and learning. Flowing data streams and glowing geometric nodes in a deep midnight void. High-contrast indigo and obsidian background with soft lavender and cyan light trails. Minimalist and cinematic, matching the aesthetic of {{DATA:IMAGE:IMAGE_8}}.\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/dda44ebc556140c7b8539945c24cd8f7\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uiy2JM-cxkL44_RMG8y2wqDHU_aWfToo5Q0njTeh9xjXfbZLetD7GnHWp_V00jK0lut4F7AiWGN-W6Fk09XlCBzI-KAd0c1SeezYg1KWABjraGL0wdcjhfAZihrvfjdYxQep9Uni36e6bI9pX33H5ysBfuwuBzEhsxnRaN0XSinVHXsSMA7UYoYn7SkQSJa_dNWzUqOSxmuYknsJSsU9pB23G6LXw3tdrxxTeNRRzQqge_qrDSleS8XxA\"},\"htmlCode\":{},\"width\":\"1376\",\"height\":\"768\"},{\"name\":\"projects/9884415059820275587/screens/00f9a5dae5f54741b44adeb7ddafe826\",\"title\":\"Teacher Dashboard\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/1484b5308cd84083b180d946fb1db2d9\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ujM460-ZOEW4A4N4Ko4qE6q5fTejbEDExW7mX0M4vWxSh03uUsOntQz9IWtFkcy6TJKHWR5iGV5_ZcetOXfRh5TED7R5fJtuB4jfiHZG0elmCiln8q95lHodAaB70US2FSABlhwvfkxZcwucwHNmH4798qxZuuIjQcCB2xLNNM7sR90EYk-eHSSh6G9mI6ZQbCtbx8RpNIZIZMp-0tV5CpIRTjc0FSW9CcDFpDrALCJQGGacKnF295CPOc\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/7c90e120aa91407084a761b3969656ef\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2JhNjUzMzlhNjk5MTQ0OWQ5OWZjMTg1NjM1MjYwZTMzEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"3520\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/4a3f9fe79407495cb1722b90a9456e87\",\"title\":\"Teacher Dashboard (Abyssal)\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/f69505c210384595b8271be016ebab10\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uiftWoR5DClDT9UqG8cnIztf4h4wf8BamQ5w9rdwRnP1WtwNNOeT-5HxqbTYPuvNV0q1ApNStdy_cRi4Xz31KmsWil1t6QQhgrvbCQ-3zt8MzjWSunpx3kENsGAQXDwy-8QAYfMovO9ZTZVbTrMjciOCA8lApEeGSrqDvo09nlI6EM2NQglVeQ5KgUgVYcKCZNWZEISjYvsHa3vGLBzXPs9uiD3icSfstWNOQ2OsKSh4sa5Vf5VlB2okA\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/084ac19b8c43481cb868c4e95b44c980\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2ZmMzNmZWUxYjk0ZTRkYWU5ZWQ0MTgwMjc3OGUzMDU2EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"4134\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/a3b2e865f5ee478f95e4aff630db7f59\",\"title\":\"Student Dashboard (Abyssal)\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/abab0deab67c4c9dad206f979c220954\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uhBtm8jWTdX-NZlmSfW74wir6efeUNXipUnM5S1xTbxt7Zfwo7lGmEHggR8yStO6vbenpyq9r-THtBvA_bVxKW4QpD9KHjUCQ0PjEmPIuGQOwqNjqCyLcGIklBUyubQDDZTvbPLHl-u2gSW-qzy8cS64w49p6-tIGpN9ZB9cHlbUGtX09FezljAz-I_xcQ1mgTrPGONYpFAhdOCNkNsjNAE01kNXD-wcWaGTj-VrvlkOpU4de5V6zKxwwA\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/076b8a73b05648e3b732e664503770b2\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzQ4YjA4Yjc2Y2E4NDRmNTdiNmVmNTFhM2M2NWRjZmE0EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2974\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/10816407230833933282\",\"title\":\"image.png\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/10816407230833930593\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ugXpE5WCoVFS0lBA0Fh7tj57WUb1nsCn7ZZKfLt4nugE7_Cc0Mrzk2ZaxhHVN4OUqTaazZVybFvMkyyz0owsNg3pY66lornENhhTaArj80xQ-HeWuIb-_lHsKydgzfevgNDGz6s0LO81jS4YjzJpWhdMVE1c3EaK5hAWVRMwLsoeQokno_yYitmRQVCLkk2FC7_eb-z2jb2_B8SLJZ71KRXBSFe3-OdcGlXI2OrwT4wdnyw9Jkd9R_UJl-4ayzNA9cTbhp_cHmB2Q\"},\"htmlCode\":{},\"width\":\"736\",\"height\":\"1286\"},{\"name\":\"projects/9884415059820275587/screens/23e5974376c242f8848a4032e9b1f1e7\",\"title\":\"Import Session\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/5a67b04f17f3451888b17ac2215ef359\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ug8TxtBb8yuWih14XQoH6XlbqamaRKr--cWaE8f-QxbGDpwLfYq09SqlI54X3ykqRecptL9C6shF621w_YFUywoPLF2TVlsz0jkS8VNvKyf4X_97v6oqspslJRDts6M3Qjn11LNTZ3hV_3ja4o0QFZX-rGFWp392YjNjJUrxXwUnAMGjxYbNgpp3qE6DozPQyvAfBCzdoacm6EOl02Z2Wb3ftCbHyQlosL36p3_G8BJ75Cs6kQU14T6Uck\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/989d805479f14a0e91a694b5db603e09\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzU3N2E0NDA3YzFmZTQ0YmVhOTk5OTNiMDA2Njg5NTQ1EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2816\",\"height\":\"3718\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/10816407230833932000\",\"title\":\"image.png\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/10816407230833933407\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uiLFqZ9ocOrZ3ky26DmcN1Z6gkrtjqKpaGom42Xx6t9-IFZlRdXYikndT9lCvwrPlXecoEZ3b7GNKe0btZbfzMHPOxXoTWK7yrOwRvU1rGyU3Sa9EPRhdJGy3sA2goF5mPvSJHQBHKlFI2yTe4agBVCGVz98DN6kpfXlzlNUuPevvkkTN6l7x3FT2ANSrpM2VgyAeMTd2lgcpaSkL_RfHhriNFHB2PK5uJzg8vMV_zIVQil3-B-pDpdZKTH8K3fMhLiQf3LcxCjIw\"},\"htmlCode\":{},\"width\":\"736\",\"height\":\"1472\"},{\"name\":\"projects/9884415059820275587/screens/67cea888270945719218018162bd578c\",\"title\":\"AI Review (Obsidian)\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/58d010440a844c64a2a782a558c808ad\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ujNwBXiq0P6ztQSs9zrKpIgxgJgdOwBC3014CAVBOFmYj20K3UYX9UYRyZoHymWm-LN7ev7qvqlveEFUg3-IEJ22TF8NbjIhIUuqMqbWTmqMCTF1KKtqLAShQn_NhRHz71GkQ0fujDcl_eeTI2svEz2amcObhzViZ1O1_LHhw0MqmzOAmND-zDsvO47zuSdUsXKoXyTWGYVFbB_FzFBfbH5LYDMiA-cLKfKi7lTLkBgZQHFweD_gEvgSBE\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/e7004b3959ed4287a55463ede722c279\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzc2N2IzZjMzNTIyOTQ2NDE4M2NkNzIzMTVhZjdmOTc1EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2944\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/419f106da2da498d964ff1af6b332f2f\",\"title\":\"Student Dashboard\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/1a30504b871041ec843785298d4a78d8\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uiNglVNY9sTROfDef6OSkPwfexbuBJUFTiR_ohpTtYI9Az-Bj2ocOXloMOFj0oKzMwXO-wLkHOR6EkKTV23JxO9faovpncVxTA2nn0EvqbKtZmnVPpfROX2oJL5WQMrKh5dvGQ3VErbhE-MrnaMJgR5rIaoRR4iBO-m6OxoPYTpLvoXT8z1IyBl3_4kb9f2KlZAQyj4gfdz68V86aJ-Oo0oZFHnMifJcZ4SwqHQqlusEMjv9fucH-OHZUA\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/158f8d04cc3c482293277bf354fd6470\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2Y2MDA2NTQxNzhhMzQ5ZGE4ZTRlY2QyMTE1MDk4MDE2EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2086\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/13d2fda92bd44b5c9e65ffb77f14095e\",\"title\":\"AI Review & Edit\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/01c5fd39df2349ffb999ad00d3ac9085\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ujUV1wv0ba8IjxpqicR-8Du_L0-eIC3QylA3FD5wR-kS1ybSz5NXYenVavv-dF7MwbMwpDP_C58JN54FLjotZEAULUBk13EQDPff6uV_YcpRm85LsRk6UZ3vJS1MTAKdHtyKrvR3E5MoRGCJObQyBAXhlVQs3LmCUvWOt4aOa31lw5kGkteoYxKuv5vzRmJScOn9UhZBb-82_H8NPb5qBhyP9sOfQ7ZupAAF-J8Zw3yCBJivsexZpLLO30\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/833ffa0568764e9f9e3cee4bfc46ceae\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzlkMzI2MDM2MmQ1YjQyZjU4ZDBhNTFmNTgxZGYxOGI1EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2162\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/6523674a5e4646bfb335c13096e6bc00\",\"title\":\"AI Review (Abyssal)\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/eb2e02fcbee54124b0ea943aab2e37e3\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uhlexs_w0oW_xaaZ_GEtqRPHX9T_Ass3f2SQf0yLFJz42qI7blo3cIqkfodYA0mACpB1N3iBdXN40fwKnPxoyCbqvMz8YYlvmrTy07AwDE4xdpJg5j1fLNdHhBL2C1JPIW--XpvE_6IDWiVrmcHVS3-wTjNgUUVtOQNyNQOENyHDxVJjiLsS4rDYpdkW8oIRPuJf3dVTulsxftZ-Micd-01WPb7DDE3Vu19Z66PFNFA7aIEXJDXBHo_C90\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/a8812b5b82234359aa45337bbc40aa4c\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2RjYWRlYjAzNDFmODRlNDlhZWQ0MmQwYzM1OTc0YTlkEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2816\",\"height\":\"2820\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/011011b9aacd474b8ee05e4fc6f5e0af\",\"title\":\"Student Dashboard\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/09999ae621d94ee98496dad2af2ccf5d\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uiDCJzsH6af8zaVvgOFpsFQhMDmJpqnZYr4MnbEbggOj9druLrINGstwdsbvcbOj5J_KG7qeWP3sLqvyp2GA1xywO10cjmNII-fBPD68tQEZfs8FUqwrc0fJc4lnw0Vxf63d7-19gU9lX8BA0eHTuDXh0uruHVqCgWWHLPuqJwIn-Ie7pnV0h8MhRlrpB_EXYqXdrUBtG9paH_37Fxn_-FvhiTHS51_q6nGsbCuOGDGjXi1Gxom3lEJcRc\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/b2a93c6032bd4f348d41fd9fcc110a50\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzkyNGQ2MTJhMjE5ODQyZjdiNmNiYjMxNTBiOTgwNGM2EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2624\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/bb27c323d7ed4cc48f0898a46ba47840\",\"title\":\"Student Dashboard (Obsidian)\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/13fec84bc319435eaa5927782bcf730e\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uhpKOwKvfCA-avb5Mc9GvfiSORM5UP9amQX-rVqqMMPwFyAX7c6HCdzpMkkgwk_j-GVKnv9x_MSk5y4n3GnROy33goqUFAyHYGf8cPc_5zjR5x435PeBTCQdsAa-PdYeusV0lyg15AYTKJV2sZwIVdx8A1P2-puJmegu-o33-XnIYkiKr-EJ7FW-8ovpeTVRgRXy32KsaBN59FcPnJrlTi6cKwOy7kIT6naHdI46ZYaMlBLs6WoJboMOj4\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/e8fab62cba0448bea0fd52a5a6761f3f\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzZkZTJiM2FjOTAzMjQ5MTU5MmM1Y2ZjYjYzZWE2NGZhEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2354\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/cc57e53c1bd14269a81267d4c00ec02a\",\"title\":\"Teacher Dashboard\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/2c5825cdd9844872974ea76e0e9625a4\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uhwbvs9BtOpUfmr_RXi42sP1fXzqGl3W4rnmrdF4zHO2kHBwuR8arMwY1WDPzXu4PoEZYI6WqrEby27btwmqTxvPuBBNwgfBW0FB5Zn8P9LtD3wilqrdoNThVOeRtLsQv63tGUz48q78FQ4weISYTpK0AUvl-SOlPQDO_P7VocGVyRVClyhQ0W571-bk3kWF0o4uMO-WTXneiLcqG1XzcXPQVb8vDFmTCieyc0MwbCAI72VsU9ysNXopgk\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/27487de6f07d44038b0a56bd7333aef2\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2RjZWNlMGQzNTAyYjQ5ZGNiNDc0OGRjNGU2MTNiZWY3EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2998\",\"deviceType\":\"DESKTOP\"},{\"name\":\"projects/9884415059820275587/screens/14358423604131024326\",\"title\":\"image.png\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/14358423604131021171\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ugI8gVTlIUK-BcF2rCdCxORoHTPS2h4Ndex61T955lsQE0v16DkjYwe-yopF3mAFG4O521UPjjiSYg7rkUG9GtVPKSwjc31hJnluf-GMO6iJQ-HLc7E6kd939aI54odv_d31slZiC2pjrHAaMSvE0XFzQOsqdukisQAtWAvkPSXpJS_mrnqWDmV61KOoBkrIqFFmWie-EX3sm4Mp_ABGFjYocw_YvVrfvC4Rh-7LBJiD13tlHcWFuWG9aoVqrgaRMLJi7bjs7yUDg\"},\"htmlCode\":{},\"width\":\"600\",\"height\":\"1200\"},{\"name\":\"projects/9884415059820275587/screens/fac51b06b74240ac9cf3408b10fe13c6\",\"title\":\"Teacher Dashboard (Obsidian)\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/6ba47432b91446ae8d16faca75bddd09\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ujV5Pk9RKDrO5ItUT7XgYNPVYbncQCN_U0-EjnhRMrNNtWXhZC6Hk4py6EpSmnKSJNfNGOJhV1v68sCJt2uGtdo04vJAy_9p6Kqwk91dEyjS0KuejM1jXWfjVW5AyB3qjFDfDqO97Z0lqkh3GduYq_jZlMNW1xC1npZTLtdblCTvxm-usmnXTtXZ1Yi0OkXUKroHVNeBq4bg6TPxWihn-U2m6OjlYlsEKkKMLbHgsujelAurDdsCnH35sw\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/1cc1cc14468f4ae98bbbe1d99e8fd910\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzEwZjQyNzFhNTUwMDQ3ZjQ4MjE1NWY1ZDMxZGMxNGRhEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"3288\",\"deviceType\":\"DESKTOP\"}]}",
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "screens": [
+        {
+          "height": "1104",
+          "htmlCode": {},
+          "name": "projects/9884415059820275587/screens/10816407230833930718",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uhi_AyRpP82JbKmTFh_aqAsjYI7gQzT9sYNBLyzfbwrnuI7CLHrs6YfmzaSplCACPavSmI4Gbrzgg3uLP6ECf41GC1p0dzZnB-VtjiQaaa9f6ZFMY0Lk6GEuxPGSR2YDWO5JWBDH_zFB0SjfCc3xXalJfVD5lWRpq9W43HMFCaMYfaEesqcXkiP22tb-7ieXMfTaI_edlNLpMSgkT0iPC1haUvW0EghWPW7RyAjx3VNHHobfa_NM5J3fL7bCBzenyffVoycCb27MA",
+            "name": "projects/9884415059820275587/files/10816407230833932125"
+          },
+          "title": "image.png",
+          "width": "736"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "3718",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzczZDgyNjQ5ZjgyNDQ0NjY4N2JmOTg3YWNkNTVlNGQ1EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/0dabaff4d79c44ea83fdedd141ae5c95"
+          },
+          "name": "projects/9884415059820275587/screens/ce541b60fdd2407eb1fa1e873b80ed9d",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ujYSVRLhD0TCRQLzGlnkqKUVnfDGoxt3lAFJF37Twq1-fp-Eqi3Q9I9SYyAlo8t1pzSIKmKSJNdQ3BuT8MFaDBgNQusLAGlybiX4lktofqEXvQirytUJ2RFIGfkLk-YYXKhoKY03jMb0Ul7u2Lhojc3DcD50U7Fmkw1bZsUMYWKsp7OaiFzAk6iNKacffX26h5JQu3ZPmgQRdaelOYLXPPXoAHczg9kn0Y-yb1LzejwxfS-_uBp2IFqwAs",
+            "name": "projects/9884415059820275587/files/7428ea92a1d346868883aeac54790c3f"
+          },
+          "title": "Import Session",
+          "width": "2816"
+        },
+        {
+          "height": "1024",
+          "htmlCode": {},
+          "name": "projects/9884415059820275587/screens/97dca0420db04cddadb4cf3686b8eb2e",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ughmDNzOCjn4gWNA6-hi3RwUCf1KIg31UnErf2gJSOFFg0BDCEqh3ydH4u5me8Wq1QerGfcqOYRksIRXe7GghR7mSryYve1LjPaRDhtj_9VOgRrvg-wg7G1ifeZKYftsge2ntmfrxFb30muO4abYitu0azw52_zBTSAnZURCB6lpzgHVCWjm0CWuGX6iBD7kKruSP7sizk89cdDI2ew0QtnDRrFbjE8Ui92q70HxvYh0COhg7sYZjjhLCQ",
+            "name": "projects/9884415059820275587/files/92a053994d22488ea6b83984700b68cf"
+          },
+          "title": "Abstract digital landscape representing deep learning and AI. Bioluminescent coral-like structures and glowing data nodes in a deep underwater abyss. High-contrast indigo and obsidian background with soft cyan and lavender light trails. Minimalist and cinematic, matching the aesthetic of {{DATA:IMAGE:IMAGE_13}}.",
+          "width": "1024"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "3392",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2ZjZjI2MTdmY2I3ZjQ5Nzc4NjlhNGMyNWMwYmU2ZWIyEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/1a858c1ed1fa4b6b88317a4f84163969"
+          },
+          "name": "projects/9884415059820275587/screens/357bc2b336b54fdc9d88a59bf0f6180b",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uiT6RiciAU9wt2tZJIa35Y4qherWY6oT1QeKmeVBShbodLZPEClrlRMFnJtdNruYhCTeWyI8m4Q6Kv55N8bbVtWF5lyFapCv9aXPAj7-P8IBaoAHFHMB1ruYU-KapKBo4wBYAsChRPLLuTrpjahaw3lCH1vGMWGduuZqv6SPhembVOnFY-dH-TVAn_qEuT0Wslxp2h8u9zK9Zh5QV8Pv-0JaJ2xMoelAgpAAWqMDEu-EtLORJfcxgRISg",
+            "name": "projects/9884415059820275587/files/10dec4e87bc1496c9c05ac0ea9ff4306"
+          },
+          "title": "Teacher Analytics",
+          "width": "2560"
+        },
+        {
+          "height": "1024",
+          "htmlCode": {},
+          "name": "projects/9884415059820275587/screens/c43e776e4e12452fb105857d5665a2b1",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uhCedAFq361l2vI1vEr2MmVoi2_iMiLZESxjhMk_X_OzM8VNP3lXfxKEjahBe9ceXs0LM9fWaFFKhk4PXvynVhzX_fw40dGjWgibHdLWYgghkBDwUl7_rWk7bSBIZfp2OIbkx0WF7D3js6Y0SAN3HhiMRDLev0c3KAhph7VmOuJi6O_Xw6dQ6f8sM8JD_mw-lNROL10bSGNb96dLciBiJ7d-DxkjBQFz4rfSI85EAwT0C-2jTV-liACB8Q",
+            "name": "projects/9884415059820275587/files/c173c8e848384f74a275edb372af628e"
+          },
+          "title": "A cinematic, high-fidelity hero image for an educational AI platform. A glowing, bioluminescent jellyfish-like structure representing a network of knowledge, floating in a deep midnight-blue oceanic void. Soft light rays filtering from above. High-contrast, ethereal, and premium, matching the style of {{DATA:IMAGE:IMAGE_13}}.",
+          "width": "1024"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "2598",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2IwMDVjYWNkZDI3NDQ2NWViNWUzMzI3MGYzOTM0OTcyEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/2998fba7cfb54f4db5568af49dbe5d3d"
+          },
+          "name": "projects/9884415059820275587/screens/bcfefa87c56f4b16a214ce803f5df91d",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uiKMgeG6F9ri-PlJcPECEHEceoo0NbtU248wCk84k-CI-G6i1x-t5U6kzJ_hgZ1nHcltyA1Ruv5AUaiz97VVxlr8Ffv-qz40dJgBwCeIMXrL1qKrAy9TARHiG7VDLCOP6PWR-snT6wShFSsiGHXjAAbhoZmuwDrHxlIzXA2uRQJ8sz87R2T5Xv6xhweheoPJqUd5XQ1dw1MpQbaelrTY9PIcfVYv45HiVWz7Hw_4to0qjmG3qWFvCT9lg",
+            "name": "projects/9884415059820275587/files/b95a35cf2e814ba1ae516efd6f957c8a"
+          },
+          "title": "Teacher Analytics",
+          "width": "2560"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "2686",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2FkYTc2YWVkZWU3NjRjODE5MzczZjg5NGIxZDQyODg4EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/091473cf1a044cdaac0ad6520a483463"
+          },
+          "name": "projects/9884415059820275587/screens/f707efda8d614d0988297b97591578bd",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ui4zdwcUtGbuvATA1OwFHoUhs3af5OdTVZFttpLE15UwWiCaBAPHV86YWZQE8s-6XhT5baCk9lEIbxr2Mar9dm7c4VBoidE8VRSIhq2Zlo2L5hYTVp7sLQMk-YsFmdkfaHCmYmmsbgHn2DYvaJIG16An5Y59U0ENJrNM1OBbtH9y5SiDiJQQdzul1EUqwESxXt0NpC21yBUAAHcfWc4ffy0ytatF19st_9nXSZHKcm9R6Vc2BXyKhvuNA",
+            "name": "projects/9884415059820275587/files/56260321e0814928b5464c714b4563ac"
+          },
+          "title": "AI Review & Edit",
+          "width": "2560"
+        },
+        {
+          "height": "768",
+          "htmlCode": {},
+          "name": "projects/9884415059820275587/screens/76988b404ed741a29e368b86798b2ddf",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ugaTTymvxrTm7AIK9NhwW1Gp1HG4_S5SMIswvcO-3aveBCKohIZIOnzbpt8di1CWqzWdp_RNjC1UjavkJc_2ibzDYVjVKqTF022PGUtRp5G-jd2uGxD1xNzA5JNQ-8NElMprpQTa8S-7hncVexuiitkdi7FzfPtJ-27SmbScRFQa2KXm_8Qo3Zp18_15ytGB6JauRyqQAsGbEQNdc1kwglkZMJ3GQX0MJ7WrhnTaMcRhZ4Pth-XekrRWcM",
+            "name": "projects/9884415059820275587/files/4b714a8d84bd4b109801e55d3d6cfac9"
+          },
+          "title": "A cinematic, high-fidelity hero image for an educational AI dashboard. A lone figure looking through a telescope at a glowing, star-filled midnight sky. Deep indigo and obsidian color palette with glowing teal and cyan celestial nodes and connecting lines. Style is ethereal, high-contrast, and premium, matching {{DATA:IMAGE:IMAGE_8}}.",
+          "width": "1376"
+        },
+        {
+          "height": "1307",
+          "htmlCode": {},
+          "name": "projects/9884415059820275587/screens/17136717431701867266",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uiWcXVS2qWqt85hvon0fctItiPg9h6-jpyaAJBm8n89VXO_cbmFu-GBuyqPWIIGOJNZP504oHObWq-DkbWFVdCrUJkV3Fxeie5Da3GxpLgpR5sJVQzaCTSIWLXkYnPEJv_ko2dxcdF3lv3VF9XX4oy71byKGCfeihYtOMASMnxUW0L4GrjHyyOO8Kowlf_pFmY8qjTf3hQyJ7P11B7OxolRrdvJfU63EJX2XbnQuowd5waekNgFPtU4R0DEtK06NgGWQk8HjKswlQ",
+            "name": "projects/9884415059820275587/files/17136717431701868111"
+          },
+          "title": "image.png",
+          "width": "736"
+        },
+        {
+          "height": "768",
+          "htmlCode": {},
+          "name": "projects/9884415059820275587/screens/e1d5a29c93144e2ea75d0b50bd8d0e5b",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uiy2JM-cxkL44_RMG8y2wqDHU_aWfToo5Q0njTeh9xjXfbZLetD7GnHWp_V00jK0lut4F7AiWGN-W6Fk09XlCBzI-KAd0c1SeezYg1KWABjraGL0wdcjhfAZihrvfjdYxQep9Uni36e6bI9pX33H5ysBfuwuBzEhsxnRaN0XSinVHXsSMA7UYoYn7SkQSJa_dNWzUqOSxmuYknsJSsU9pB23G6LXw3tdrxxTeNRRzQqge_qrDSleS8XxA",
+            "name": "projects/9884415059820275587/files/dda44ebc556140c7b8539945c24cd8f7"
+          },
+          "title": "Abstract digital landscape representing AI and learning. Flowing data streams and glowing geometric nodes in a deep midnight void. High-contrast indigo and obsidian background with soft lavender and cyan light trails. Minimalist and cinematic, matching the aesthetic of {{DATA:IMAGE:IMAGE_8}}.",
+          "width": "1376"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "3520",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2JhNjUzMzlhNjk5MTQ0OWQ5OWZjMTg1NjM1MjYwZTMzEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/7c90e120aa91407084a761b3969656ef"
+          },
+          "name": "projects/9884415059820275587/screens/00f9a5dae5f54741b44adeb7ddafe826",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ujM460-ZOEW4A4N4Ko4qE6q5fTejbEDExW7mX0M4vWxSh03uUsOntQz9IWtFkcy6TJKHWR5iGV5_ZcetOXfRh5TED7R5fJtuB4jfiHZG0elmCiln8q95lHodAaB70US2FSABlhwvfkxZcwucwHNmH4798qxZuuIjQcCB2xLNNM7sR90EYk-eHSSh6G9mI6ZQbCtbx8RpNIZIZMp-0tV5CpIRTjc0FSW9CcDFpDrALCJQGGacKnF295CPOc",
+            "name": "projects/9884415059820275587/files/1484b5308cd84083b180d946fb1db2d9"
+          },
+          "title": "Teacher Dashboard",
+          "width": "2560"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "4134",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2ZmMzNmZWUxYjk0ZTRkYWU5ZWQ0MTgwMjc3OGUzMDU2EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/084ac19b8c43481cb868c4e95b44c980"
+          },
+          "name": "projects/9884415059820275587/screens/4a3f9fe79407495cb1722b90a9456e87",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uiftWoR5DClDT9UqG8cnIztf4h4wf8BamQ5w9rdwRnP1WtwNNOeT-5HxqbTYPuvNV0q1ApNStdy_cRi4Xz31KmsWil1t6QQhgrvbCQ-3zt8MzjWSunpx3kENsGAQXDwy-8QAYfMovO9ZTZVbTrMjciOCA8lApEeGSrqDvo09nlI6EM2NQglVeQ5KgUgVYcKCZNWZEISjYvsHa3vGLBzXPs9uiD3icSfstWNOQ2OsKSh4sa5Vf5VlB2okA",
+            "name": "projects/9884415059820275587/files/f69505c210384595b8271be016ebab10"
+          },
+          "title": "Teacher Dashboard (Abyssal)",
+          "width": "2560"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "2974",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzQ4YjA4Yjc2Y2E4NDRmNTdiNmVmNTFhM2M2NWRjZmE0EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/076b8a73b05648e3b732e664503770b2"
+          },
+          "name": "projects/9884415059820275587/screens/a3b2e865f5ee478f95e4aff630db7f59",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uhBtm8jWTdX-NZlmSfW74wir6efeUNXipUnM5S1xTbxt7Zfwo7lGmEHggR8yStO6vbenpyq9r-THtBvA_bVxKW4QpD9KHjUCQ0PjEmPIuGQOwqNjqCyLcGIklBUyubQDDZTvbPLHl-u2gSW-qzy8cS64w49p6-tIGpN9ZB9cHlbUGtX09FezljAz-I_xcQ1mgTrPGONYpFAhdOCNkNsjNAE01kNXD-wcWaGTj-VrvlkOpU4de5V6zKxwwA",
+            "name": "projects/9884415059820275587/files/abab0deab67c4c9dad206f979c220954"
+          },
+          "title": "Student Dashboard (Abyssal)",
+          "width": "2560"
+        },
+        {
+          "height": "1286",
+          "htmlCode": {},
+          "name": "projects/9884415059820275587/screens/10816407230833933282",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ugXpE5WCoVFS0lBA0Fh7tj57WUb1nsCn7ZZKfLt4nugE7_Cc0Mrzk2ZaxhHVN4OUqTaazZVybFvMkyyz0owsNg3pY66lornENhhTaArj80xQ-HeWuIb-_lHsKydgzfevgNDGz6s0LO81jS4YjzJpWhdMVE1c3EaK5hAWVRMwLsoeQokno_yYitmRQVCLkk2FC7_eb-z2jb2_B8SLJZ71KRXBSFe3-OdcGlXI2OrwT4wdnyw9Jkd9R_UJl-4ayzNA9cTbhp_cHmB2Q",
+            "name": "projects/9884415059820275587/files/10816407230833930593"
+          },
+          "title": "image.png",
+          "width": "736"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "3718",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzU3N2E0NDA3YzFmZTQ0YmVhOTk5OTNiMDA2Njg5NTQ1EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/989d805479f14a0e91a694b5db603e09"
+          },
+          "name": "projects/9884415059820275587/screens/23e5974376c242f8848a4032e9b1f1e7",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ug8TxtBb8yuWih14XQoH6XlbqamaRKr--cWaE8f-QxbGDpwLfYq09SqlI54X3ykqRecptL9C6shF621w_YFUywoPLF2TVlsz0jkS8VNvKyf4X_97v6oqspslJRDts6M3Qjn11LNTZ3hV_3ja4o0QFZX-rGFWp392YjNjJUrxXwUnAMGjxYbNgpp3qE6DozPQyvAfBCzdoacm6EOl02Z2Wb3ftCbHyQlosL36p3_G8BJ75Cs6kQU14T6Uck",
+            "name": "projects/9884415059820275587/files/5a67b04f17f3451888b17ac2215ef359"
+          },
+          "title": "Import Session",
+          "width": "2816"
+        },
+        {
+          "height": "1472",
+          "htmlCode": {},
+          "name": "projects/9884415059820275587/screens/10816407230833932000",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uiLFqZ9ocOrZ3ky26DmcN1Z6gkrtjqKpaGom42Xx6t9-IFZlRdXYikndT9lCvwrPlXecoEZ3b7GNKe0btZbfzMHPOxXoTWK7yrOwRvU1rGyU3Sa9EPRhdJGy3sA2goF5mPvSJHQBHKlFI2yTe4agBVCGVz98DN6kpfXlzlNUuPevvkkTN6l7x3FT2ANSrpM2VgyAeMTd2lgcpaSkL_RfHhriNFHB2PK5uJzg8vMV_zIVQil3-B-pDpdZKTH8K3fMhLiQf3LcxCjIw",
+            "name": "projects/9884415059820275587/files/10816407230833933407"
+          },
+          "title": "image.png",
+          "width": "736"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "2944",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzc2N2IzZjMzNTIyOTQ2NDE4M2NkNzIzMTVhZjdmOTc1EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/e7004b3959ed4287a55463ede722c279"
+          },
+          "name": "projects/9884415059820275587/screens/67cea888270945719218018162bd578c",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ujNwBXiq0P6ztQSs9zrKpIgxgJgdOwBC3014CAVBOFmYj20K3UYX9UYRyZoHymWm-LN7ev7qvqlveEFUg3-IEJ22TF8NbjIhIUuqMqbWTmqMCTF1KKtqLAShQn_NhRHz71GkQ0fujDcl_eeTI2svEz2amcObhzViZ1O1_LHhw0MqmzOAmND-zDsvO47zuSdUsXKoXyTWGYVFbB_FzFBfbH5LYDMiA-cLKfKi7lTLkBgZQHFweD_gEvgSBE",
+            "name": "projects/9884415059820275587/files/58d010440a844c64a2a782a558c808ad"
+          },
+          "title": "AI Review (Obsidian)",
+          "width": "2560"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "2086",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2Y2MDA2NTQxNzhhMzQ5ZGE4ZTRlY2QyMTE1MDk4MDE2EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/158f8d04cc3c482293277bf354fd6470"
+          },
+          "name": "projects/9884415059820275587/screens/419f106da2da498d964ff1af6b332f2f",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uiNglVNY9sTROfDef6OSkPwfexbuBJUFTiR_ohpTtYI9Az-Bj2ocOXloMOFj0oKzMwXO-wLkHOR6EkKTV23JxO9faovpncVxTA2nn0EvqbKtZmnVPpfROX2oJL5WQMrKh5dvGQ3VErbhE-MrnaMJgR5rIaoRR4iBO-m6OxoPYTpLvoXT8z1IyBl3_4kb9f2KlZAQyj4gfdz68V86aJ-Oo0oZFHnMifJcZ4SwqHQqlusEMjv9fucH-OHZUA",
+            "name": "projects/9884415059820275587/files/1a30504b871041ec843785298d4a78d8"
+          },
+          "title": "Student Dashboard",
+          "width": "2560"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "2162",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzlkMzI2MDM2MmQ1YjQyZjU4ZDBhNTFmNTgxZGYxOGI1EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/833ffa0568764e9f9e3cee4bfc46ceae"
+          },
+          "name": "projects/9884415059820275587/screens/13d2fda92bd44b5c9e65ffb77f14095e",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ujUV1wv0ba8IjxpqicR-8Du_L0-eIC3QylA3FD5wR-kS1ybSz5NXYenVavv-dF7MwbMwpDP_C58JN54FLjotZEAULUBk13EQDPff6uV_YcpRm85LsRk6UZ3vJS1MTAKdHtyKrvR3E5MoRGCJObQyBAXhlVQs3LmCUvWOt4aOa31lw5kGkteoYxKuv5vzRmJScOn9UhZBb-82_H8NPb5qBhyP9sOfQ7ZupAAF-J8Zw3yCBJivsexZpLLO30",
+            "name": "projects/9884415059820275587/files/01c5fd39df2349ffb999ad00d3ac9085"
+          },
+          "title": "AI Review & Edit",
+          "width": "2560"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "2820",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2RjYWRlYjAzNDFmODRlNDlhZWQ0MmQwYzM1OTc0YTlkEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/a8812b5b82234359aa45337bbc40aa4c"
+          },
+          "name": "projects/9884415059820275587/screens/6523674a5e4646bfb335c13096e6bc00",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uhlexs_w0oW_xaaZ_GEtqRPHX9T_Ass3f2SQf0yLFJz42qI7blo3cIqkfodYA0mACpB1N3iBdXN40fwKnPxoyCbqvMz8YYlvmrTy07AwDE4xdpJg5j1fLNdHhBL2C1JPIW--XpvE_6IDWiVrmcHVS3-wTjNgUUVtOQNyNQOENyHDxVJjiLsS4rDYpdkW8oIRPuJf3dVTulsxftZ-Micd-01WPb7DDE3Vu19Z66PFNFA7aIEXJDXBHo_C90",
+            "name": "projects/9884415059820275587/files/eb2e02fcbee54124b0ea943aab2e37e3"
+          },
+          "title": "AI Review (Abyssal)",
+          "width": "2816"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "2624",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzkyNGQ2MTJhMjE5ODQyZjdiNmNiYjMxNTBiOTgwNGM2EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/b2a93c6032bd4f348d41fd9fcc110a50"
+          },
+          "name": "projects/9884415059820275587/screens/011011b9aacd474b8ee05e4fc6f5e0af",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uiDCJzsH6af8zaVvgOFpsFQhMDmJpqnZYr4MnbEbggOj9druLrINGstwdsbvcbOj5J_KG7qeWP3sLqvyp2GA1xywO10cjmNII-fBPD68tQEZfs8FUqwrc0fJc4lnw0Vxf63d7-19gU9lX8BA0eHTuDXh0uruHVqCgWWHLPuqJwIn-Ie7pnV0h8MhRlrpB_EXYqXdrUBtG9paH_37Fxn_-FvhiTHS51_q6nGsbCuOGDGjXi1Gxom3lEJcRc",
+            "name": "projects/9884415059820275587/files/09999ae621d94ee98496dad2af2ccf5d"
+          },
+          "title": "Student Dashboard",
+          "width": "2560"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "2354",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzZkZTJiM2FjOTAzMjQ5MTU5MmM1Y2ZjYjYzZWE2NGZhEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/e8fab62cba0448bea0fd52a5a6761f3f"
+          },
+          "name": "projects/9884415059820275587/screens/bb27c323d7ed4cc48f0898a46ba47840",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uhpKOwKvfCA-avb5Mc9GvfiSORM5UP9amQX-rVqqMMPwFyAX7c6HCdzpMkkgwk_j-GVKnv9x_MSk5y4n3GnROy33goqUFAyHYGf8cPc_5zjR5x435PeBTCQdsAa-PdYeusV0lyg15AYTKJV2sZwIVdx8A1P2-puJmegu-o33-XnIYkiKr-EJ7FW-8ovpeTVRgRXy32KsaBN59FcPnJrlTi6cKwOy7kIT6naHdI46ZYaMlBLs6WoJboMOj4",
+            "name": "projects/9884415059820275587/files/13fec84bc319435eaa5927782bcf730e"
+          },
+          "title": "Student Dashboard (Obsidian)",
+          "width": "2560"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "2998",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2RjZWNlMGQzNTAyYjQ5ZGNiNDc0OGRjNGU2MTNiZWY3EgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/27487de6f07d44038b0a56bd7333aef2"
+          },
+          "name": "projects/9884415059820275587/screens/cc57e53c1bd14269a81267d4c00ec02a",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uhwbvs9BtOpUfmr_RXi42sP1fXzqGl3W4rnmrdF4zHO2kHBwuR8arMwY1WDPzXu4PoEZYI6WqrEby27btwmqTxvPuBBNwgfBW0FB5Zn8P9LtD3wilqrdoNThVOeRtLsQv63tGUz48q78FQ4weISYTpK0AUvl-SOlPQDO_P7VocGVyRVClyhQ0W571-bk3kWF0o4uMO-WTXneiLcqG1XzcXPQVb8vDFmTCieyc0MwbCAI72VsU9ysNXopgk",
+            "name": "projects/9884415059820275587/files/2c5825cdd9844872974ea76e0e9625a4"
+          },
+          "title": "Teacher Dashboard",
+          "width": "2560"
+        },
+        {
+          "height": "1200",
+          "htmlCode": {},
+          "name": "projects/9884415059820275587/screens/14358423604131024326",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ugI8gVTlIUK-BcF2rCdCxORoHTPS2h4Ndex61T955lsQE0v16DkjYwe-yopF3mAFG4O521UPjjiSYg7rkUG9GtVPKSwjc31hJnluf-GMO6iJQ-HLc7E6kd939aI54odv_d31slZiC2pjrHAaMSvE0XFzQOsqdukisQAtWAvkPSXpJS_mrnqWDmV61KOoBkrIqFFmWie-EX3sm4Mp_ABGFjYocw_YvVrfvC4Rh-7LBJiD13tlHcWFuWG9aoVqrgaRMLJi7bjs7yUDg",
+            "name": "projects/9884415059820275587/files/14358423604131021171"
+          },
+          "title": "image.png",
+          "width": "600"
+        },
+        {
+          "deviceType": "DESKTOP",
+          "height": "3288",
+          "htmlCode": {
+            "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzEwZjQyNzFhNTUwMDQ3ZjQ4MjE1NWY1ZDMxZGMxNGRhEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+            "mimeType": "text/html",
+            "name": "projects/9884415059820275587/files/1cc1cc14468f4ae98bbbe1d99e8fd910"
+          },
+          "name": "projects/9884415059820275587/screens/fac51b06b74240ac9cf3408b10fe13c6",
+          "screenshot": {
+            "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ujV5Pk9RKDrO5ItUT7XgYNPVYbncQCN_U0-EjnhRMrNNtWXhZC6Hk4py6EpSmnKSJNfNGOJhV1v68sCJt2uGtdo04vJAy_9p6Kqwk91dEyjS0KuejM1jXWfjVW5AyB3qjFDfDqO97Z0lqkh3GduYq_jZlMNW1xC1npZTLtdblCTvxm-usmnXTtXZ1Yi0OkXUKroHVNeBq4bg6TPxWihn-U2m6OjlYlsEKkKMLbHgsujelAurDdsCnH35sw",
+            "name": "projects/9884415059820275587/files/6ba47432b91446ae8d16faca75bddd09"
+          },
+          "title": "Teacher Dashboard (Obsidian)",
+          "width": "2560"
+        }
+      ]
+    }
+  }
+}

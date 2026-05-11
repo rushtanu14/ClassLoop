@@ -1,0 +1,23 @@
+{
+  "id": 141755633,
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [
+      {
+        "text": "{\"name\":\"projects/9884415059820275587/screens/97dca0420db04cddadb4cf3686b8eb2e\",\"title\":\"Abstract digital landscape representing deep learning and AI. Bioluminescent coral-like structures and glowing data nodes in a deep underwater abyss. High-contrast indigo and obsidian background with soft cyan and lavender light trails. Minimalist and cinematic, matching the aesthetic of {{DATA:IMAGE:IMAGE_13}}.\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/92a053994d22488ea6b83984700b68cf\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0ughmDNzOCjn4gWNA6-hi3RwUCf1KIg31UnErf2gJSOFFg0BDCEqh3ydH4u5me8Wq1QerGfcqOYRksIRXe7GghR7mSryYve1LjPaRDhtj_9VOgRrvg-wg7G1ifeZKYftsge2ntmfrxFb30muO4abYitu0azw52_zBTSAnZURCB6lpzgHVCWjm0CWuGX6iBD7kKruSP7sizk89cdDI2ew0QtnDRrFbjE8Ui92q70HxvYh0COhg7sYZjjhLCQ\"},\"htmlCode\":{},\"width\":\"1024\",\"height\":\"1024\"}",
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "height": "1024",
+      "htmlCode": {},
+      "name": "projects/9884415059820275587/screens/97dca0420db04cddadb4cf3686b8eb2e",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0ughmDNzOCjn4gWNA6-hi3RwUCf1KIg31UnErf2gJSOFFg0BDCEqh3ydH4u5me8Wq1QerGfcqOYRksIRXe7GghR7mSryYve1LjPaRDhtj_9VOgRrvg-wg7G1ifeZKYftsge2ntmfrxFb30muO4abYitu0azw52_zBTSAnZURCB6lpzgHVCWjm0CWuGX6iBD7kKruSP7sizk89cdDI2ew0QtnDRrFbjE8Ui92q70HxvYh0COhg7sYZjjhLCQ",
+        "name": "projects/9884415059820275587/files/92a053994d22488ea6b83984700b68cf"
+      },
+      "title": "Abstract digital landscape representing deep learning and AI. Bioluminescent coral-like structures and glowing data nodes in a deep underwater abyss. High-contrast indigo and obsidian background with soft cyan and lavender light trails. Minimalist and cinematic, matching the aesthetic of {{DATA:IMAGE:IMAGE_13}}.",
+      "width": "1024"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": 398050748,
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [
+      {
+        "text": "{\"name\":\"projects/9884415059820275587/screens/6523674a5e4646bfb335c13096e6bc00\",\"title\":\"AI Review (Abyssal)\",\"screenshot\":{\"name\":\"projects/9884415059820275587/files/eb2e02fcbee54124b0ea943aab2e37e3\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uhlexs_w0oW_xaaZ_GEtqRPHX9T_Ass3f2SQf0yLFJz42qI7blo3cIqkfodYA0mACpB1N3iBdXN40fwKnPxoyCbqvMz8YYlvmrTy07AwDE4xdpJg5j1fLNdHhBL2C1JPIW--XpvE_6IDWiVrmcHVS3-wTjNgUUVtOQNyNQOENyHDxVJjiLsS4rDYpdkW8oIRPuJf3dVTulsxftZ-Micd-01WPb7DDE3Vu19Z66PFNFA7aIEXJDXBHo_C90\"},\"htmlCode\":{\"name\":\"projects/9884415059820275587/files/a8812b5b82234359aa45337bbc40aa4c\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2RjYWRlYjAzNDFmODRlNDlhZWQ0MmQwYzM1OTc0YTlkEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2816\",\"height\":\"2820\",\"deviceType\":\"DESKTOP\"}",
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "deviceType": "DESKTOP",
+      "height": "2820",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2RjYWRlYjAzNDFmODRlNDlhZWQ0MmQwYzM1OTc0YTlkEgsSBxDQsMbzuBsYAZIBIwoKcHJvamVjdF9pZBIVQhM5ODg0NDE1MDU5ODIwMjc1NTg3&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/9884415059820275587/files/a8812b5b82234359aa45337bbc40aa4c"
+      },
+      "name": "projects/9884415059820275587/screens/6523674a5e4646bfb335c13096e6bc00",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/ADBb0uhlexs_w0oW_xaaZ_GEtqRPHX9T_Ass3f2SQf0yLFJz42qI7blo3cIqkfodYA0mACpB1N3iBdXN40fwKnPxoyCbqvMz8YYlvmrTy07AwDE4xdpJg5j1fLNdHhBL2C1JPIW--XpvE_6IDWiVrmcHVS3-wTjNgUUVtOQNyNQOENyHDxVJjiLsS4rDYpdkW8oIRPuJf3dVTulsxftZ-Micd-01WPb7DDE3Vu19Z66PFNFA7aIEXJDXBHo_C90",
+        "name": "projects/9884415059820275587/files/eb2e02fcbee54124b0ea943aab2e37e3"
+      },
+      "title": "AI Review (Abyssal)",
+      "width": "2816"
+    }
+  }
+}
