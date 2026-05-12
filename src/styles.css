@@ -322,6 +322,10 @@ select:focus-visible,
   gap: 12px;
 }
 
+.landing-actions-hero {
+  gap: 10px;
+}
+
 .landing-actions.compact {
   margin-top: 0;
 }
@@ -354,6 +358,12 @@ select:focus-visible,
   color: #10202d;
   background: rgba(255, 255, 255, 0.76);
   border-color: rgba(124, 139, 154, 0.28);
+}
+
+.landing-secondary.quiet {
+  background: transparent;
+  border-color: rgba(124, 139, 154, 0.34);
+  box-shadow: none;
 }
 
 .landing-message {

@@ -2557,37 +2557,19 @@ function LandingPage({
                 </div>
                 <h1>Relay</h1>
                 <p>
-                  Relay shows teachers exactly how messy class records become approved recaps, personalized student
-                  tasks, resource links, and follow-up analytics—without making the public website feel like one giant scroll.
+                  Turn transcripts, rosters, notes, and links into reviewed student follow-ups without making teachers
+                  rebuild the same classroom context by hand.
                 </p>
-                <div className="landing-actions">
-                  <button
-                    className="landing-primary"
-                    type="button"
-                    onClick={() => handleDownload(primaryDownload)}
-                    aria-label={downloadButtonLabel(primaryDownload)}
-                  >
-                    <Download size={20} />
-                    {primaryDownload.url ? "Download for macOS" : "macOS packaging pending"}
-                  </button>
-                  <button className="landing-secondary" type="button" onClick={onOpenApp}>
+                <div className="landing-actions landing-actions-hero">
+                  <button className="landing-primary" type="button" onClick={onOpenApp}>
                     <PlayCircle size={20} />
                     Open web demo
                   </button>
-                  <button className="landing-secondary" type="button" onClick={() => goToPage("donate")}>
-                    <Sparkles size={20} />
-                    Support Relay
-                  </button>
-                  <button className="landing-secondary" type="button" onClick={handleMobileInstall}>
-                    <Smartphone size={20} />
-                    Add to phone
+                  <button className="landing-secondary quiet" type="button" onClick={() => goToPage("screenshots")}>
+                    <Eye size={20} />
+                    View screenshots
                   </button>
                 </div>
-                {(downloadMessage || mobileMessage) && (
-                  <p className="landing-message" role="status" aria-live="polite">
-                    {downloadMessage || mobileMessage}
-                  </p>
-                )}
               </div>
               <button className="landing-screenshot-preview" type="button" onClick={() => goToPage("screenshots")}>
                 <span className="landing-screenshot-label">Actual Relay workflow preview</span>

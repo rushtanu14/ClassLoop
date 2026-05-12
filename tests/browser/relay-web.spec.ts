@@ -18,11 +18,12 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   const docsButton = page.getByRole("button", { name: /^docs$/i });
   const donateButton = page.getByRole("button", { name: /^donate$/i });
   const isWideViewport = (page.viewportSize()?.width ?? 0) > 920;
-  await expect(
-    page.locator(".landing-hero .landing-actions").getByRole("button", {
-      name: /^(download for macos|macos packaging pending)$/i,
-    }),
-  ).toBeVisible();
+  const heroCopy = page.locator(".landing-hero-copy");
+  await expect(heroCopy.getByRole("button")).toHaveCount(2);
+  await expect(heroCopy.getByRole("button", { name: /open web demo/i })).toBeVisible();
+  await expect(heroCopy.getByRole("button", { name: /view screenshots/i })).toBeVisible();
+  await expect(heroCopy.getByRole("button", { name: /download|macos|add to phone|support relay/i })).toHaveCount(0);
+  await expect(page.locator(".landing-hero .landing-platform-list")).toHaveCount(0);
   if (isWideViewport) {
     await expect(screenshotsButton).toBeVisible();
     if (await docsButton.isVisible().catch(() => false)) {
@@ -38,20 +39,10 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
     await expect(page.getByRole("button", { name: /^download$/i })).toBeVisible();
   }
   await expect(page.getByRole("button", { name: /open web demo/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /add to phone/i })).toBeVisible();
   await expectNoUnnamedInteractive(page, ".landing-page");
   await expectContrast(page, landingContrastSelectors);
   if ((page.viewportSize()?.width ?? 0) <= 500 && (await page.locator(".landing-route-frame").count())) {
     await expectReadableMobileLayout(page, ".landing-page");
-  }
-
-  await page.locator(".landing-hero").getByRole("button", { name: /^add to phone$/i }).click();
-  const installMessage = /home screen|install app|install menu|already running|added|share then add to home screen|browser menu/i;
-  const statusMessage = page.getByRole("status").filter({ hasText: installMessage });
-  if (await statusMessage.isVisible().catch(() => false)) {
-    await expect(statusMessage).toBeVisible();
-  } else {
-    await expect(page.locator("p.landing-message, [role='status']").filter({ hasText: installMessage }).first()).toBeVisible();
   }
 
   if (await screenshotsButton.isVisible().catch(() => false)) {
@@ -83,6 +74,15 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
     await expect(downloadRouteHeading).toBeVisible();
   }
   await expect(page.getByRole("heading", { name: /use relay from a browser or add it to your home screen/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^add to phone$/i })).toBeVisible();
+  await page.getByRole("button", { name: /^add to phone$/i }).click();
+  const installMessage = /home screen|install app|install menu|already running|added|share then add to home screen|browser menu/i;
+  const statusMessage = page.getByRole("status").filter({ hasText: installMessage });
+  if (await statusMessage.isVisible().catch(() => false)) {
+    await expect(statusMessage).toBeVisible();
+  } else {
+    await expect(page.locator("p.landing-message, [role='status']").filter({ hasText: installMessage }).first()).toBeVisible();
+  }
   const platformDownloads = page.locator(".landing-platform-list");
   await expect(platformDownloads.getByRole("button", { name: /windows.*packaging pending/i })).toBeVisible();
   await expect(platformDownloads.getByRole("button", { name: /linux.*packaging pending/i })).toBeVisible();

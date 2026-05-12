@@ -215,11 +215,12 @@ test("public root shows landing page and can enter the app demo", async ({ page 
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /^Relay$/i })).toBeVisible();
-  await expect(
-    page.locator(".landing-hero .landing-actions").getByRole("button", {
-      name: /^(download for macos|macos packaging pending)$/i,
-    }),
-  ).toBeVisible();
+  const heroCopy = page.locator(".landing-hero-copy");
+  await expect(heroCopy.getByRole("button")).toHaveCount(2);
+  await expect(heroCopy.getByRole("button", { name: /open web demo/i })).toBeVisible();
+  await expect(heroCopy.getByRole("button", { name: /view screenshots/i })).toBeVisible();
+  await expect(heroCopy.getByRole("button", { name: /download|macos|add to phone|support relay/i })).toHaveCount(0);
+  await expect(page.locator(".landing-hero .landing-platform-list")).toHaveCount(0);
   await page.goto("/#/download");
   await expect(page.getByRole("heading", { name: /download relay/i })).toBeVisible();
   const platformDownloads = page.locator(".landing-platform-list");
