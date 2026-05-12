@@ -119,6 +119,19 @@ assert.deepEqual(
   "Profile PATCH must ignore client-submitted paid entitlement fields",
 );
 
+const invalidProfilePatch = profilePatchColumns({
+  role: "owner",
+  no_training_on_student_data: false,
+  planTier: "pro",
+  subscriptionId: "sub_attacker",
+  currentPeriodEnd: "2026-06-12T00:00:00.000Z",
+});
+assert.deepEqual(
+  invalidProfilePatch,
+  {},
+  "Profile PATCH must ignore invalid roles, snake-case privacy tampering, and camelCase paid entitlement fields",
+);
+
 const profile = billingProfileFromRow({
   plan_tier: "pro",
   subscription_status: "active",

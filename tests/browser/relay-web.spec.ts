@@ -133,3 +133,38 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   await page.getByRole("button", { name: /skip/i }).click();
   await expect(page.getByText(/You are on a demo account/i)).toBeVisible();
 });
+
+test("hosted public screenshots and privacy routes expose compliance boundaries", async ({ page }) => {
+  await page.goto("/?demoOnly=1#/screenshots");
+  await expect(page.getByRole("heading", { name: /screenshots: how relay works/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /teacher import and review screen/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /student dashboard/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /teacher analytics screen/i })).toBeVisible();
+  for (const screenshotPath of [
+    "/screenshots/relay-import-review.svg",
+    "/screenshots/relay-student-dashboard.svg",
+    "/screenshots/relay-analytics.svg",
+  ]) {
+    const response = await page.request.get(screenshotPath);
+    expect(response.ok()).toBeTruthy();
+  }
+
+  await page.goto("/?demoOnly=1#/privacy");
+  await expect(page.getByRole("heading", { name: /privacy controls before polish/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /local desktop data/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /no student-data training claim/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /retention and exports/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /hosted demo boundary/i })).toBeVisible();
+  await expect(page.getByText(/sample accounts only/i)).toBeVisible();
+  await expect(page.getByPlaceholder("name@example.com")).toHaveCount(0);
+  await expect(page.getByPlaceholder("Enter password")).toHaveCount(0);
+  await expectNoUnnamedInteractive(page, ".landing-page");
+  await expectContrast(page, [
+    ".landing-page-header h1",
+    ".landing-page-header p",
+    ".landing-feature-band h2",
+    ".landing-feature-band p",
+    ".landing-policy-panel h2",
+    ".landing-policy-panel p",
+  ]);
+});

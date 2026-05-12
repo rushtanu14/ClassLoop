@@ -94,6 +94,8 @@ function compactSpeakerName(value: string) {
 }
 
 const genericSpeakerLabelPattern = /^(student|learner|participant|attendee|speaker|user|guest)\b/i;
+const complianceMetadataLabelPattern =
+  /^(privacy|support|data retention|terms|eula|child appropriate safety|recording consent|consent|legal|security)\b.*\b(note|reminder|contact|notice|policy|guidance)\b/i;
 
 function stripGenericSpeakerLabel(value: string) {
   return value
@@ -137,6 +139,7 @@ function isTranscriptMetadataSpeaker(speaker: string) {
   const normalized = normalizeSpeakerName(speaker);
   return (
     !normalized ||
+    complianceMetadataLabelPattern.test(normalized) ||
     /^(teacher|instructor|professor|facilitator|host|relay|meeting title|meeting date|meeting id|meeting passcode|passcode|date|duration|participants?|transcript|transcription|recording|audio|chat|question|questions|answer|answers|summary|agenda|topic|topics|resources?|links?|name|email|attendance|zoom names?|student access|speaker|speakers|speaker matching|transcript speaker matching|start time|end time|timezone|language|notes|practice problems?|skills? to reinforce|common mistakes?|project or repo|debug targets?|workshop deliverable|decisions? made|owners?|next checkpoint|peer questions?|practice goals?)$/i.test(
       normalized,
     ) ||

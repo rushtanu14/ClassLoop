@@ -12,6 +12,8 @@
 - `npm run test:browser`
 - `npm run test:web`
 - `npm run test:desktop:state`
+- `npm run test:manual`
+- `npm run test:manual:write`
 - `npm run drill:rollback`
 - `npm run drill:incidents`
 
@@ -30,6 +32,7 @@
 - **Noisy Zoom/Transcript Variations**: Bracketed timestamps, plain timestamps, Zoom chat lines, Zoom VTT voice tags, dotted VTT voice tags, generic participant labels, Microsoft Teams transcript blocks, and Google Meet captions.
 - **Naming Inconsistencies**: Aliases, case variations, first-name, first-name/last-initial, first-initial/last-name, and saved roster display names.
 - **Malformed Inputs**: Duplicate emails, duplicate names with different emails, empty rows, rows without deliverable emails, teacher/metadata rows, missing roster, and transcript-only roster estimation for teacher confirmation.
+- **Compliance Label Noise**: Legal, privacy, support, retention, EULA, and child-safety note labels are treated as metadata instead of false speakers.
 - **Realistic Scale**: Large transcript with 128 valid rostered students, noisy roster rows, dropped caption warnings, unknown observers, and multiple resources still produces complete students, follow-ups, participation signals, and unmatched review warnings.
 - **Repeated Imports**: Multiple back-to-back large imports produce unique session ids and preserve full roster/follow-up/signal counts without sharing parser state.
 
@@ -47,7 +50,7 @@
 ### Entitlement Gate Tests
 - **Free / Paid Boundaries**: `npm run test:entitlements` verifies Free, active Pro, trialing Pro, past-due, canceled, unpaid, paused, and incomplete subscription states map to the right feature access.
 - **Webhook-Owned Updates**: Entitlement tests verify Stripe checkout/subscription webhook payload mapping updates `relay_profiles` with `plan_tier`, `subscription_status`, customer id, subscription id, and current period end.
-- **Client Tampering Guard**: Entitlement tests verify `/api/profile` PATCH helpers ignore client-submitted paid fields like `plan_tier`, `subscription_status`, Stripe customer ids, and nested billing profiles.
+- **Client Tampering Guard**: Entitlement tests verify `/api/profile` PATCH helpers ignore client-submitted paid fields like `plan_tier`, camelCase paid entitlement fields, `subscription_status`, Stripe customer ids, nested billing profiles, invalid roles, and snake-case privacy tampering.
 - **Locked UI Behavior**: Browser tests verify unpaid users see Pro-only live capture cards, Free one-session-per-day copy, disabled second draft generation, local upgrade unlocks paid controls, and downgrade returns the locks.
 
 ### Security / Secrets / Legal Baseline
@@ -55,7 +58,7 @@
 - **Secret Scanning**: The same script scans tracked text files for high-confidence Stripe, OpenAI, GitHub, private-key, and non-empty server-secret env assignments.
 - **Storage Hardening**: The script verifies browser data uses `relay:secure:*` AES-GCM storage keys, demo data is filtered before persistence, and the cloud offline queue is Relay-namespaced.
 - **Desktop / Hosted Boundaries**: The script verifies prompt-free desktop AES-GCM state encryption, restrictive desktop data permissions, trusted-origin local APIs, server-side email session lookup, Supabase auth requirements, Stripe webhook signature verification, and workspace RLS markers.
-- **Logging / Legal Baseline**: The script blocks runtime debug/info logs and requires [LEGAL.md](LEGAL.md) to cover Terms, Privacy, EULA, support, retention, and child-appropriate safety.
+- **Logging / Legal Baseline**: The script blocks runtime debug/info logs and requires [LEGAL.md](LEGAL.md) plus public privacy-route copy to cover Terms, Privacy, EULA, support, retention, local encryption, no-training posture, public signup boundaries, school-safety expectations, and child-appropriate safety.
 
 ### Browser Access Tests
 - **Login**: Teacher and student sample accounts can sign in.
@@ -71,7 +74,7 @@
 - **Workspace Isolation**: Browser tests verify another teacher cannot see the first teacher's sessions, saved roster, or class group, and each student account sees only sessions rostered to that student's email.
 - **Teacher Review Loop**: Teacher preview can mark submitted student check-ins as reviewed.
 - **Capture Modes**: New session flow exposes transcript, in-person class, and online meeting capture choices without biometric voice identification claims.
-- **Analytics Hiding**: Student navigation does not expose teacher analytics.
+- **Analytics Hiding And Direct Route Blocking**: Student navigation does not expose teacher analytics, and direct hashes for analytics, classes, rosters, report, billing, privacy, new-session, and review routes return to the student dashboard.
 - **Publish Audit**: Preview/report pages show publish audit evidence for class-wide and per-student follow-ups.
 - **Report Exports**: Session report exposes JSON, CSV, and print actions.
 - **Appearance**: Students can change appearance while signed in; logout returns the login screen to the default theme; sign-in restores the saved account theme.
@@ -81,6 +84,7 @@
 ### Hosted Web Smoke Tests
 - **Landing Page**: Hosted root page loads Relay marketing UI, with separate `#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` routes instead of one scroll-through page.
 - **Screenshots / Workflow**: `#/screenshots` shows Relay teacher review, student dashboard, and analytics screenshots with readable explanations.
+- **Public Privacy Boundary**: `#/privacy` exposes local desktop storage, no-training, retention/export, and sample-only hosted-demo boundary copy without revealing sign-in form fields.
 - **Desktop Downloads**: macOS, Windows, and Linux download controls are visible; missing installer URLs show packaging/demo fallback copy.
 - **Donation Path**: Donate route exposes support amounts and clearly reports when `VITE_RELAY_DONATE_URL` has not been connected.
 - **Mobile/PWA Access**: Hosted root and Download route expose the "Add to phone" action, standalone web app manifest, app icon, and service worker shell.
@@ -148,6 +152,8 @@ Playwright is installed in the repo through `@playwright/test`.
 **Run hosted web smoke**: `npm run test:web`
 **Run desktop state smoke**: `npm run build && npm run test:desktop:state`
 **Run packaged first-run smoke**: `npm run test:desktop:first-run`
+**Print full manual QA checklist**: `npm run test:manual`
+**Write full manual QA checklist**: `npm run test:manual:write`
 **Run rollback drill**: `npm run drill:rollback`
 **Run incident drill**: `npm run drill:incidents`
 
@@ -161,6 +167,8 @@ RELAY_WEB_TEST_URL=https://your-domain.com npm run test:web
 For desktop state QA, run `npm run build && npm run test:desktop:state`; this covers encrypted local state read/write, corrupt-file crash recovery, read-only overwrite protection, and encrypted backup restore against the local Electron app. For desktop release QA, run the package command for the current OS first, then `npm run test:desktop:first-run`. The first-run smoke uses a temporary `RELAY_USER_DATA_DIR` to simulate a clean packaged launch, creates a local teacher account, confirms state writes outside the app bundle, relaunches, and signs back in. Cross-platform launch still needs an actual macOS, Windows, or Linux host for the matching binary; building artifacts alone does not prove a foreign OS can launch them.
 
 For ops readiness, run `npm run drill:rollback` after packaging and `npm run drill:incidents` before alpha or release handoff. The runbooks live in `ops/rollback-drill.md` and `ops/incident-response.md`, with a reusable log template in `ops/drill-log-template.md`.
+
+For manual all-feature QA, run `npm run test:manual` after the automated gate. Use Browser/Chrome for web-only inspection and Computer Use for Electron installers, OS prompts, file pickers, microphone/screen capture, PWA install behavior, and clean-machine launch. The required report separates correctness errors, feature issues, suggested new features, cohesion improvements, and remaining gaps.
 
 ## Testing Script Response
 
@@ -182,6 +190,10 @@ When the user says "use the testing script," run the saved Relay QA sequence and
 - whether the hosted web demo exposes mobile/PWA install controls and passes the manifest/service-worker checks
 - whether WCAG-targeted keyboard navigation, focus order, visible focus, screen-reader labels/status announcements, contrast, and mobile PWA readability checks pass
 - whether rollback and incident drills passed, including clear behavior for bad release quarantine, billing outage, auth outage, sync outage, and parser regression
+- whether the manual QA checklist was run, which operator mode was used, and what evidence was captured
+- correctness errors found, clearly separated from feature issues
+- suggested new features and functions that would improve Relay
+- cohesion improvements for copy, layout, workflow order, naming, role boundaries, and cross-feature polish
 - concise feedback on how the run went
 - what could be improved
 - feature ideas that would improve user experience

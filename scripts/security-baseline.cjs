@@ -150,8 +150,37 @@ function verifyLegalBaseline() {
   const legalPath = path.join(rootDir, "LEGAL.md");
   if (!fs.existsSync(legalPath)) fail("LEGAL.md is missing.");
   const legal = fs.readFileSync(legalPath, "utf8");
-  ["Terms", "Privacy", "EULA", "Support", "Data retention", "Child-appropriate safety"].forEach((label) => {
-    if (!new RegExp(label, "i").test(legal)) fail(`LEGAL.md is missing ${label} baseline language.`);
+  const appSource = readText("src/App.tsx");
+  const requiredLegalLanguage = [
+    ["not legal advice disclaimer", /not legal advice/i],
+    ["public signup status", /Public Signup Status/i],
+    ["sample-only hosted demo boundary", /sample accounts/i],
+    ["Terms", /Terms/i],
+    ["Privacy", /Privacy/i],
+    ["EULA", /EULA/i],
+    ["Support", /Support/i],
+    ["support contact", /relay\.donotreply@gmail\.com/i],
+    ["Data retention", /Data Retention/i],
+    ["local desktop encryption", /Desktop data is local-first/i],
+    ["manual install-over-replace updates", /manual install-over-replace/i],
+    ["no-training default", /no-training/i],
+    ["gradebook boundary", /not an official gradebook/i],
+    ["Child-appropriate safety", /Child-Appropriate Safety/i],
+    ["school privacy laws", /COPPA/i],
+    ["education records law", /FERPA/i],
+  ];
+  requiredLegalLanguage.forEach(([label, pattern]) => {
+    if (!pattern.test(legal)) fail(`LEGAL.md is missing ${label} baseline language.`);
+  });
+  const requiredPublicCopy = [
+    ["public privacy route", /Privacy controls before polish/i],
+    ["hosted demo boundary", /Hosted demo boundary/i],
+    ["sample-only hosted demo copy", /Public hosted demos use sample accounts only/i],
+    ["local desktop data copy", /Desktop state is encrypted locally/i],
+    ["no student-data training copy", /No student-data training claim/i],
+  ];
+  requiredPublicCopy.forEach(([label, pattern]) => {
+    if (!pattern.test(appSource)) fail(`Public app copy is missing ${label}.`);
   });
 }
 

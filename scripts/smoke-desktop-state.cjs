@@ -22,7 +22,13 @@ async function waitForFile(filePath, timeoutMs = 8_000) {
 
 async function close(app) {
   if (app) {
-    await app.close().catch(() => undefined);
+    const process = app.process?.();
+    await Promise.race([
+      app.close().catch(() => undefined),
+      wait(5_000).then(() => {
+        process?.kill("SIGKILL");
+      }),
+    ]);
   }
 }
 
@@ -66,6 +72,14 @@ async function waitForSessionTitle(page, title, timeoutMs = 5_000) {
     await wait(150);
   }
   return lastRead;
+}
+
+async function expectEmptyWorkspace(page, label) {
+  const read = await apiState(page);
+  if (read.status !== 200 || !Array.isArray(read.body.sessions) || read.body.sessions.length !== 0) {
+    throw new Error(`Expected an empty workspace ${label}, got status ${read.status}.`);
+  }
+  return read;
 }
 
 function sampleState() {
@@ -144,10 +158,9 @@ async function run() {
 
   try {
     relay = await launchRelay(userDataDir);
-    const emptyRead = await apiState(relay.page);
-    if (emptyRead.status !== 200 || !Array.isArray(emptyRead.body.sessions) || emptyRead.body.sessions.length !== 0) {
-      throw new Error(`Expected an empty initial workspace, got status ${emptyRead.status}.`);
-    }
+    await expectEmptyWorkspace(relay.page, "on initial read");
+    await wait(750);
+    await expectEmptyWorkspace(relay.page, "after startup sync settled");
 
     const writeResult = await apiState(relay.page, "PUT", expected);
     if (writeResult.status !== 200 || writeResult.body.sessions?.[0]?.title !== expected.sessions[0].title) {
@@ -167,9 +180,14 @@ async function run() {
       throw new Error("Encrypted desktop state key was not created next to the data file.");
     }
 
-    const decryptedRead = await apiState(relay.page);
+    const decryptedRead = await waitForSessionTitle(relay.page, expected.sessions[0].title);
     if (decryptedRead.status !== 200 || decryptedRead.body.sessions?.[0]?.title !== expected.sessions[0].title) {
       throw new Error(`Expected encrypted state to decrypt through /api/state, got status ${decryptedRead.status}.`);
+    }
+    await wait(750);
+    const stableRead = await apiState(relay.page);
+    if (stableRead.status !== 200 || stableRead.body.sessions?.[0]?.title !== expected.sessions[0].title) {
+      throw new Error(`Desktop state write was not stable after app sync settled: ${JSON.stringify(stableRead.body)}`);
     }
     await close(relay.app);
     relay = null;

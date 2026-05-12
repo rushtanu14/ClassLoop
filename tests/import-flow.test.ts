@@ -413,6 +413,40 @@ assert(!notesUnmatchedNames.includes("Decision made"), "singular meeting-note me
 assert(!notesUnmatchedNames.includes("Owners"), "owners metadata labels should not become unmatched speakers");
 assert(!notesUnmatchedNames.includes("Next checkpoint"), "checkpoint metadata labels should not become unmatched speakers");
 
+const complianceLabelSession = createGeneratedSession({
+  title: "Compliance and support label noise",
+  template: "General classroom",
+  transcript: `Ms. Ortiz: Today we are reviewing the ecosystem claim.
+Privacy reminder before recording: do not paste raw student data into support chats.
+Support contact for pilot issues: use relay.donotreply@gmail.com with redacted examples.
+Data retention note: draft sessions should be exported before device replacement.
+Maya Chen: I can connect the evidence to population changes.
+Jordan Lee: The resource link helped me revise the claim: https://example.com/legal-baseline).`,
+  notes: `Terms note: teacher must review generated follow-ups before publishing.
+EULA note: desktop updates are manual install-over-replace for now.
+Child-appropriate safety note: student views should show only approved follow-ups.`,
+  roster: `Maya Chen, maya@relay.test
+Jordan Lee, jordan@relay.test`,
+  resources: "",
+});
+const complianceUnmatchedNames = (complianceLabelSession.unmatchedParticipants ?? []).map((participant) => participant.name);
+[
+  "Privacy reminder before recording",
+  "Support contact for pilot issues",
+  "Data retention note",
+  "Terms note",
+  "EULA note",
+  "Child-appropriate safety note",
+].forEach((label) => {
+  assert(!complianceUnmatchedNames.includes(label), `${label} should be ignored as metadata instead of becoming a speaker`);
+});
+assertEqual(complianceLabelSession.students.length, 2, "compliance-label noise should not disturb roster parsing");
+assertEqual(complianceLabelSession.unmatchedParticipants?.length ?? 0, 0, "compliance-label noise should not create false unmatched speakers");
+assert(
+  complianceLabelSession.resources.some((resource) => resource.url === "https://example.com/legal-baseline"),
+  "compliance-label transcript URLs should be extracted with trailing punctuation stripped",
+);
+
 const badTranscriptFormatSession = createGeneratedSession({
   title: "Bad transcript format recovery",
   template: "Study group",

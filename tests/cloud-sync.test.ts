@@ -38,8 +38,8 @@ async function assertRejects(promise: Promise<unknown>, pattern: RegExp, message
   throw new Error(`${message}. Expected rejection.`);
 }
 
-const nowMs = Date.parse("2026-05-12T12:00:00Z");
-const futureExpiry = Math.floor((nowMs + 60_000) / 1000);
+const nowMs = Date.now();
+const futureExpiry = Math.floor((nowMs + 60 * 60_000) / 1000);
 const pastExpiry = Math.floor((nowMs - 60_000) / 1000);
 
 const signedIn = cloudAuthStateFromSession(
@@ -74,7 +74,7 @@ const loggedIn = transitionCloudAuthState({ status: "signed_out" }, {
 assertEqual(loggedIn.status, "signed_in", "login transition should enter signed-in state");
 assertEqual(transitionCloudAuthState(loggedIn, { type: "logout" }).status, "signed_out", "logout transition should clear cloud auth state");
 assertEqual(
-  transitionCloudAuthState(loggedIn, { type: "token_expired", nowMs: nowMs + 120_000 }).status,
+  transitionCloudAuthState(loggedIn, { type: "token_expired", nowMs: futureExpiry * 1000 + 1_000 }).status,
   "expired",
   "token-expired transition should move signed-in sessions to expired",
 );

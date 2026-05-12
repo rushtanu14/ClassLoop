@@ -168,9 +168,34 @@ function verifySupabaseSchema() {
   }
 }
 
+function verifyRunbookCoverage() {
+  const checks = [
+    ["incident auth outage runbook", "ops/incident-response.md", /Auth Outage/i],
+    ["incident sync outage runbook", "ops/incident-response.md", /Sync Outage/i],
+    ["incident billing outage runbook", "ops/incident-response.md", /Billing Outage/i],
+    ["incident parser regression runbook", "ops/incident-response.md", /Parser Regression/i],
+    ["rollback packaging-pending fallback", "ops/rollback-drill.md", /Packaging pending/i],
+    ["rollback clean-host first-run step", "ops/rollback-drill.md", /test:desktop:first-run/i],
+    ["manual QA checklist script", "scripts/manual-qa-checklist.cjs", /Correctness errors found/i],
+    ["manual QA operator modes", "scripts/manual-qa-checklist.cjs", /Computer Use/i],
+    ["legal baseline", "LEGAL.md", /not legal advice/i],
+    ["legal school-safety baseline", "LEGAL.md", /COPPA/i],
+    ["legal education-records baseline", "LEGAL.md", /FERPA/i],
+    ["testing response format", "TESTING.md", /correctness errors/i],
+  ];
+  for (const [label, relPath, pattern] of checks) {
+    const fullPath = path.join(rootDir, relPath);
+    if (!fs.existsSync(fullPath)) fail(`${label} is missing ${relPath}.`);
+    const text = fs.readFileSync(fullPath, "utf8");
+    if (!pattern.test(text)) fail(`${label} is missing required coverage.`);
+    console.log(`PASS ${label}`);
+  }
+}
+
 async function main() {
   verifySyntax();
   verifySupabaseSchema();
+  verifyRunbookCoverage();
   await verifyApiFailClosed();
 
   runCommand("cloud auth/sync outage regression tests", "npm", ["run", "test:cloud"]);

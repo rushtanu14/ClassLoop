@@ -19,6 +19,8 @@
     "test:web": "playwright test -c playwright.web.config.ts",
     "test:desktop:state": "node scripts/smoke-desktop-state.cjs",
     "test:desktop:first-run": "node scripts/smoke-packaged-first-run.cjs",
+    "test:manual": "node scripts/manual-qa-checklist.cjs",
+    "test:manual:write": "node scripts/manual-qa-checklist.cjs --write",
     "test:all": "npm run test:security && npm run test:import && npm run test:cloud && npm run test:entitlements && npm run test:browser && npm run test:web",
     "drill:rollback": "node scripts/drill-release-rollback.cjs",
     "drill:incidents": "node scripts/drill-incident-response.cjs",
