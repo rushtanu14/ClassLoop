@@ -1887,7 +1887,7 @@ function App() {
           ? {
               ...setStudentSubmission(session, studentId, "submitted", "Marked complete from the student portal."),
               actionItems: session.actionItems.map((item) =>
-                item.ownerId === studentId || !item.ownerId ? { ...item, status: "submitted" } : item,
+                item.ownerId === studentId ? { ...item, status: "submitted" } : item,
               ),
             }
           : session,
@@ -2385,18 +2385,23 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
     },
   ];
   const availableDownloads = downloadOptions.filter((option) => option.url);
+  const primaryDownload = downloadOptions[0];
+  const downloadButtonLabel = (option: (typeof downloadOptions)[number]) =>
+    option.url ? `Download ${option.label}` : `${option.label} packaging pending`;
   const stats = [
     { value: "1", label: "daily free session" },
     { value: "Pro", label: "unlimited follow-ups" },
     { value: "PWA", label: "phone-ready web app" },
   ];
 
-  const handleDownload = (option = downloadOptions[0]) => {
+  const handleDownload = (option = primaryDownload) => {
     if (option.url) {
       window.location.href = option.url;
       return;
     }
-    setDownloadMessage(`${option.label} desktop download is being packaged. You can try the hosted web demo now.`);
+    setDownloadMessage(
+      `${option.label} packaging pending: the desktop installer has not been uploaded yet. You can try the hosted web demo now.`,
+    );
   };
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2496,9 +2501,14 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
           and completion check-ins that keep learning moving after class.
         </p>
         <div className="landing-actions">
-          <button className="landing-primary" type="button" onClick={() => handleDownload(downloadOptions[0])}>
+          <button
+            className="landing-primary"
+            type="button"
+            onClick={() => handleDownload(primaryDownload)}
+            aria-label={downloadButtonLabel(primaryDownload)}
+          >
             <Download size={20} />
-            Download for macOS
+            {primaryDownload.url ? "Download for macOS" : "macOS packaging pending"}
           </button>
           <button className="landing-secondary" type="button" onClick={onOpenApp}>
             <PlayCircle size={20} />
@@ -2515,12 +2525,17 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
               <Download size={16} />
               <span>
                 <strong>{option.label}</strong>
-                <small>{option.url ? "Download ready" : option.helper}</small>
+                <small>{option.url ? "Download ready" : "Packaging pending"}</small>
+                {!option.url && <em>{option.helper}</em>}
               </span>
             </button>
           ))}
         </div>
-        {downloadMessage && <p className="landing-message">{downloadMessage}</p>}
+        {downloadMessage && (
+          <p className="landing-message" role="status" aria-live="polite">
+            {downloadMessage}
+          </p>
+        )}
         {mobileMessage && <p className="landing-message compact">{mobileMessage}</p>}
         <div className="landing-stat-row" aria-label="Relay plan highlights">
           {stats.map((stat) => (
@@ -2591,13 +2606,18 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
           </p>
         </div>
         <div className="landing-actions compact">
-          <button className="landing-primary" type="button" onClick={() => handleDownload(downloadOptions[0])}>
+          <button
+            className="landing-primary"
+            type="button"
+            onClick={() => handleDownload(primaryDownload)}
+            aria-label={downloadButtonLabel(primaryDownload)}
+          >
             <Download size={18} />
-            Download macOS
+            {primaryDownload.url ? "Download macOS" : "macOS pending"}
           </button>
           {downloadOptions.slice(1).map((option) => (
             <button key={option.id} className="landing-secondary" type="button" onClick={() => handleDownload(option)}>
-              {option.label}
+              {option.url ? option.label : `${option.label} pending`}
             </button>
           ))}
           <button className="landing-secondary" type="button" onClick={onOpenApp}>

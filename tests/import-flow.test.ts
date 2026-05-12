@@ -132,6 +132,23 @@ Aaliyah,Carter,acarter@cs4all.nyc
 Danny,Reyes,dreyes@cs4all.nyc
 Jalen,Thompson,jthompson@cs4all.nyc`,
   },
+  {
+    name: "semicolon-separated export",
+    roster: `Student Name;Email
+Aaliyah Carter;acarter@cs4all.nyc
+Danny Reyes;dreyes@cs4all.nyc
+Jalen Thompson;jthompson@cs4all.nyc`,
+  },
+  {
+    name: "CSV with aliases and empty rows",
+    roster: `Name,Email,Aliases
+
+Aaliyah Carter,acarter@cs4all.nyc,Aaliyah C
+,blank-name@cs4all.nyc
+Danny Reyes,dreyes@cs4all.nyc,Danny R
+Malformed row with no email
+Jalen Thompson,jthompson@cs4all.nyc,Jalen T; JT Laptop`,
+  },
 ];
 
 const speakerFormatTranscript = `Mr. Agrawal: Teacher instructions should not become a student.
@@ -166,6 +183,29 @@ Good examples.`;
 const googleMeetTranscript = `Aaliyah Carter: I think an algorithm is a list of steps.
 Danny Reyes: Is the worksheet due Thursday?
 Jalen T: The map is data, not the algorithm.`;
+
+const zoomTimestampedTranscript = `00:00:01 Student (Aaliyah Carter): I can explain the first step.
+00:00:04 Danny Reyes: Is the worksheet due Thursday?
+[00:00:07] Jalen T: The map is data, not an algorithm.`;
+
+const zoomChatTranscript = `[Chat] Aaliyah Carter: resource for later https://example.com/algorithm-chat
+[00:00:05] [Chat] Danny Reyes: recipes are algorithms
+[00:00:09] Jalen Thompson: I can compare directions and maps.`;
+
+const zoomDottedVttTranscript = `WEBVTT
+
+00:00:01.000 --> 00:00:04.000
+<v.Student (Aaliyah Carter)>The robot needs exact instructions.
+
+00:00:04.000 --> 00:00:06.000
+<v.Danny Reyes>Order matters for the steps.
+
+00:00:06.000 --> 00:00:09.000
+<v.Jalen T>Can we use a flowchart?`;
+
+const genericSpeakerLabelsTranscript = `Participant - Aaliyah Carter: I can explain decomposition.
+Attendee (Danny Reyes): I think the recipe is an algorithm.
+User (Jalen Thompson): Does the reflection count as homework?`;
 
 const expectedStudents = [
   ["Aaliyah Carter", "acarter@cs4all.nyc"],
@@ -252,7 +292,11 @@ rosterFormatVariants.forEach((variant) => {
 });
 
 [
+  ["Zoom timestamped lines", zoomTimestampedTranscript],
+  ["Zoom chat export lines", zoomChatTranscript],
+  ["Zoom dotted VTT voice tags", zoomDottedVttTranscript],
   ["Zoom VTT captions", zoomVttTranscript],
+  ["Generic speaker labels", genericSpeakerLabelsTranscript],
   ["Teams transcript blocks", teamsTranscript],
   ["Google Meet captions", googleMeetTranscript],
 ].forEach(([name, transcript]) => {
@@ -269,6 +313,211 @@ Jalen Thompson, jthompson@cs4all.nyc`,
   assertEqual(transcriptSession.students.length, 3, `${name} should preserve roster parsing`);
   assertEqual(transcriptSession.unmatchedParticipants?.length ?? 0, 0, `${name} should match roster speakers`);
   assert(transcriptSession.participationEvents.length > 0, `${name} should create participation events`);
+});
+
+const malformedRosterSession = createGeneratedSession({
+  title: "Malformed roster and alias handling",
+  template: "General classroom",
+  transcript: `Maya iPad: I can summarize the activity.
+May C Alt: I found a second way to explain it.
+JL: The timeline should start with evidence.
+Jordan Alt: I can revise the exit ticket tonight.`,
+  notes: "",
+  roster: `Name,Email,Aliases
+
+Maya Chen,maya@relay.test,Maya C; Maya iPad
+Maya Chen,maya@relay.test,Maya Duplicate
+Maya Chen,maya.alt@relay.test,May C Alt
+Jordan Lee,jordan@relay.test,JL
+Jordan Lee,jordan.alt@relay.test,Jordan Alt
+,blank-name@relay.test
+Malformed row with no deliverable email
+Teacher: Ms. Rivera`,
+  resources: "",
+});
+const malformedEmails = malformedRosterSession.students.map((student) => student.email);
+const malformedIds = malformedRosterSession.students.map((student) => student.id);
+assertEqual(malformedRosterSession.students.length, 4, "malformed CSV rows should keep four valid unique-email students");
+assertEqual(new Set(malformedEmails).size, 4, "duplicate email rows should merge instead of creating duplicate students");
+assertEqual(new Set(malformedIds).size, 4, "duplicate student names should receive unique ids");
+assert(
+  malformedRosterSession.students.find((student) => student.email === "maya@relay.test")?.aliases?.includes("Maya Duplicate") ?? false,
+  "duplicate email rows should merge alternate aliases onto the kept student",
+);
+assertEqual(
+  malformedRosterSession.unmatchedParticipants?.length ?? 0,
+  0,
+  "mixed roster aliases should match transcript speakers without creating unmatched warnings",
+);
+assert(
+  malformedRosterSession.participationEvents.some(
+    (event) => event.studentId === malformedRosterSession.students.find((student) => student.email === "jordan@relay.test")?.id,
+  ),
+  "alias-only transcript speakers should still create participation events for the linked roster student",
+);
+
+const transcriptOnlySession = createGeneratedSession({
+  title: "Transcript-only roster estimate",
+  template: "General classroom",
+  transcript: `WEBVTT
+
+00:00:01.000 --> 00:00:04.000
+<v Student (Aaliyah Carter)>I can explain the first example.
+
+Aaliyah Carter: Adding the duplicate display name should not create a second student.
+
+Danny Reyes
+4/28/2026, 10:01 AM
+I can summarize the homework.
+
+Speaker - Jalen Thompson: Is the worksheet due Thursday?
+Ms. Rivera: Teacher directions should not become an estimated student.`,
+  notes: "",
+  roster: "",
+  resources: "",
+});
+const transcriptOnlyNames = transcriptOnlySession.students.map((student) => student.name);
+assertEqual(transcriptOnlySession.status, "draft", "transcript-only mode should create a draft for teacher confirmation");
+assertEqual(transcriptOnlySession.students.length, 3, "transcript-only mode should estimate three student speakers");
+assert(transcriptOnlyNames.includes("Aaliyah Carter"), "transcript-only estimates should strip generic Zoom student labels");
+assert(transcriptOnlyNames.includes("Danny Reyes"), "transcript-only estimates should support Teams-style speaker blocks");
+assert(transcriptOnlyNames.includes("Jalen Thompson"), "transcript-only estimates should strip generic speaker prefixes");
+assert(!transcriptOnlyNames.includes("Student (Aaliyah Carter)"), "transcript-only estimates should avoid duplicate generic labels");
+assert(!transcriptOnlyNames.includes("Ms. Rivera"), "transcript-only estimates should exclude teacher-like speakers");
+assert(
+  transcriptOnlySession.students.every((student) => student.email.endsWith("@relay.local")),
+  "transcript-only estimated students should use local placeholder emails until teacher confirmation",
+);
+assertEqual(transcriptOnlySession.followUps.length, 3, "transcript-only estimates should create reviewable follow-ups");
+assertEqual(
+  transcriptOnlySession.unmatchedParticipants?.length ?? 0,
+  0,
+  "transcript-only mode should not flag estimated speakers as unmatched before teacher confirmation",
+);
+
+const meetingNotesMetadataSession = createGeneratedSession({
+  title: "Meeting note metadata labels",
+  template: "Club meeting",
+  transcript: `Ms. Kim: Today we need owners for the elementary robotics outreach booth.
+Priya Shah: I can own the demo script.
+Leo Martinez: I can email the coordinator.`,
+  notes: `Decision made: keep three short stations instead of one long demo.
+Owners: Priya owns demo script; Leo owns coordinator email.
+Next checkpoint: Monday materials list and script draft.`,
+  roster: `Priya Shah, priya@relay.test
+Leo Martinez, leo@relay.test`,
+  resources: "",
+});
+const notesUnmatchedNames = (meetingNotesMetadataSession.unmatchedParticipants ?? []).map((participant) => participant.name);
+assert(!notesUnmatchedNames.includes("Decision made"), "singular meeting-note metadata labels should not become unmatched speakers");
+assert(!notesUnmatchedNames.includes("Owners"), "owners metadata labels should not become unmatched speakers");
+assert(!notesUnmatchedNames.includes("Next checkpoint"), "checkpoint metadata labels should not become unmatched speakers");
+
+const badTranscriptFormatSession = createGeneratedSession({
+  title: "Bad transcript format recovery",
+  template: "Study group",
+  transcript: `This export lost speaker labels.
+The class reviewed proportional reasoning and the teacher assigned a short reflection due Friday.
+Malformed links should not break parsing: not-a-url, www.example without protocol, https://example.com/reflection-guide.`,
+  notes: "Maya needs a check-in; Jordan should redo one proportion.",
+  roster: `Maya Chen, maya@relay.test
+Jordan Lee, jordan@relay.test`,
+  resources: `not a url
+https://example.com/study-guide).`,
+});
+assertEqual(badTranscriptFormatSession.students.length, 2, "bad transcript format should still preserve roster students");
+assertEqual(badTranscriptFormatSession.followUps.length, 2, "bad transcript format should still create follow-ups");
+assertEqual(
+  badTranscriptFormatSession.unmatchedParticipants?.length ?? 0,
+  0,
+  "bad transcript format without speaker labels should not create false unmatched speakers",
+);
+assert(
+  badTranscriptFormatSession.actionItems.some((item) => /reflection|assigned/i.test(item.title + item.description)),
+  "bad transcript format should still surface a reviewable action item",
+);
+assert(
+  badTranscriptFormatSession.resources.some((resource) => resource.url === "https://example.com/study-guide"),
+  "malformed resource punctuation should be stripped instead of breaking URL extraction",
+);
+
+const scaleStudentCount = 128;
+const scaleStudents = Array.from({ length: scaleStudentCount }, (_, index) => {
+  const number = `${index + 1}`.padStart(3, "0");
+  return {
+    name: `Nova Person ${number}`,
+    email: `nova.person.${number}@relay-scale.test`,
+  };
+});
+const scaleRoster = [
+  "Class roster export — Period 6",
+  "Teacher: Ms. Alvarez",
+  "Student Name, Email",
+  ...scaleStudents.map((student) => `${student.name}, ${student.email}`),
+  "Malformed row with no deliverable email",
+  "Room 214 | Spring benchmark",
+].join("\n");
+const scaleTranscript = [
+  "Large transcript export — 92 minutes",
+  "Date: May 12, 2026",
+  "Participants: Ms. Alvarez and 128 students",
+  ...scaleStudents.flatMap((student, index) => {
+    const minute = `${Math.floor(index / 2)}`.padStart(2, "0");
+    const second = `${(index * 7) % 60}`.padStart(2, "0");
+    const lines = [
+      `[00:${minute}:${second}] ${student.name}: I think the evidence connects to claim ${index + 1} because the graph changes after the intervention.`,
+    ];
+    if (index % 8 === 0) {
+      lines.push(`[00:${minute}:${(`${(Number(second) + 1) % 60}`.padStart(2, "0"))}] ${student.name}: Is the CER paragraph due Friday?`);
+    }
+    return lines;
+  }),
+  "[01:31:02] Unknown Guest: I am observing from the district team.",
+  "[01:31:08] Ms. Alvarez: Homework for Friday: finish the CER revision and annotate one peer comment.",
+  "[Chat] Nova Person 001: helpful rubric https://example.com/cer-rubric",
+  "[Chat] Nova Person 064: data table https://example.com/data-table",
+  "[Chat] Nova Person 128: model paragraph https://example.com/model-paragraph",
+  "Transcript sync warning: 3 caption lines were dropped by the platform.",
+].join("\n");
+
+const scaleStartedAt = Date.now();
+const scaleSession = createGeneratedSession({
+  title: "Large CER Workshop Import",
+  template: "General classroom",
+  transcript: scaleTranscript,
+  notes: "Partial platform export: a few caption lines were dropped, but the roster and most student turns are intact.",
+  roster: scaleRoster,
+  resources: "https://example.com/revision-checklist",
+});
+const scaleElapsedMs = Date.now() - scaleStartedAt;
+assertEqual(scaleSession.students.length, scaleStudentCount, "large roster import should preserve all 128 valid students");
+assertEqual(scaleSession.followUps.length, scaleStudentCount, "large roster import should create one follow-up per student");
+assert(
+  scaleSession.participationEvents.length >= scaleStudentCount,
+  "large transcript import should create participation signals at realistic scale",
+);
+assert(scaleSession.resources.length >= 4, "large transcript import should preserve multiple explicit and chat resources");
+assert(
+  (scaleSession.unmatchedParticipants ?? []).some((participant) => participant.name === "Unknown Guest"),
+  "partial transcript failures should surface unknown speakers without breaking the import",
+);
+assert(scaleElapsedMs < 5_000, `large transcript import should stay responsive enough for tests (${scaleElapsedMs}ms)`);
+
+const repeatedScaleSessions = Array.from({ length: 3 }, (_, index) =>
+  createGeneratedSession({
+    title: `Repeated Large Import ${index + 1}`,
+    template: index === 1 ? "CS workshop" : "General classroom",
+    transcript: scaleTranscript,
+    notes: index === 2 ? "Repeated import after teacher corrected roster formatting." : "",
+    roster: scaleRoster,
+    resources: "https://example.com/revision-checklist",
+  }),
+);
+assertEqual(new Set(repeatedScaleSessions.map((item) => item.id)).size, 3, "repeated imports should receive unique session ids");
+repeatedScaleSessions.forEach((repeatedSession, index) => {
+  assertEqual(repeatedSession.students.length, scaleStudentCount, `repeated import ${index + 1} should preserve roster size`);
+  assertEqual(repeatedSession.followUps.length, scaleStudentCount, `repeated import ${index + 1} should preserve follow-ups`);
+  assert(repeatedSession.participationEvents.length >= scaleStudentCount, `repeated import ${index + 1} should preserve signals`);
 });
 
 const transcriptFile =

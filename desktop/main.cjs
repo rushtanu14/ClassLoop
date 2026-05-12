@@ -18,7 +18,11 @@ function getNodemailer() {
 
 const rootDir = path.join(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
-const dataFile = path.join(rootDir, ".relay-data.json");
+const dataFileName = ".relay-data.json";
+const requestedUserDataDir = process.env.RELAY_USER_DATA_DIR;
+if (requestedUserDataDir) {
+  app.setPath("userData", path.resolve(requestedUserDataDir));
+}
 let dataFileReadError = null;
 
 const securityHeaders = {
@@ -68,6 +72,24 @@ function emptyWorkspace() {
   };
 }
 
+function currentDataFilePath() {
+  return app.isPackaged || requestedUserDataDir ? path.join(app.getPath("userData"), dataFileName) : path.join(rootDir, dataFileName);
+}
+
+function readableDataFilePath() {
+  const dataFile = currentDataFilePath();
+  if (fs.existsSync(dataFile)) {
+    return dataFile;
+  }
+
+  const legacyDataFile = path.join(rootDir, dataFileName);
+  if (app.isPackaged && legacyDataFile !== dataFile && fs.existsSync(legacyDataFile)) {
+    return legacyDataFile;
+  }
+
+  return dataFile;
+}
+
 function dataReadErrorMessage(error) {
   const detail = error instanceof Error && error.message ? ` ${error.message}` : "";
   return `Unable to read Relay desktop data.${detail}`;
@@ -75,6 +97,7 @@ function dataReadErrorMessage(error) {
 
 function readDataFile(options = {}) {
   try {
+    const dataFile = readableDataFilePath();
     if (!fs.existsSync(dataFile)) {
       dataFileReadError = null;
       return emptyWorkspace();
@@ -164,6 +187,8 @@ function writeDataFile(payload) {
         encrypted: false,
         payload: nextState,
       };
+  const dataFile = currentDataFilePath();
+  fs.mkdirSync(path.dirname(dataFile), { recursive: true });
   fs.writeFileSync(dataFile, `${JSON.stringify(stored, null, 2)}\n`, { mode: 0o600 });
   return nextState;
 }
@@ -481,6 +506,11 @@ function createStaticServer() {
 
 let staticServer;
 
+function logStartupError(error) {
+  const message = error && error.stack ? error.stack : error;
+  console.error("Relay desktop startup failed:", message);
+}
+
 async function createWindow() {
   if (!fs.existsSync(path.join(distDir, "index.html"))) {
     throw new Error("Missing dist/index.html. Relay needs the checked-in app build to run.");
@@ -531,7 +561,20 @@ async function createWindow() {
   await window.loadURL(`${staticServer.url}/#/dashboard`);
 }
 
-app.whenReady().then(createWindow);
+process.on("uncaughtException", (error) => {
+  logStartupError(error);
+  app.exit(1);
+});
+
+process.on("unhandledRejection", (error) => {
+  logStartupError(error);
+  app.exit(1);
+});
+
+app.whenReady().then(createWindow).catch((error) => {
+  logStartupError(error);
+  app.exit(1);
+});
 
 app.on("window-all-closed", () => {
   if (staticServer) {

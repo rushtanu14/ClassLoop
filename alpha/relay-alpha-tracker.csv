@@ -1,0 +1,5 @@
+date,teacher_id,role_or_context,session_type,data_source,first_run_platform,time_to_first_draft_minutes,time_to_publish_or_preview_minutes,support_interventions_count,support_intervention_codes,usability_rating_1_to_5,interpretation_quality_1_to_5,matching_false_positive_count,participation_false_positive_count,teacher_edit_count,would_use_again,top_blocker,notes_redacted
+2026-05-13,T1,,,,,,,,,,,,,,,,
+2026-05-13,T2,,,,,,,,,,,,,,,,
+2026-05-14,T1,,,,,,,,,,,,,,,,
+2026-05-14,T2,,,,,,,,,,,,,,,,

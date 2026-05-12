@@ -329,6 +329,13 @@ a {
   font-weight: 800;
 }
 
+.landing-platform-list em {
+  color: rgba(9, 20, 31, 0.54);
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
 .landing-actions.compact {
   margin-top: 0;
 }

@@ -171,7 +171,15 @@ npm run package:win
 npm run package:linux
 ```
 
-These scripts build both x64 and arm64 desktop artifacts where Electron Builder supports it. Generated installers are written to `release/` and are not committed. For public distribution, upload signed/notarized release files to GitHub Releases, Vercel Blob, S3, or another trusted download host, then set:
+These scripts build both x64 and arm64 desktop artifacts where Electron Builder supports it. Generated installers are written to `release/` and are not committed. After packaging on a clean machine, run the first-run smoke for that host OS:
+
+```bash
+npm run test:desktop:first-run
+```
+
+The smoke test launches the packaged app with a temporary clean desktop data directory, creates a teacher account, verifies the desktop state file is written outside the app bundle, relaunches, and signs back in. Relay does not ship an automatic desktop updater yet; current update behavior is manual install-over-replace, with user data stored in Electron's per-user app data directory so it survives app replacement. Electron Builder may generate `latest*.yml` release metadata, but the app does not auto-download updates until an updater is intentionally added.
+
+For public distribution, upload signed/notarized release files to GitHub Releases, Vercel Blob, S3, or another trusted download host, then set:
 
 ```bash
 VITE_RELAY_MAC_DOWNLOAD_URL=
@@ -179,7 +187,15 @@ VITE_RELAY_WINDOWS_DOWNLOAD_URL=
 VITE_RELAY_LINUX_DOWNLOAD_URL=
 ```
 
-macOS apps should be signed and notarized before broad distribution to avoid Gatekeeper warnings. Windows builds should eventually use code signing to avoid SmartScreen friction.
+macOS apps should be signed and notarized before broad distribution to avoid Gatekeeper warnings. Windows builds should eventually use code signing to avoid SmartScreen friction. If one of the installer URLs is missing, the landing page must visibly show "Packaging pending" for that platform and route visitors to the hosted demo instead of implying a download succeeded.
+
+Before opening public downloads, rehearse rollback:
+
+```bash
+npm run drill:rollback
+```
+
+The rollback drill validates the packaged artifacts and writes a non-destructive bad-release quarantine simulation. Use [ops/rollback-drill.md](ops/rollback-drill.md) for the real rollback checklist.
 
 ## Privacy And School Readiness
 
@@ -187,6 +203,8 @@ macOS apps should be signed and notarized before broad distribution to avoid Gat
 - Recording or live capture should require clear consent before use.
 - Student data is marked as “no training” by default unless a school or teacher explicitly allows otherwise.
 - Analytics stay teacher-only and should be framed as private support signals, not public rankings.
+- Local desktop data files such as `.relay-data.json` are ignored by git and should never be committed.
+- See [LEGAL.md](LEGAL.md) for the pre-launch Terms, Privacy, EULA, support, retention, and child-safety baseline. Convert that baseline into reviewed public pages before enabling durable hosted public signups.
 
 ## Sample Accounts
 
@@ -212,17 +230,34 @@ relay-student
 4. Open the student view to show personalized recaps, tasks, resources, and completion check-ins.
 5. Use analytics to explain how Relay tracks participation and follow-through.
 
+## Alpha Usage
+
+Use [ALPHA.md](ALPHA.md) for the 1-2 day teacher alpha. The alpha focuses on:
+
+- teacher usability from first run to publish preview
+- interpretation quality for recaps, tasks, resources, and student follow-ups
+- false positives in roster matching and participation detection
+- support burden signals such as install, import, review, publish, and student-access confusion
+
+The alpha kit includes a teacher script, day-end synthesis template, support triage rubric, and CSV tracker under [alpha/](alpha/). Keep student data redacted in the tracker; record counts and anonymized examples instead of raw transcripts.
+
 ## Testing
 
 ```bash
 npm install
 npm run build
+npm run test:security
 npm run test:import
+npm run test:cloud
+npm run test:entitlements
 npm run test:browser
 npm run test:web
+npm run drill:incidents
 ```
 
-`npm run test:browser` covers the local Vite app. `npm run test:web` checks the deployed hosted web demo. Override the target with `RELAY_WEB_TEST_URL=https://your-domain.com npm run test:web`.
+`npm run test:security` checks that local data and `.env.local` are not tracked, high-confidence secret patterns are absent from tracked files, local storage uses the secure Relay key namespace, desktop state uses encryption and trusted-origin local APIs, runtime debug logs are not present, and the legal baseline exists. `npm run test:cloud` covers Supabase auth/sync state handling without requiring live credentials. `npm run test:entitlements` covers Free/Pro boundaries and webhook-driven entitlement mapping without requiring live Stripe credentials. `npm run test:browser` covers the local Vite app. `npm run test:web` checks the deployed hosted web demo. Override the target with `RELAY_WEB_TEST_URL=https://your-domain.com npm run test:web`.
+
+`npm run drill:incidents` rehearses billing, auth, sync, and parser-regression incident response by checking hosted API fail-closed behavior, Supabase schema guards, cloud sync tests, entitlement tests, and parser import tests. Use [ops/incident-response.md](ops/incident-response.md) for response steps and [ops/drill-log-template.md](ops/drill-log-template.md) to record drill results.
 
 Hosted web tests now run both desktop and Pixel-sized projects and verify the PWA manifest/service worker, mobile install CTA, sample-only demo, and guided walkthrough entry.
 

@@ -1,12 +1,23 @@
 import { json, requireUser } from "./_shared.js";
 
-function billingProfileFromRow(row) {
+export function billingProfileFromRow(row) {
   return {
     tier: row?.plan_tier || "free",
     status: row?.subscription_status || "not_configured",
     customerId: row?.stripe_customer_id || undefined,
     currentPeriodEnd: row?.current_period_end || undefined,
   };
+}
+
+export function profilePatchColumns(payload = {}) {
+  const allowed = {};
+  if (typeof payload.noTrainingOnStudentData === "boolean") {
+    allowed.no_training_on_student_data = payload.noTrainingOnStudentData;
+  }
+  if (payload.role === "teacher" || payload.role === "student") {
+    allowed.role = payload.role;
+  }
+  return allowed;
 }
 
 async function ensureProfile(supabase, user) {
@@ -50,13 +61,7 @@ export default async function handler(request, response) {
 
     if (request.method === "PATCH") {
       const payload = request.body && typeof request.body === "object" ? request.body : {};
-      const allowed = {};
-      if (typeof payload.noTrainingOnStudentData === "boolean") {
-        allowed.no_training_on_student_data = payload.noTrainingOnStudentData;
-      }
-      if (payload.role === "teacher" || payload.role === "student") {
-        allowed.role = payload.role;
-      }
+      const allowed = profilePatchColumns(payload);
       if (!Object.keys(allowed).length) return json(response, 400, { error: "No supported profile updates were provided." });
 
       const { data, error } = await supabase

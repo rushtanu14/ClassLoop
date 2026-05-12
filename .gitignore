@@ -4,6 +4,7 @@ node_modules
 .env.*.local
 dist/assets/index-*.js
 dist/assets/index-*.css
+.relay-data.json
 .classloop-data.json
 .classloop-integrations.json
 .env.local

@@ -1,4 +1,6 @@
 import { expect, test, type Download, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import type { Session, SessionType } from "../../src/types";
 
 const teacherEmail = "teacher@relay.demo";
 const teacherPassword = "relay-teacher";
@@ -39,6 +41,165 @@ async function expectDownloaded(downloadPromise: Promise<Download>, filenamePatt
   expect(download.suggestedFilename()).toMatch(filenamePattern);
 }
 
+type EndToEndScenario = {
+  title: string;
+  template: SessionType;
+  transcript: string;
+  notes: string;
+  roster: string;
+  resources: string;
+  details: Record<string, string>;
+  student: {
+    name: string;
+    email: string;
+    password: string;
+  };
+  rosterSaveName?: string;
+};
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function signOut(page: Page) {
+  await page.getByRole("button", { name: /sign out/i }).click();
+  await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
+}
+
+async function createAccount(
+  page: Page,
+  role: "teacher" | "student",
+  name: string,
+  email: string,
+  password: string,
+) {
+  await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
+  await page.locator(".auth-switch").getByRole("button", { name: /^create account$/i }).click();
+  await page.locator(".role-tabs").getByRole("button", { name: role === "teacher" ? /teacher/i : /student/i }).click();
+  await page.getByPlaceholder("Your name").fill(name);
+  await page.getByPlaceholder("name@example.com").fill(email);
+  await page.getByPlaceholder("Enter password", { exact: true }).fill(password);
+  await page.getByPlaceholder("Re-enter password").fill(password);
+  await page.locator("form.login-form button[type='submit']").click();
+  await skipAutoWalkthrough(page);
+}
+
+async function signInAccount(page: Page, role: "teacher" | "student", email: string, password: string) {
+  await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
+  await page.locator(".role-tabs").getByRole("button", { name: role === "teacher" ? /teacher/i : /student/i }).click();
+  await page.getByPlaceholder("name@example.com").fill(email);
+  await page.getByPlaceholder("Enter password").fill(password);
+  await page.locator("form.login-form button[type='submit']").click();
+  await skipAutoWalkthrough(page);
+}
+
+async function upgradeTeacherToPro(page: Page) {
+  await page.getByRole("button", { name: /^plan options$/i }).click();
+  await page.getByRole("button", { name: /upgrade to pro/i }).click();
+  await expect(page.getByRole("button", { name: /downgrade to free/i })).toBeVisible();
+  await page.getByLabel(/go to dashboard/i).click();
+  await expect(page.getByText("Today in Relay")).toBeVisible();
+}
+
+async function waitForPersistedSessions(page: Page) {
+  await expect
+    .poll(async () => page.evaluate(() => localStorage.getItem("relay:secure:sessions:v3") !== null))
+    .toBe(true);
+}
+
+async function handleRosterPrompt(page: Page, rosterSaveName?: string) {
+  const dialog = page.getByRole("dialog", { name: /save this roster/i });
+  await dialog.waitFor({ state: "visible", timeout: 5_000 }).catch(() => undefined);
+  if (!(await dialog.isVisible().catch(() => false))) return;
+  if (rosterSaveName) {
+    await dialog.getByLabel(/roster name/i).fill(rosterSaveName);
+    await dialog.getByRole("button", { name: /save roster/i }).click();
+  } else {
+    await dialog.getByRole("button", { name: /not now/i }).click();
+  }
+  await expect(dialog).toHaveCount(0);
+}
+
+async function importReviewAndPublishScenario(page: Page, scenario: EndToEndScenario) {
+  await page.getByRole("button", { name: /new session/i }).first().click();
+  await expect(page.getByText(/session template/i)).toBeVisible();
+  await page.getByLabel(/session title/i).fill(scenario.title);
+  await page.getByLabel(/session template/i).selectOption(scenario.template);
+
+  for (const [label, value] of Object.entries(scenario.details)) {
+    await page.getByLabel(new RegExp(`^${escapeRegExp(label)}$`, "i")).fill(value);
+  }
+
+  await page.getByLabel(/paste transcript text/i).fill(scenario.transcript);
+  const summary = page.locator(".summary-input-card");
+  await summary.getByLabel(/^Meeting notes$/i).fill(scenario.notes);
+  await summary.getByLabel(/^Roster$/i).fill(scenario.roster);
+  await summary.getByLabel(/^Resources$/i).fill(scenario.resources);
+  await page.getByRole("button", { name: /generate draft/i }).click();
+  await expect(page.getByText(/edit the draft before publishing/i)).toBeVisible({ timeout: 10_000 });
+
+  await page.getByRole("tab", { name: /roster & matching/i }).click();
+  await expect(page.getByText(/all transcript speakers match the roster/i)).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.locator(".roster-email-field input").evaluateAll(
+        (inputs, email) => inputs.some((input) => (input as HTMLInputElement).value === email),
+        scenario.student.email,
+      ),
+    )
+    .toBe(true);
+
+  await page.getByRole("tab", { name: /class recap/i }).click();
+  await page
+    .getByLabel(/approved recap/i)
+    .fill(`Approved E2E recap for ${scenario.title}: teacher reviewed the generated summary, tasks, and resources.`);
+  await page.getByLabel(/essential question 1/i).fill(`What should students do next after ${scenario.template.toLowerCase()}?`);
+
+  await page.getByRole("tab", { name: /follow-up/i }).click();
+  await page.locator(".editable-item select").first().selectOption("todo");
+  await expect(page.getByText(/student-specific follow-ups/i)).toBeVisible();
+
+  await page.getByRole("button", { name: /preview and publish/i }).click();
+  await expect(page.getByText(/review the student view/i)).toBeVisible();
+  await expect(page.getByText(/student portal preview/i)).toBeVisible();
+  await expect(page.getByText(/publish audit/i)).toBeVisible();
+  await expect(page.locator(".preview-diff-row")).toHaveCount(2);
+  await expect(page.getByLabel(new RegExp(`Preview for ${escapeRegExp(scenario.student.name)}`, "i"))).toBeVisible();
+  await page.getByRole("button", { name: /publish to students/i }).click();
+  await expect(page.getByRole("heading", { name: scenario.title })).toBeVisible();
+  await expect(page.getByText(/follow-through tracker/i)).toBeVisible();
+  await handleRosterPrompt(page, scenario.rosterSaveName);
+}
+
+async function completeScenarioAsStudent(page: Page, scenario: EndToEndScenario, allTitles: string[]) {
+  await createAccount(page, "student", scenario.student.name, scenario.student.email, scenario.student.password);
+  await expect(page.getByText(`${scenario.student.name}'s follow-up dashboard`)).toBeVisible();
+  await expect(page.locator(".today-card").getByRole("heading", { name: scenario.title })).toBeVisible();
+  for (const otherTitle of allTitles.filter((title) => title !== scenario.title)) {
+    await expect(page.locator(".student-page").getByText(otherTitle)).toHaveCount(0);
+  }
+  await page.getByRole("button", { name: /mark complete/i }).click();
+  await expect(page.locator(".today-card").getByText(/submitted/i)).toBeVisible();
+  await waitForPersistedSessions(page);
+  await signOut(page);
+}
+
+async function openTeacherReport(page: Page, title: string) {
+  await page.getByRole("button", { name: /^dashboard$/i }).click();
+  await page.locator(".session-row").filter({ hasText: title }).click();
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+}
+
+async function downloadCurrentReportJson(page: Page) {
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: /^export$/i }).click();
+  await page.getByRole("menuitem", { name: /download json/i }).click();
+  const download = await downloadPromise;
+  const downloadPath = await download.path();
+  expect(downloadPath).toBeTruthy();
+  return JSON.parse(await readFile(downloadPath!, "utf8")) as Session;
+}
+
 test("public root shows landing page and can enter the app demo", async ({ page }) => {
   await page.goto("/#features");
   await expect(page.getByRole("heading", { name: /^Relay$/i })).toBeVisible();
@@ -46,7 +207,18 @@ test("public root shows landing page and can enter the app demo", async ({ page 
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /^Relay$/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /download for macos/i })).toBeVisible();
+  await expect(
+    page.locator(".landing-hero > .landing-actions").getByRole("button", {
+      name: /^(download for macos|macos packaging pending)$/i,
+    }),
+  ).toBeVisible();
+  const platformDownloads = page.locator(".landing-platform-list");
+  const readyDownloads = await platformDownloads.getByText(/download ready/i).count();
+  if (!readyDownloads) {
+    await expect(platformDownloads.getByRole("button", { name: /macos.*packaging pending/i })).toBeVisible();
+    await expect(platformDownloads.getByRole("button", { name: /windows.*packaging pending/i })).toBeVisible();
+    await expect(platformDownloads.getByRole("button", { name: /linux.*packaging pending/i })).toBeVisible();
+  }
   await expect(page.getByRole("button", { name: /add to phone/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /use relay from a browser or add it to your home screen/i })).toBeVisible();
   const manifest = await page.request.get("/manifest.webmanifest");
@@ -141,6 +313,172 @@ async function publishGeometrySample(page: Page) {
   await expect(page.getByText(/Follow-through tracker/i)).toBeVisible();
 }
 
+test("teacher and student end-to-end flows work across three realistic session types without cross-user state leaks", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "The full multi-account E2E runs once; mobile has a dedicated smoke test.");
+  test.setTimeout(180_000);
+
+  await resetBrowser(page);
+  const runId = Date.now().toString(36);
+  const teacherA = {
+    name: "E2E Teacher Rivera",
+    email: `teacher-a-${runId}@relay.test`,
+    password: `teacher-pass-${runId}`,
+  };
+  const teacherB = {
+    name: "E2E Teacher Patel",
+    email: `teacher-b-${runId}@relay.test`,
+    password: `teacher-pass-b-${runId}`,
+  };
+  const savedRosterName = `E2E Math Period ${runId}`;
+  const scenarios: EndToEndScenario[] = [
+    {
+      title: `E2E Algebra Error Analysis ${runId}`,
+      template: "Math review",
+      student: {
+        name: "Maya Vale",
+        email: `maya-${runId}@relay.test`,
+        password: `student-pass-maya-${runId}`,
+      },
+      rosterSaveName: savedRosterName,
+      roster: `Maya Vale, maya-${runId}@relay.test
+Jordan Kim, jordan-math-${runId}@relay.test`,
+      transcript: `[00:00:05] Ms. Lin: Today we are reviewing linear equation mistakes and showing corrected steps.
+[00:00:22] Maya Vale: I think we distribute first because the parentheses affect every term.
+[00:00:51] Jordan Kim: Why did the negative sign change when we moved the term?
+[00:04:10] Ms. Lin: Homework for Friday: complete the error-analysis worksheet and correct one old quiz item.
+[00:04:34] Maya Vale: I missed problem four because I combined unlike terms.`,
+      notes: "Jordan late. Maya should explain one correction in writing.",
+      resources: "https://example.com/algebra-error-analysis",
+      details: {
+        "Practice problems": "Worksheet B, problems 5-10",
+        "Skills to reinforce": "Distributing, combining like terms, and inverse operations",
+        "Common mistakes": "Dropping negative signs and combining unlike terms",
+      },
+    },
+    {
+      title: `E2E App Lab Debugging Workshop ${runId}`,
+      template: "CS workshop",
+      student: {
+        name: "Alex Rivera",
+        email: `alex-${runId}@relay.test`,
+        password: `student-pass-alex-${runId}`,
+      },
+      roster: `Alex Rivera, alex-${runId}@relay.test
+Samir Desai, samir-cs-${runId}@relay.test`,
+      transcript: `[00:00:03] Mr. Chen: Today each pair is debugging the App Lab click counter.
+[00:00:31] Alex Rivera: My event listener works after I moved the state update inside the callback.
+[00:01:08] Samir Desai: Is the array index supposed to start at zero here?
+[00:05:16] Mr. Chen: By Friday, push the fixed counter and write a short reflection on the bug you found.
+[00:05:46] Alex Rivera: The checklist helped me catch the missing reset condition.`,
+      notes: "Samir quiet after the indexing question; check confidence next session.",
+      resources: `https://github.com/example/app-lab-counter
+https://example.com/debugging-checklist`,
+      details: {
+        "Project or repo": "https://github.com/example/app-lab-counter",
+        "Debug targets": "Event handlers, state updates, and array indexing",
+        "Workshop deliverable": "Push fixed counter and submit a short debugging reflection",
+      },
+    },
+    {
+      title: `E2E Robotics Outreach Planning ${runId}`,
+      template: "Club meeting",
+      student: {
+        name: "Priya Shah",
+        email: `priya-${runId}@relay.test`,
+        password: `student-pass-priya-${runId}`,
+      },
+      roster: `Priya Shah, priya-${runId}@relay.test
+Leo Martinez, leo-club-${runId}@relay.test`,
+      transcript: `[00:00:04] Ms. Kim: Today we need owners for the elementary robotics outreach booth.
+[00:00:32] Priya Shah: I can own the demo script and make sure each station has a one-minute explanation.
+[00:01:18] Leo Martinez: I can email the elementary school coordinator about the room setup.
+[00:05:07] Ms. Kim: Next checkpoint is Monday: script draft, materials list, and outreach email should be ready.
+[00:05:41] Priya Shah: Can we add a backup battery checklist so setup is not rushed?`,
+      notes: "Decision made: keep three short stations instead of one long demo.",
+      resources: "https://example.com/robotics-outreach-template",
+      details: {
+        "Decisions made": "Three short activity stations for the outreach booth",
+        "Owners": "Priya owns demo script; Leo owns coordinator email",
+        "Next checkpoint": "Monday materials list and script draft",
+      },
+    },
+  ];
+  const allTitles = scenarios.map((scenario) => scenario.title);
+
+  await createAccount(page, "teacher", teacherA.name, teacherA.email, teacherA.password);
+  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await upgradeTeacherToPro(page);
+
+  for (const scenario of scenarios) {
+    await importReviewAndPublishScenario(page, scenario);
+  }
+  await waitForPersistedSessions(page);
+  await signOut(page);
+
+  for (const scenario of scenarios) {
+    await completeScenarioAsStudent(page, scenario, allTitles);
+  }
+
+  await signInAccount(page, "teacher", teacherA.email, teacherA.password);
+  await expect(page.getByText("Today in Relay")).toBeVisible();
+  for (const title of allTitles) {
+    await expect(page.locator(".session-row").filter({ hasText: title })).toBeVisible();
+  }
+
+  await page.locator(".nav-list").getByRole("button", { name: /^analytics$/i }).click();
+  await expect(page.getByText(/participation and follow-through/i)).toBeVisible();
+  await expect(page.getByText(/3 finished/i)).toBeVisible();
+
+  for (const scenario of scenarios) {
+    await openTeacherReport(page, scenario.title);
+    const exported = await downloadCurrentReportJson(page);
+    expect(exported.title).toBe(scenario.title);
+    expect(exported.type).toBe(scenario.template);
+    expect(exported.status).toBe("published");
+    expect(exported.ownerEmail).toBe(teacherA.email);
+
+    const exportedStudentEmails = exported.students.map((student) => student.email);
+    const scenarioEmails = Array.from(scenario.roster.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)).map(
+      (match) => match[0].toLowerCase(),
+    );
+    expect(exportedStudentEmails.sort()).toEqual(scenarioEmails.sort());
+    for (const otherScenario of scenarios.filter((item) => item.title !== scenario.title)) {
+      expect(JSON.stringify(exported)).not.toContain(otherScenario.title);
+      expect(exportedStudentEmails).not.toContain(otherScenario.student.email);
+    }
+
+    const primaryStudent = exported.students.find((student) => student.email === scenario.student.email);
+    expect(primaryStudent).toBeDefined();
+    if (!primaryStudent) throw new Error(`Missing exported student ${scenario.student.email}`);
+    const followUp = exported.followUps.find((item) => item.studentId === primaryStudent.id);
+    expect(followUp?.status).toBe("submitted");
+    const classWideActionStatuses = exported.actionItems.filter((item) => !item.ownerId).map((item) => item.status);
+    expect(classWideActionStatuses.length).toBeGreaterThan(0);
+    expect(classWideActionStatuses).not.toContain("submitted");
+  }
+
+  await page.getByRole("button", { name: /rosters/i }).click();
+  await expect(page.getByText(savedRosterName)).toBeVisible();
+  await page.getByRole("button", { name: /classes/i }).click();
+  await expect(page.getByText(savedRosterName)).toBeVisible();
+  await signOut(page);
+
+  await createAccount(page, "teacher", teacherB.name, teacherB.email, teacherB.password);
+  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await expect(page.getByText(/no sessions yet/i)).toBeVisible();
+  for (const title of allTitles) {
+    await expect(page.getByText(title)).toHaveCount(0);
+  }
+  await page.getByRole("button", { name: /rosters/i }).click();
+  await expect(page.getByText(/no saved rosters yet/i)).toBeVisible();
+  await expect(page.getByText(savedRosterName)).toHaveCount(0);
+  await page.getByRole("button", { name: /classes/i }).click();
+  await expect(page.getByText(/no classes yet/i)).toBeVisible();
+  await expect(page.getByText(savedRosterName)).toHaveCount(0);
+});
+
 test("account creation, settings, and password reset work", async ({ page }) => {
   await resetBrowser(page);
   const uniqueEmail = `teacher-${Date.now()}@relay.test`;
@@ -228,6 +566,8 @@ test("teacher can log in, import a sample, preview publishing, publish, open stu
   await page.getByLabel(/session template/i).selectOption("Math review");
   await expect(page.getByLabel(/preload saved roster/i)).toContainText("Geometry review roster");
   await expect(page.getByLabel(/preload class roster/i)).toContainText("Geometry review roster");
+  await expect(page.getByRole("button", { name: /generate draft/i })).toBeDisabled();
+  await expect(page.getByText(/Free accounts can generate 1 session per day/i)).toBeVisible();
 
   await page.getByRole("button", { name: /student view/i }).click();
   await expect(page.getByText(/follow-up dashboard/i)).toBeVisible();
@@ -363,6 +703,16 @@ test("live capture modes are visible but Pro-gated for Free accounts", async ({ 
   await expect(page.getByText(/Start capture when the call begins/i)).toBeVisible();
   await expect(page.getByRole("dialog", { name: /share the meeting tab or window with audio/i })).toBeVisible();
   await expect(page.getByText(/Paste the platform transcript after class/i)).toBeVisible();
+  await page.getByRole("button", { name: /not now/i }).click();
+
+  await page.getByRole("button", { name: /^plan options$/i }).click();
+  await page.getByRole("button", { name: /downgrade to free/i }).click();
+  await expect(page.getByText(/Downgraded this device to the Free plan/i)).toBeVisible();
+  await expect(page.getByText(/why teachers upgrade/i)).toBeVisible();
+  await page.getByRole("button", { name: /new session/i }).first().click();
+  await expect(page.getByText(/Pro only/i).first()).toBeVisible();
+  await page.getByRole("button", { name: /In-person class/i }).click();
+  await expect(page.getByText(/In-person live capture is available with Pro/i)).toBeVisible();
 });
 
 test("students cannot access analytics but can save appearance while logged in, with default theme restored on logout", async ({ page }) => {
@@ -392,6 +742,93 @@ test("students cannot access analytics but can save appearance while logged in, 
   await page.locator("form.login-form button[type='submit']").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "classroom");
   await expect(page.getByText(/You are on a demo account/i)).toBeVisible();
+});
+
+test("accessibility and error-recovery smoke covers keyboard focus, labels, and bad transcript recovery", async ({ page }) => {
+  await resetBrowser(page);
+  await page.keyboard.press("Tab");
+  const focusedAfterTab = await page.evaluate(() => {
+    const active = document.activeElement as HTMLElement | null;
+    if (!active || active === document.body) return null;
+    const style = getComputedStyle(active);
+    const rect = active.getBoundingClientRect();
+    return {
+      tag: active.tagName,
+      visible: rect.width > 0 && rect.height > 0,
+      hasFocusTreatment:
+        style.outlineStyle !== "none" ||
+        style.boxShadow !== "none" ||
+        style.borderColor !== "rgba(0, 0, 0, 0)",
+    };
+  });
+  expect(focusedAfterTab?.visible).toBe(true);
+  expect(focusedAfterTab?.hasFocusTreatment).toBe(true);
+
+  await page.getByPlaceholder("name@example.com").fill(teacherEmail);
+  await page.getByPlaceholder("Enter password").fill("wrong-password");
+  await page.locator("form.login-form button[type='submit']").click();
+  await expect(page.getByText(/email or password is incorrect/i)).toBeVisible();
+
+  const runId = Date.now().toString(36);
+  await createAccount(page, "teacher", "Accessibility Teacher", `accessibility-${runId}@relay.test`, `access-pass-${runId}`);
+  await expect(page.getByText("Today in Relay")).toBeVisible();
+
+  await page.getByRole("button", { name: /new session/i }).first().click();
+  await expect(page.getByRole("button", { name: /Transcript\s*Upload or paste/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /In-person class/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Online meeting/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /generate draft/i })).toBeVisible();
+
+  await page.getByLabel(/session title/i).fill("Accessibility Bad Transcript Recovery");
+  await page.getByLabel(/session template/i).selectOption("Study group");
+  await page
+    .getByLabel(/paste transcript text/i)
+    .fill("This transcript lost speaker labels. The group reviewed ratios and the teacher assigned a reflection due Friday.");
+  const summary = page.locator(".summary-input-card");
+  await summary.getByLabel(/^Roster$/i).fill("Maya Chen, maya@relay.demo\nJordan Lee, jordan@relay.demo");
+  await summary.getByLabel(/^Resources$/i).fill("not a url\nhttps://example.com/ratio-review).");
+  await page.getByRole("button", { name: /generate draft/i }).click();
+  await expect(page.getByText(/edit the draft before publishing/i)).toBeVisible();
+  await page.getByRole("tab", { name: /roster & matching/i }).click();
+  await expect(page.getByText(/all transcript speakers match the roster/i)).toBeVisible();
+  await page.getByRole("tab", { name: /class recap/i }).click();
+  await expect(page.getByLabel(/approved recap/i)).toBeVisible();
+
+  const unnamedInteractive = await page.evaluate(() => {
+    const selector = 'button, input:not([type="hidden"]), select, textarea, a[href]';
+    const visible = (element: Element) => {
+      const html = element as HTMLElement;
+      const rect = html.getBoundingClientRect();
+      const style = getComputedStyle(html);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+    };
+    const accessibleName = (element: Element) => {
+      const html = element as HTMLElement;
+      const id = html.id;
+      const explicitLabel = id ? document.querySelector(`label[for="${CSS.escape(id)}"]`)?.textContent ?? "" : "";
+      return [
+        html.getAttribute("aria-label"),
+        html.getAttribute("title"),
+        html.getAttribute("placeholder"),
+        explicitLabel,
+        html.closest("label")?.textContent,
+        html.textContent,
+        html.getAttribute("value"),
+      ]
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+    return Array.from(document.querySelectorAll(selector))
+      .filter(visible)
+      .filter((element) => !accessibleName(element))
+      .map((element) => {
+        const html = element as HTMLElement;
+        return `${html.tagName.toLowerCase()}${html.className ? `.${String(html.className).replace(/\s+/g, ".")}` : ""}`;
+      })
+      .slice(0, 5);
+  });
+  expect(unnamedInteractive).toEqual([]);
 });
 
 test("core controls remain usable on a phone-sized viewport", async ({ page }) => {

@@ -4,7 +4,11 @@
 
 Relay is a desktop and mobile-web classroom follow-up platform (Electron + React + hosted PWA shell) that transforms messy class inputs—transcripts, notes, rosters, and resource links—into structured teacher review workflows and student-facing follow-up dashboards.
 
+**Naming**: Relay is the current product name. ClassLoop is the former name and should only appear as historical context or legacy `classloop-*` skill names.
+
 **Core value**: Teachers import a Zoom transcript + class roster → Relay auto-extracts participation events, identifies students who need catch-up, generates action items, and publishes personalized student follow-ups with tasks, resources, and due dates.
+
+**Product ambition**: Relay should feel as effortlessly useful as Granola-style meeting memory, but broader and more helpful for education: not just notes, but a classroom continuity layer that saves teachers time and gives every student clear next steps.
 
 **Tech Stack**: Electron (desktop), React 18, TypeScript, Vite (build), Vitest (tests).
 
