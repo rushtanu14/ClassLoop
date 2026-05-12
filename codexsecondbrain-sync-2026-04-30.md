@@ -468,6 +468,6 @@ All three validate with `quick_validate.py`.
 ## 2026-05-12 Prompt-Free Storage / Routed Landing Update
 
 - Relay desktop state now uses a prompt-free local AES-GCM storage key file (`.relay-storage-key`) next to `.relay-data.json` instead of Electron `safeStorage`, avoiding OS password/Keychain prompts while keeping the data file encrypted.
-- Public landing navigation is now page-based rather than one long scroll: Home, Features, Docs, Privacy, Donate, and Download live at `#/features`, `#/docs`, `#/privacy`, `#/donate`, and `#/download`.
+- Public landing navigation is now page-based rather than one long scroll: Home, Features, Screenshots, Docs, Privacy, Donate, and Download live at `#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download`.
 - The Donate path is visible and supports `VITE_RELAY_DONATE_URL`; when unset, the UI explicitly says the donation link is not connected instead of pretending payment works.
 - QA coverage should include prompt-free desktop encrypted state, routed landing pages, donation fallback messaging, platform download fallbacks, and PWA add-to-phone behavior on the Download page.

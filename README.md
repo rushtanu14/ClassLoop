@@ -99,13 +99,13 @@ The local desktop app still works without paid services or cloud credentials. Fo
 - Stripe Checkout for Pro subscriptions.
 - Stripe webhook endpoint for server-owned subscription status updates.
 - Pilot feedback endpoint for collecting early user feedback.
-- A Vercel landing page at `/` with routed Home, Features, Docs, Privacy, Donate, and Download pages instead of a single scroll-through site.
+- A Vercel landing page at `/` with routed Home, Features, Screenshots, Docs, Privacy, Donate, and Download pages instead of a single scroll-through site.
 - A PWA/mobile shell with `manifest.webmanifest`, a service worker, mobile meta tags, and an "Add to phone" landing action.
 
 Hosted route behavior:
 
 - `https://your-domain.com/` shows the public Relay landing page.
-- `https://your-domain.com/#/features`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` open separate public landing pages.
+- `https://your-domain.com/#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` open separate public landing pages.
 - `https://your-domain.com/#/dashboard` opens the safe web demo sign-in flow.
 - The hosted web demo uses sample teacher/student accounts only. Account creation and durable personal workspaces belong in the downloaded desktop app.
 - Sample account changes are ephemeral and should not be treated as saved data.

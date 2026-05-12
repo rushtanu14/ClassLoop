@@ -101,6 +101,7 @@ test.describe("WCAG-targeted accessibility checks", () => {
     await page.goto("/?demoOnly=1");
     await expect(page.getByRole("heading", { name: /^Relay$/i })).toBeVisible();
     if ((page.viewportSize()?.width ?? 0) > 920) {
+      await expect(page.getByRole("button", { name: /^screenshots$/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /^docs$/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /^donate$/i })).toBeVisible();
     }
@@ -112,6 +113,22 @@ test.describe("WCAG-targeted accessibility checks", () => {
     await expect(
       page.getByRole("status").filter({ hasText: /home screen|install app|install menu|already running|added/i }),
     ).toBeVisible();
+  });
+
+  test("screenshot gallery stays readable on a phone viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 850 });
+    await page.goto("/#/screenshots");
+    await expect(page.getByRole("heading", { name: /screenshots: how relay works/i })).toBeVisible();
+    await expect(page.getByRole("img", { name: /teacher import and review screen/i })).toBeVisible();
+    await expectReadableMobileLayout(page, ".landing-page");
+    await expectContrast(page, [
+      ".landing-page-header h1",
+      ".landing-page-header p",
+      ".landing-screenshot-card h2",
+      ".landing-screenshot-card p",
+      ".landing-workflow-strip h2",
+      ".landing-workflow-strip p",
+    ]);
   });
 
   test("PWA and add-to-home-screen layout stays readable on a phone viewport", async ({ page }) => {

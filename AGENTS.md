@@ -34,7 +34,7 @@ Relay is a desktop and mobile-web classroom follow-up platform (Electron + React
 - Student: `maya@relay.demo` / `relay-student`
 - Hosted Vercel demo should use sample accounts only. Do not enable custom account creation in the hosted demo; users create durable accounts in the downloaded desktop app.
 - Sample/demo account changes must be ephemeral and clearly bannered as unsaved demo data.
-- Public landing pages are routed at `#/features`, `#/docs`, `#/privacy`, `#/donate`, and `#/download`; do not collapse them back into one scroll-through page.
+- Public landing pages are routed at `#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download`; do not collapse them back into one scroll-through page.
 - Public landing downloads support macOS, Windows, and Linux through `VITE_RELAY_MAC_DOWNLOAD_URL`, `VITE_RELAY_WINDOWS_DOWNLOAD_URL`, and `VITE_RELAY_LINUX_DOWNLOAD_URL`. If a URL is missing, the UI should say that installer is still being packaged rather than pretending the download works. Packaging scripts target both x64 and arm64 where Electron Builder supports it.
 - Public donation support uses `VITE_RELAY_DONATE_URL`. If it is missing, the Donate page should say the donation link is not connected rather than pretending payment works.
 - Hosted mobile access is through the Vercel PWA shell: keep `public/manifest.webmanifest`, `public/sw.js`, mobile meta tags, and the landing/download-page "Add to phone" flow working.
