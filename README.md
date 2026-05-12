@@ -99,17 +99,19 @@ The local desktop app still works without paid services or cloud credentials. Fo
 - Stripe Checkout for Pro subscriptions.
 - Stripe webhook endpoint for server-owned subscription status updates.
 - Pilot feedback endpoint for collecting early user feedback.
-- A Vercel landing page at `/` with download/demo calls to action.
+- A Vercel landing page at `/` with routed Home, Features, Docs, Privacy, Donate, and Download pages instead of a single scroll-through site.
 - A PWA/mobile shell with `manifest.webmanifest`, a service worker, mobile meta tags, and an "Add to phone" landing action.
 
 Hosted route behavior:
 
 - `https://your-domain.com/` shows the public Relay landing page.
+- `https://your-domain.com/#/features`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` open separate public landing pages.
 - `https://your-domain.com/#/dashboard` opens the safe web demo sign-in flow.
 - The hosted web demo uses sample teacher/student accounts only. Account creation and durable personal workspaces belong in the downloaded desktop app.
 - Sample account changes are ephemeral and should not be treated as saved data.
 - `https://your-domain.com/api/config` returns safe booleans that confirm whether server-only Supabase and Stripe env vars were picked up by Vercel.
 - Set desktop installer URLs when release assets are ready: `VITE_RELAY_MAC_DOWNLOAD_URL`, `VITE_RELAY_WINDOWS_DOWNLOAD_URL`, and `VITE_RELAY_LINUX_DOWNLOAD_URL`. Until then, the landing page clearly says installers are still being packaged and directs visitors to the web demo.
+- Set `VITE_RELAY_DONATE_URL` to a public donation page when donations are ready. Until then, the Donate page explains that the donation link has not been connected.
 - Phone and tablet access runs through the hosted web app. Visitors can open the Vercel URL in Safari/Chrome and use Add to Home Screen or Install app for app-like access.
 
 Suggested pricing:
@@ -185,9 +187,10 @@ For public distribution, upload signed/notarized release files to GitHub Release
 VITE_RELAY_MAC_DOWNLOAD_URL=
 VITE_RELAY_WINDOWS_DOWNLOAD_URL=
 VITE_RELAY_LINUX_DOWNLOAD_URL=
+VITE_RELAY_DONATE_URL=
 ```
 
-macOS apps should be signed and notarized before broad distribution to avoid Gatekeeper warnings. Windows builds should eventually use code signing to avoid SmartScreen friction. If one of the installer URLs is missing, the landing page must visibly show "Packaging pending" for that platform and route visitors to the hosted demo instead of implying a download succeeded.
+macOS apps should be signed and notarized before broad distribution to avoid Gatekeeper warnings. Windows builds should eventually use code signing to avoid SmartScreen friction. If one of the installer URLs is missing, the landing page must visibly show "Packaging pending" for that platform and route visitors to the hosted demo instead of implying a download succeeded. If the donation URL is missing, the donation path must be visible but clearly marked as not connected.
 
 Before opening public downloads, rehearse rollback:
 
@@ -203,7 +206,8 @@ The rollback drill validates the packaged artifacts and writes a non-destructive
 - Recording or live capture should require clear consent before use.
 - Student data is marked as “no training” by default unless a school or teacher explicitly allows otherwise.
 - Analytics stay teacher-only and should be framed as private support signals, not public rankings.
-- Local desktop data files such as `.relay-data.json` are ignored by git and should never be committed.
+- Local desktop data files such as `.relay-data.json` and `.relay-storage-key` are ignored by git and should never be committed.
+- Desktop state is encrypted with Relay's local AES-GCM storage key file instead of Electron `safeStorage`, so Relay should not trigger macOS Keychain or OS password prompts while saving.
 - See [LEGAL.md](LEGAL.md) for the pre-launch Terms, Privacy, EULA, support, retention, and child-safety baseline. Convert that baseline into reviewed public pages before enabling durable hosted public signups.
 
 ## Sample Accounts

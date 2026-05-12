@@ -28,7 +28,7 @@ async function skipAutoWalkthrough(page: Page) {
 async function signIn(page: Page, role: "teacher" | "student", reset = true, closeWalkthrough = true) {
   if (reset) await resetBrowser(page);
   if (role === "student") {
-    await page.getByRole("button", { name: /student/i }).click();
+    await page.getByRole("tab", { name: /student/i }).click();
   }
   await page.getByPlaceholder("name@example.com").fill(role === "teacher" ? teacherEmail : studentEmail);
   await page.getByPlaceholder("Enter password").fill(role === "teacher" ? teacherPassword : studentPassword);
@@ -62,7 +62,10 @@ function escapeRegExp(value: string) {
 }
 
 async function signOut(page: Page) {
-  await page.getByRole("button", { name: /sign out/i }).click();
+  const signOutButton = page.getByRole("button", { name: /sign out/i });
+  if (await signOutButton.isVisible().catch(() => false)) {
+    await signOutButton.click();
+  }
   await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
 }
 
@@ -75,7 +78,7 @@ async function createAccount(
 ) {
   await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
   await page.locator(".auth-switch").getByRole("button", { name: /^create account$/i }).click();
-  await page.locator(".role-tabs").getByRole("button", { name: role === "teacher" ? /teacher/i : /student/i }).click();
+  await page.locator(".role-tabs").getByRole("tab", { name: role === "teacher" ? /teacher/i : /student/i }).click();
   await page.getByPlaceholder("Your name").fill(name);
   await page.getByPlaceholder("name@example.com").fill(email);
   await page.getByPlaceholder("Enter password", { exact: true }).fill(password);
@@ -86,7 +89,7 @@ async function createAccount(
 
 async function signInAccount(page: Page, role: "teacher" | "student", email: string, password: string) {
   await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
-  await page.locator(".role-tabs").getByRole("button", { name: role === "teacher" ? /teacher/i : /student/i }).click();
+  await page.locator(".role-tabs").getByRole("tab", { name: role === "teacher" ? /teacher/i : /student/i }).click();
   await page.getByPlaceholder("name@example.com").fill(email);
   await page.getByPlaceholder("Enter password").fill(password);
   await page.locator("form.login-form button[type='submit']").click();
@@ -201,17 +204,19 @@ async function downloadCurrentReportJson(page: Page) {
 }
 
 test("public root shows landing page and can enter the app demo", async ({ page }) => {
-  await page.goto("/#features");
-  await expect(page.getByRole("heading", { name: /^Relay$/i })).toBeVisible();
-  await expect(page.getByText(/Import class records/i)).toBeVisible();
+  await page.goto("/#/features");
+  await expect(page.getByRole("heading", { name: /features for classroom continuity/i })).toBeVisible();
+  await expect(page.getByText(/Transcript intelligence/i)).toBeVisible();
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /^Relay$/i })).toBeVisible();
   await expect(
-    page.locator(".landing-hero > .landing-actions").getByRole("button", {
+    page.locator(".landing-hero .landing-actions").getByRole("button", {
       name: /^(download for macos|macos packaging pending)$/i,
     }),
   ).toBeVisible();
+  await page.goto("/#/download");
+  await expect(page.getByRole("heading", { name: /download relay/i })).toBeVisible();
   const platformDownloads = page.locator(".landing-platform-list");
   const readyDownloads = await platformDownloads.getByText(/download ready/i).count();
   if (!readyDownloads) {
@@ -219,7 +224,7 @@ test("public root shows landing page and can enter the app demo", async ({ page 
     await expect(platformDownloads.getByRole("button", { name: /windows.*packaging pending/i })).toBeVisible();
     await expect(platformDownloads.getByRole("button", { name: /linux.*packaging pending/i })).toBeVisible();
   }
-  await expect(page.getByRole("button", { name: /add to phone/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /add .*to phone/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /use relay from a browser or add it to your home screen/i })).toBeVisible();
   const manifest = await page.request.get("/manifest.webmanifest");
   expect(manifest.ok()).toBeTruthy();
@@ -736,7 +741,7 @@ test("students cannot access analytics but can save appearance while logged in, 
   await expect(page.getByText(/Sign in to Relay/i)).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "classroom");
 
-  await page.getByRole("button", { name: /student/i }).click();
+  await page.getByRole("tab", { name: /student/i }).click();
   await page.getByPlaceholder("name@example.com").fill("maya@relay.demo");
   await page.getByPlaceholder("Enter password").fill("relay-student");
   await page.locator("form.login-form button[type='submit']").click();

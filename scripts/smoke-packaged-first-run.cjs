@@ -29,6 +29,10 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function log(message) {
+  console.log(`[packaged-smoke] ${message}`);
+}
+
 async function waitForFile(filePath, timeoutMs = 8_000) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
@@ -40,7 +44,13 @@ async function waitForFile(filePath, timeoutMs = 8_000) {
 
 async function close(app) {
   if (app) {
-    await app.close().catch(() => undefined);
+    const process = app.process?.();
+    await Promise.race([
+      app.close().catch(() => undefined),
+      wait(5_000).then(() => {
+        process?.kill("SIGKILL");
+      }),
+    ]);
   }
 }
 
@@ -64,21 +74,28 @@ async function run() {
 
   let firstRun;
   let secondRun;
+  let passed = false;
   try {
+    log(`Launching ${executablePath}`);
     firstRun = await electron.launch(launchOptions);
     const firstPage = await firstRun.firstWindow();
+    firstPage.setDefaultTimeout(20_000);
+    log("Waiting for first-run sign-in screen");
     await firstPage.getByPlaceholder("name@example.com").waitFor({ timeout: 20_000 });
+    log("Creating a clean teacher account");
     await firstPage.getByRole("button", { name: /create account/i }).click();
     await firstPage.getByLabel(/^name$/i).fill("Packaged Smoke Teacher");
     await firstPage.getByPlaceholder("name@example.com").fill(email);
     await firstPage.locator('input[placeholder="Enter password"]').fill(password);
     await firstPage.locator('input[placeholder="Re-enter password"]').fill(password);
     await firstPage.locator("form.login-form button[type='submit']").click();
+    log("Waiting for teacher dashboard");
     await firstPage.getByText("Today in Relay").waitFor({ timeout: 20_000 });
     const walkthrough = firstPage.getByRole("dialog", { name: /relay guided walkthrough/i });
     if (await walkthrough.isVisible().catch(() => false)) {
       await walkthrough.getByRole("button", { name: /skip/i }).click();
     }
+    log("Waiting for encrypted desktop state file");
     await waitForFile(dataFile);
     const stored = JSON.parse(fs.readFileSync(dataFile, "utf8"));
     if (!stored || typeof stored !== "object" || !("payload" in stored)) {
@@ -87,8 +104,10 @@ async function run() {
     await close(firstRun);
     firstRun = null;
 
+    log("Relaunching from the same clean profile");
     secondRun = await electron.launch(launchOptions);
     const secondPage = await secondRun.firstWindow();
+    secondPage.setDefaultTimeout(20_000);
     await secondPage.getByPlaceholder("name@example.com").waitFor({ timeout: 20_000 });
     await secondPage.getByPlaceholder("name@example.com").fill(email);
     await secondPage.getByPlaceholder("Enter password").fill(password);
@@ -97,10 +116,15 @@ async function run() {
 
     console.log(`Packaged first-run smoke passed for ${executablePath}`);
     console.log(`Clean user data dir: ${userDataDir}`);
+    passed = true;
   } finally {
     await close(secondRun);
     await close(firstRun);
-    fs.rmSync(userDataDir, { recursive: true, force: true });
+    if (passed) {
+      fs.rmSync(userDataDir, { recursive: true, force: true });
+    } else {
+      console.error(`Packaged first-run smoke failed. Preserved clean user data dir: ${userDataDir}`);
+    }
   }
 }
 

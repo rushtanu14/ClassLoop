@@ -134,6 +134,8 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
+type LandingPageKey = "home" | "features" | "docs" | "privacy" | "donate" | "download";
+
 type Account = {
   id: string;
   role: AuthRole;
@@ -472,17 +474,36 @@ function getRoute(): RouteKey {
     : "dashboard";
 }
 
+function getLandingPage(): LandingPageKey {
+  const hash = window.location.hash.trim().replace(/^#\/?/, "");
+  const route = hash.split("?")[0].replace(/^landing\/?/, "");
+  if (route === "features" || route === "docs" || route === "privacy" || route === "donate" || route === "download") {
+    return route;
+  }
+  if (route === "mobile") return "download";
+  return "home";
+}
+
 function isLandingHash() {
   const hash = window.location.hash.trim();
+  const route = hash.replace(/^#\/?/, "").split("?")[0].replace(/^landing\/?/, "");
   return (
     !hash ||
     hash === "#" ||
     hash === "#/" ||
     hash === "#/home" ||
     hash === "#/landing" ||
+    route === "home" ||
+    route === "features" ||
+    route === "docs" ||
+    route === "mobile" ||
+    route === "privacy" ||
+    route === "donate" ||
+    route === "download" ||
     hash === "#features" ||
     hash === "#mobile" ||
     hash === "#privacy" ||
+    hash === "#donate" ||
     hash === "#download"
   );
 }
@@ -1371,6 +1392,7 @@ function App() {
   const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const [walkthroughStepIndex, setWalkthroughStepIndex] = useState(0);
   const [landingMode, setLandingMode] = useState(isLandingHash);
+  const [landingPage, setLandingPage] = useState<LandingPageKey>(getLandingPage);
   const [publicDemoOnly] = useState(() => isPublicHostedDemo() || isDemoOnlyOverride());
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connecting");
   const [passwordResetCodes, setPasswordResetCodes] = useState<Record<string, PasswordResetRecord>>({});
@@ -1569,6 +1591,7 @@ function App() {
   useEffect(() => {
     const onHashChange = () => {
       setLandingMode(isLandingHash());
+      setLandingPage(getLandingPage());
       setRoute(getRoute());
     };
     window.addEventListener("hashchange", onHashChange);
@@ -2139,6 +2162,11 @@ function App() {
   if (landingMode && !auth) {
     return (
       <LandingPage
+        page={landingPage}
+        onNavigate={(page) => {
+          setLandingPage(page);
+          window.location.hash = page === "home" ? "/home" : `/${page}`;
+        }}
         onOpenApp={() => {
           setLandingMode(false);
           navigate("dashboard");
@@ -2359,11 +2387,21 @@ function App() {
   );
 }
 
-function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
+function LandingPage({
+  page,
+  onNavigate,
+  onOpenApp,
+}: {
+  page: LandingPageKey;
+  onNavigate: (page: LandingPageKey) => void;
+  onOpenApp: () => void;
+}) {
   const [downloadMessage, setDownloadMessage] = useState("");
   const [mobileMessage, setMobileMessage] = useState("");
+  const [donationMessage, setDonationMessage] = useState("");
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandaloneMobile, setIsStandaloneMobile] = useState(false);
+  const donationUrl = (import.meta.env.VITE_RELAY_DONATE_URL as string | undefined)?.trim();
   const downloadOptions = [
     {
       id: "macos",
@@ -2388,11 +2426,19 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
   const primaryDownload = downloadOptions[0];
   const downloadButtonLabel = (option: (typeof downloadOptions)[number]) =>
     option.url ? `Download ${option.label}` : `${option.label} packaging pending`;
-  const stats = [
-    { value: "1", label: "daily free session" },
-    { value: "Pro", label: "unlimited follow-ups" },
-    { value: "PWA", label: "phone-ready web app" },
+  const publicNav: Array<{ page: LandingPageKey; label: string }> = [
+    { page: "home", label: "Home" },
+    { page: "features", label: "Features" },
+    { page: "docs", label: "Docs" },
+    { page: "privacy", label: "Privacy" },
+    { page: "donate", label: "Donate" },
+    { page: "download", label: "Download" },
   ];
+
+  const goToPage = (nextPage: LandingPageKey) => {
+    onNavigate(nextPage);
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 0);
+  };
 
   const handleDownload = (option = primaryDownload) => {
     if (option.url) {
@@ -2403,8 +2449,19 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
       `${option.label} packaging pending: the desktop installer has not been uploaded yet. You can try the hosted web demo now.`,
     );
   };
-  const scrollToSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  const handleDonate = (amount?: number) => {
+    if (donationUrl) {
+      const url = new URL(donationUrl, window.location.href);
+      if (amount && !url.searchParams.has("amount")) {
+        url.searchParams.set("amount", String(amount));
+      }
+      window.location.href = url.toString();
+      return;
+    }
+    setDonationMessage(
+      "The donation page is ready, but the public donation link has not been connected yet.",
+    );
   };
 
   const handleMobileInstall = async () => {
@@ -2425,13 +2482,6 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
         : "On iPhone, tap Share then Add to Home Screen. On Android, open the browser menu and choose Install app.",
     );
   };
-
-  useEffect(() => {
-    const hash = window.location.hash.replace("#", "");
-    if (["features", "mobile", "privacy", "download"].includes(hash)) {
-      window.setTimeout(() => scrollToSection(hash), 80);
-    }
-  }, []);
 
   useEffect(() => {
     const displayModeQuery = window.matchMedia("(display-mode: standalone)");
@@ -2463,168 +2513,417 @@ function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
   }, []);
 
   return (
-    <main className="landing-page">
+    <main className={`landing-page landing-page-${page}`}>
       <nav className="landing-nav" aria-label="Relay public navigation">
-        <button className="landing-brand" type="button" onClick={onOpenApp}>
+        <button className="landing-brand" type="button" onClick={() => goToPage("home")}>
           <span className="brand-mark">
             <BrainCircuit size={24} />
           </span>
           <span>Relay</span>
         </button>
         <div className="landing-links">
-          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("features")}>
-            Features
-          </button>
-          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("mobile")}>
-            Mobile
-          </button>
-          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("privacy")}>
-            Privacy
-          </button>
-          <button className="landing-nav-link" type="button" onClick={() => scrollToSection("download")}>
-            Download
-          </button>
+          {publicNav.slice(1).map((item) => (
+            <button
+              key={item.page}
+              className={`landing-nav-link${page === item.page ? " active" : ""}`}
+              type="button"
+              onClick={() => goToPage(item.page)}
+              aria-current={page === item.page ? "page" : undefined}
+            >
+              {item.label}
+            </button>
+          ))}
           <button className="landing-link-button" type="button" onClick={onOpenApp}>
             Open demo
           </button>
         </div>
       </nav>
 
-      <section className="landing-hero">
-        <div className="landing-icon" aria-hidden="true">
-          <Sparkles size={38} />
-        </div>
-        <span className="landing-eyebrow">Classroom continuity</span>
-        <h1>Relay</h1>
-        <p>
-          Turn class transcripts, notes, rosters, and resources into edited recaps, student follow-ups,
-          and completion check-ins that keep learning moving after class.
-        </p>
-        <div className="landing-actions">
-          <button
-            className="landing-primary"
-            type="button"
-            onClick={() => handleDownload(primaryDownload)}
-            aria-label={downloadButtonLabel(primaryDownload)}
-          >
-            <Download size={20} />
-            {primaryDownload.url ? "Download for macOS" : "macOS packaging pending"}
-          </button>
-          <button className="landing-secondary" type="button" onClick={onOpenApp}>
-            <PlayCircle size={20} />
-            Open web demo
-          </button>
-          <button className="landing-secondary" type="button" onClick={handleMobileInstall}>
-            <Smartphone size={20} />
-            Add to phone
-          </button>
-        </div>
-        <div className="landing-platform-list" aria-label="Desktop download options">
-          {downloadOptions.map((option) => (
-            <button key={option.id} type="button" onClick={() => handleDownload(option)}>
-              <Download size={16} />
-              <span>
-                <strong>{option.label}</strong>
-                <small>{option.url ? "Download ready" : "Packaging pending"}</small>
-                {!option.url && <em>{option.helper}</em>}
-              </span>
-            </button>
-          ))}
-        </div>
-        {downloadMessage && (
-          <p className="landing-message" role="status" aria-live="polite">
-            {downloadMessage}
-          </p>
+      <div className="landing-route-frame">
+        {page === "home" && (
+          <>
+            <section className="landing-hero">
+              <div className="landing-hero-copy">
+                <div className="landing-icon" aria-hidden="true">
+                  <Sparkles size={38} />
+                </div>
+                <h1>Relay</h1>
+                <p>
+                  Turn class transcripts, notes, rosters, and resources into edited recaps, student follow-ups,
+                  and completion check-ins that keep learning moving after class.
+                </p>
+                <div className="landing-actions">
+                  <button
+                    className="landing-primary"
+                    type="button"
+                    onClick={() => handleDownload(primaryDownload)}
+                    aria-label={downloadButtonLabel(primaryDownload)}
+                  >
+                    <Download size={20} />
+                    {primaryDownload.url ? "Download for macOS" : "macOS packaging pending"}
+                  </button>
+                  <button className="landing-secondary" type="button" onClick={onOpenApp}>
+                    <PlayCircle size={20} />
+                    Open web demo
+                  </button>
+                  <button className="landing-secondary" type="button" onClick={() => goToPage("donate")}>
+                    <Sparkles size={20} />
+                    Support Relay
+                  </button>
+                  <button className="landing-secondary" type="button" onClick={handleMobileInstall}>
+                    <Smartphone size={20} />
+                    Add to phone
+                  </button>
+                </div>
+                {(downloadMessage || mobileMessage) && (
+                  <p className="landing-message" role="status" aria-live="polite">
+                    {downloadMessage || mobileMessage}
+                  </p>
+                )}
+              </div>
+              <div className="landing-product-board" aria-label="Relay classroom follow-up preview">
+                <div className="board-window">
+                  <div className="board-window-top">
+                    <span />
+                    <span />
+                    <span />
+                    <strong>CS4All follow-up</strong>
+                  </div>
+                  <div className="board-flow">
+                    <article>
+                      <FileText size={18} />
+                      <strong>Transcript</strong>
+                      <span>Keisha shared decomposition steps</span>
+                    </article>
+                    <ChevronRight size={18} />
+                    <article>
+                      <Wand2 size={18} />
+                      <strong>Teacher review</strong>
+                      <span>3 questions, 2 resources, 1 overdue task</span>
+                    </article>
+                    <ChevronRight size={18} />
+                    <article>
+                      <GraduationCap size={18} />
+                      <strong>Student portal</strong>
+                      <span>Personal tasks and check-ins</span>
+                    </article>
+                  </div>
+                  <div className="board-followup-card">
+                    <div>
+                      <strong>Maya Chen</strong>
+                      <span>Ready for Thursday</span>
+                    </div>
+                    <CheckCircle2 size={20} />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="landing-stat-row" aria-label="Relay plan highlights">
+              {[
+                { value: "1", label: "daily free session" },
+                { value: "3", label: "inputs become one review flow" },
+                { value: "PWA", label: "phone-ready student access" },
+              ].map((stat) => (
+                <div className="landing-stat" key={stat.label}>
+                  <strong>{stat.value}</strong>
+                  <span>{stat.label}</span>
+                </div>
+              ))}
+            </section>
+
+            <section className="landing-feature-band" aria-label="Relay overview">
+              <article>
+                <BookOpen size={24} />
+                <h2>Class records in</h2>
+                <p>Paste Zoom exports, meeting notes, rosters, and resource links without forcing a perfect format.</p>
+              </article>
+              <article>
+                <ClipboardCheck size={24} />
+                <h2>Review before publish</h2>
+                <p>Teachers approve the recap, matching, participation highlights, tasks, and student-facing details.</p>
+              </article>
+              <article>
+                <Users size={24} />
+                <h2>Every student gets next steps</h2>
+                <p>Relay turns shared classroom memory into individual reminders, due dates, and completion check-ins.</p>
+              </article>
+            </section>
+
+            <section className="landing-callout-grid" aria-label="More Relay paths">
+              <article>
+                <FileText size={22} />
+                <h2>Documentation that reads like a field guide.</h2>
+                <p>Use the docs page for import recipes, privacy notes, release setup, and mobile installation details.</p>
+                <button className="landing-secondary" type="button" onClick={() => goToPage("docs")}>
+                  Read docs
+                </button>
+              </article>
+              <article>
+                <ShieldCheck size={22} />
+                <h2>Local-first by default, donation-supported by choice.</h2>
+                <p>The desktop app stays useful without paid services. Donations can support packaging, QA, and teacher pilots.</p>
+                <button className="landing-secondary" type="button" onClick={() => goToPage("donate")}>
+                  Donation path
+                </button>
+              </article>
+            </section>
+          </>
         )}
-        {mobileMessage && <p className="landing-message compact">{mobileMessage}</p>}
-        <div className="landing-stat-row" aria-label="Relay plan highlights">
-          {stats.map((stat) => (
-            <div className="landing-stat" key={stat.label}>
-              <strong>{stat.value}</strong>
-              <span>{stat.label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
 
-      <section className="landing-mobile-band" id="mobile" aria-label="Relay on mobile">
-        <div className="landing-mobile-card">
-          <Smartphone size={26} />
-          <span className="landing-eyebrow">Phone and tablet access</span>
-          <h2>Use Relay from a browser or add it to your home screen.</h2>
-          <p>
-            The hosted web version is installable on modern mobile browsers, so teachers can check follow-ups
-            from a phone and students can open their dashboard without a desktop.
-          </p>
-          <button className="landing-primary" type="button" onClick={handleMobileInstall}>
-            <Smartphone size={18} />
-            Add Relay to phone
-          </button>
-        </div>
-        <div className="mobile-step-grid">
-          <article className="mobile-step">
-            <strong>1</strong>
-            <span>Open the hosted Relay link on your phone.</span>
-          </article>
-          <article className="mobile-step">
-            <strong>2</strong>
-            <span>Choose Add to Home Screen or Install app from your browser.</span>
-          </article>
-          <article className="mobile-step">
-            <strong>3</strong>
-            <span>Use the sample demo now, then sign in with Pro cloud sync when live.</span>
-          </article>
-        </div>
-      </section>
+        {page === "features" && (
+          <>
+            <header className="landing-page-header">
+              <h1>Features for classroom continuity.</h1>
+              <p>
+                Relay is built around the teacher workflow after class: gather the messy record, clean it up,
+                publish specific follow-through, and see what needs attention next.
+              </p>
+            </header>
+            <section className="landing-feature-matrix" aria-label="Relay feature matrix">
+              {([
+                ["Transcript intelligence", "Speaker cleanup, roster matching, unmatched participants, participation confidence, and teacher review states.", MessageSquare],
+                ["Reusable rosters", "Saved class groups and roster templates reduce repeated setup across sessions.", Users],
+                ["Draft review", "Editable recaps, essential questions, student-specific tasks, resources, and publish audit details.", ClipboardCheck],
+                ["Student portal", "Personalized recap, assignments, resources, due dates, and completion check-ins.", GraduationCap],
+                ["Analytics", "Quiet students, overdue work, attendance status, and class-level follow-through trends.", LineChart],
+                ["Live capture path", "Free browser microphone or tab capture can create reviewable unknown-speaker segments.", Mic2],
+              ] as Array<[string, string, typeof MessageSquare]>).map(([title, body, Icon]) => (
+                <article key={title}>
+                  <Icon size={24} />
+                  <h2>{title}</h2>
+                  <p>{body}</p>
+                </article>
+              ))}
+            </section>
+            <section className="landing-workflow-list" aria-label="Relay workflow">
+              {[
+                ["Import", "Paste transcript, roster, notes, and links."],
+                ["Normalize", "Relay extracts speakers, resources, tasks, and likely student matches."],
+                ["Review", "Teacher edits before anything reaches students."],
+                ["Publish", "Student dashboards update with only the relevant follow-up."],
+              ].map(([title, body], index) => (
+                <article key={title}>
+                  <strong>{index + 1}</strong>
+                  <div>
+                    <h2>{title}</h2>
+                    <p>{body}</p>
+                  </div>
+                </article>
+              ))}
+            </section>
+          </>
+        )}
 
-      <section className="landing-feature-band" id="features" aria-label="Relay features">
-        <article>
-          <BookOpen size={24} />
-          <h2>Import class records</h2>
-          <p>Paste transcripts, upload text files, add meeting notes, and reuse saved rosters.</p>
-        </article>
-        <article>
-          <Users size={24} />
-          <h2>Personalize follow-ups</h2>
-          <p>Review student-specific tasks, resources, questions, and completion states before publishing.</p>
-        </article>
-        <article id="privacy">
-          <ShieldCheck size={24} />
-          <h2>Private by default</h2>
-          <p>The desktop app stays local-first, while hosted Pro sync requires protected account access.</p>
-        </article>
-      </section>
+        {page === "docs" && (
+          <>
+            <header className="landing-page-header">
+              <h1>Relay docs.</h1>
+              <p>
+                Practical setup notes for teachers, testers, and future contributors. No magic required:
+                paste reliable inputs first, then add hosted sync only when it is configured.
+              </p>
+            </header>
+            <section className="landing-docs-layout" aria-label="Relay documentation">
+              <aside className="landing-docs-index" aria-label="Documentation index">
+                {["Quick start", "Import formats", "Publishing", "Mobile access", "Release setup"].map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </aside>
+              <div className="landing-doc-stack">
+                <article className="landing-doc-section">
+                  <h2>Quick start</h2>
+                  <p>Open the web demo for a sample workspace, or use the desktop app when you want real saved accounts and local private data.</p>
+                  <code>npm run dev</code>
+                </article>
+                <article className="landing-doc-section">
+                  <h2>Import formats</h2>
+                  <p>Relay accepts Zoom-style transcript lines, pasted rosters, CSV rows, compressed numbered rosters, notes, and resource URLs.</p>
+                  <code>Student (Aaliyah Carter): Wait do we write it in a doc?</code>
+                </article>
+                <article className="landing-doc-section">
+                  <h2>Publishing model</h2>
+                  <p>Teachers review generated drafts first. Students only see the recap, tasks, resources, due dates, and status intended for them.</p>
+                </article>
+                <article className="landing-doc-section">
+                  <h2>Mobile access</h2>
+                  <p>The hosted shell includes a manifest and service worker, so students can add Relay to a phone home screen from the browser menu.</p>
+                </article>
+                <article className="landing-doc-section">
+                  <h2>Release setup</h2>
+                  <p>Set platform download URLs only after signed installers are ready. Missing URLs stay visibly marked as packaging pending.</p>
+                  <code>VITE_RELAY_MAC_DOWNLOAD_URL=https://...</code>
+                </article>
+              </div>
+            </section>
+          </>
+        )}
 
-      <section className="landing-download-band" id="download">
-        <div>
-          <span className="landing-eyebrow">Try it safely</span>
-          <h2>Start with the web demo, then move daily work to the desktop app.</h2>
-          <p>
-            {availableDownloads.length
-              ? `${availableDownloads.length} desktop download ${availableDownloads.length === 1 ? "is" : "are"} connected.`
-              : "Desktop installers are being packaged for macOS, Windows, and Linux."}
-          </p>
-        </div>
-        <div className="landing-actions compact">
-          <button
-            className="landing-primary"
-            type="button"
-            onClick={() => handleDownload(primaryDownload)}
-            aria-label={downloadButtonLabel(primaryDownload)}
-          >
-            <Download size={18} />
-            {primaryDownload.url ? "Download macOS" : "macOS pending"}
-          </button>
-          {downloadOptions.slice(1).map((option) => (
-            <button key={option.id} className="landing-secondary" type="button" onClick={() => handleDownload(option)}>
-              {option.url ? option.label : `${option.label} pending`}
-            </button>
-          ))}
-          <button className="landing-secondary" type="button" onClick={onOpenApp}>
-            Open demo
-          </button>
-        </div>
-      </section>
+        {page === "privacy" && (
+          <>
+            <header className="landing-page-header">
+              <h1>Privacy controls before polish.</h1>
+              <p>
+                Relay handles classroom records, so the product is designed around teacher review, local desktop storage,
+                consent reminders, and hosted sync only when credentials are configured.
+              </p>
+            </header>
+            <section className="landing-feature-band" aria-label="Relay privacy principles">
+              <article>
+                <ShieldCheck size={24} />
+                <h2>Local desktop data</h2>
+                <p>Desktop state is encrypted locally without OS password prompts and stays in the user's app data directory.</p>
+              </article>
+              <article>
+                <KeyRound size={24} />
+                <h2>No student-data training claim</h2>
+                <p>The privacy control surface keeps the no-training posture visible for teacher workflows.</p>
+              </article>
+              <article>
+                <SlidersHorizontal size={24} />
+                <h2>Retention and exports</h2>
+                <p>Teachers can tune retention days, consent requirements, audit logging, and student export access.</p>
+              </article>
+            </section>
+            <section className="landing-policy-panel">
+              <h2>Hosted demo boundary</h2>
+              <p>
+                Public hosted demos use sample accounts only. Durable personal workspaces belong in the downloaded app
+                or in hosted sync after Supabase and billing are intentionally configured.
+              </p>
+              <button className="landing-secondary" type="button" onClick={onOpenApp}>
+                Open sample demo
+              </button>
+            </section>
+          </>
+        )}
+
+        {page === "donate" && (
+          <>
+            <header className="landing-page-header">
+              <h1>Support Relay development.</h1>
+              <p>
+                Relay can stay free-first for teachers while donations help fund packaging, accessibility testing,
+                classroom pilots, and careful privacy work.
+              </p>
+            </header>
+            <section className="landing-donation-panel" aria-label="Donation options">
+              {[3, 9, 25].map((amount) => (
+                <article key={amount}>
+                  <strong>${amount}</strong>
+                  <span>
+                    {amount === 3
+                      ? "Bug-fix thank-you"
+                      : amount === 9
+                        ? "One month of Relay Pro target pricing"
+                        : "Packaging and teacher pilot support"}
+                  </span>
+                  <button className="landing-primary" type="button" onClick={() => handleDonate(amount)}>
+                    Support ${amount}
+                  </button>
+                </article>
+              ))}
+            </section>
+            <section className="landing-policy-panel">
+              <h2>Other ways to help</h2>
+              <p>Try the demo, report confusing import results, share a classroom transcript format, or star the project when it is public.</p>
+              <div className="landing-actions compact">
+                <button className="landing-secondary" type="button" onClick={onOpenApp}>
+                  Open demo
+                </button>
+                <button className="landing-secondary" type="button" onClick={() => goToPage("docs")}>
+                  Read docs
+                </button>
+              </div>
+              {donationMessage && (
+                <p className="landing-message" role="status" aria-live="polite">
+                  {donationMessage}
+                </p>
+              )}
+            </section>
+          </>
+        )}
+
+        {page === "download" && (
+          <>
+            <header className="landing-page-header">
+              <h1>Download Relay.</h1>
+              <p>
+                Start with the sample web demo, add the mobile shell to a phone, then move real daily classroom work
+                to the desktop app when installers are connected.
+              </p>
+            </header>
+            <section className="landing-mobile-band" aria-label="Relay on mobile">
+              <div className="landing-mobile-card">
+                <Smartphone size={26} />
+                <h2>Use Relay from a browser or add it to your home screen.</h2>
+                <p>
+                  The hosted web version is installable on modern mobile browsers, so teachers can check follow-ups
+                  from a phone and students can open their dashboard without a desktop.
+                </p>
+                <button className="landing-primary" type="button" onClick={handleMobileInstall}>
+                  <Smartphone size={18} />
+                  Add to phone
+                </button>
+              </div>
+              <div className="mobile-step-grid">
+                <article className="mobile-step">
+                  <strong>1</strong>
+                  <span>Open the hosted Relay link on your phone.</span>
+                </article>
+                <article className="mobile-step">
+                  <strong>2</strong>
+                  <span>Choose Add to Home Screen or Install app from your browser.</span>
+                </article>
+                <article className="mobile-step">
+                  <strong>3</strong>
+                  <span>Use the sample demo now, then sign in with Pro cloud sync when live.</span>
+                </article>
+              </div>
+            </section>
+
+            <section className="landing-download-band">
+              <div>
+                <h2>Desktop installers</h2>
+                <p>
+                  {availableDownloads.length
+                    ? `${availableDownloads.length} desktop download ${availableDownloads.length === 1 ? "is" : "are"} connected.`
+                    : "Desktop installers are being packaged for macOS, Windows, and Linux."}
+                </p>
+              </div>
+              <div className="landing-platform-list" aria-label="Desktop download options">
+                {downloadOptions.map((option) => (
+                  <button key={option.id} type="button" onClick={() => handleDownload(option)}>
+                    <Download size={16} />
+                    <span>
+                      <strong>{option.label}</strong>
+                      <small>{option.url ? "Download ready" : "Packaging pending"}</small>
+                      {!option.url && <em>{option.helper}</em>}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+            <section className="landing-policy-panel">
+              <h2>Safe demo path</h2>
+              <p>Hosted demo data is sample-only and resettable. Create durable personal accounts in the downloaded desktop app.</p>
+              <div className="landing-actions compact">
+                <button className="landing-secondary" type="button" onClick={onOpenApp}>
+                  Open web demo
+                </button>
+                <button className="landing-secondary" type="button" onClick={() => handleDownload(primaryDownload)}>
+                  {primaryDownload.url ? "Download macOS" : "macOS pending"}
+                </button>
+              </div>
+              {(downloadMessage || mobileMessage) && (
+                <p className="landing-message" role="status" aria-live="polite">
+                  {downloadMessage || mobileMessage}
+                </p>
+              )}
+            </section>
+          </>
+        )}
+      </div>
     </main>
   );
 }
@@ -2854,7 +3153,7 @@ function LoginPage({
               <strong>Want your own saved workspace?</strong>
               <span>Create real accounts and keep data in the downloaded app.</span>
             </div>
-            <button type="button" className="ghost-button" onClick={() => { window.location.href = "/#download"; }}>
+            <button type="button" className="ghost-button" onClick={() => { window.location.href = "/#/download"; }}>
               <Download size={17} />
               Download app
             </button>
@@ -2906,11 +3205,23 @@ function LoginPage({
             </p>
           )}
           <div className="role-tabs" role="tablist" aria-label="Choose account type">
-            <button type="button" className={role === "teacher" ? "active" : ""} onClick={() => chooseRole("teacher")}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={role === "teacher"}
+              className={role === "teacher" ? "active" : ""}
+              onClick={() => chooseRole("teacher")}
+            >
               <UserRound size={17} />
               Teacher
             </button>
-            <button type="button" className={role === "student" ? "active" : ""} onClick={() => chooseRole("student")}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={role === "student"}
+              className={role === "student" ? "active" : ""}
+              onClick={() => chooseRole("student")}
+            >
               <GraduationCap size={17} />
               Student
             </button>

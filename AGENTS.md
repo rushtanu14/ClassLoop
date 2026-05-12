@@ -34,8 +34,10 @@ Relay is a desktop and mobile-web classroom follow-up platform (Electron + React
 - Student: `maya@relay.demo` / `relay-student`
 - Hosted Vercel demo should use sample accounts only. Do not enable custom account creation in the hosted demo; users create durable accounts in the downloaded desktop app.
 - Sample/demo account changes must be ephemeral and clearly bannered as unsaved demo data.
+- Public landing pages are routed at `#/features`, `#/docs`, `#/privacy`, `#/donate`, and `#/download`; do not collapse them back into one scroll-through page.
 - Public landing downloads support macOS, Windows, and Linux through `VITE_RELAY_MAC_DOWNLOAD_URL`, `VITE_RELAY_WINDOWS_DOWNLOAD_URL`, and `VITE_RELAY_LINUX_DOWNLOAD_URL`. If a URL is missing, the UI should say that installer is still being packaged rather than pretending the download works. Packaging scripts target both x64 and arm64 where Electron Builder supports it.
-- Hosted mobile access is through the Vercel PWA shell: keep `public/manifest.webmanifest`, `public/sw.js`, mobile meta tags, and the landing-page "Add to phone" flow working.
+- Public donation support uses `VITE_RELAY_DONATE_URL`. If it is missing, the Donate page should say the donation link is not connected rather than pretending payment works.
+- Hosted mobile access is through the Vercel PWA shell: keep `public/manifest.webmanifest`, `public/sw.js`, mobile meta tags, and the landing/download-page "Add to phone" flow working.
 
 ## Architecture
 
@@ -303,7 +305,7 @@ Tests validate:
 5. **Error handling**: Parser is defensive (unmatched names flagged but don't break import). UI shows warnings clearly.
 6. **Accessibility**: Icons from lucide-react (semantic naming). Enough contrast for education-friendly green theme.
 7. **Browser QA**: Keep Playwright installed. `npm install` runs `playwright install chromium`; run `npm run test:browser` for login/import/publish/student/analytics/access/responsive/class manager/CSV/report export coverage. Run `npm run test:web` for the hosted landing/demo/PWA smoke test across desktop and phone-sized viewports.
-8. **Local storage security**: Desktop state is encrypted with Electron `safeStorage` when available. Browser fallback uses encrypted `relay:secure:*` localStorage keys. Hosted multi-device access uses Supabase Auth and workspace sync when credentials are configured.
+8. **Local storage security**: Desktop state is encrypted with Relay's prompt-free local AES-GCM key file (`.relay-storage-key`) instead of Electron `safeStorage`, so saving should not trigger macOS Keychain or OS password prompts. Browser fallback uses encrypted `relay:secure:*` localStorage keys. Hosted multi-device access uses Supabase Auth and workspace sync when credentials are configured.
 9. **Testing prompt upkeep**: When adding user-facing features, update the feature QA prompt in `codexsecondbrain-sync-2026-04-30.md` and Playwright coverage so future agents test the new workflow plus layout/readability issues.
 
 ## High-Value Next Work

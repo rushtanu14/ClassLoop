@@ -1,7 +1,8 @@
-const { app, BrowserWindow, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, shell } = require("electron");
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 let nodemailer;
 
 function getNodemailer() {
@@ -19,6 +20,7 @@ function getNodemailer() {
 const rootDir = path.join(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
 const dataFileName = ".relay-data.json";
+const dataKeyFileName = ".relay-storage-key";
 const requestedUserDataDir = process.env.RELAY_USER_DATA_DIR;
 if (requestedUserDataDir) {
   app.setPath("userData", path.resolve(requestedUserDataDir));
@@ -76,6 +78,10 @@ function currentDataFilePath() {
   return app.isPackaged || requestedUserDataDir ? path.join(app.getPath("userData"), dataFileName) : path.join(rootDir, dataFileName);
 }
 
+function currentDataKeyPath() {
+  return path.join(path.dirname(currentDataFilePath()), dataKeyFileName);
+}
+
 function readableDataFilePath() {
   const dataFile = currentDataFilePath();
   if (fs.existsSync(dataFile)) {
@@ -95,6 +101,66 @@ function dataReadErrorMessage(error) {
   return `Unable to read Relay desktop data.${detail}`;
 }
 
+function readRelayDataKey(options = {}) {
+  const keyPath = currentDataKeyPath();
+  if (fs.existsSync(keyPath)) {
+    const raw = fs.readFileSync(keyPath, "utf8").trim();
+    const parsed = raw.startsWith("{") ? JSON.parse(raw) : { key: raw };
+    const key = Buffer.from(parsed.key || "", "base64");
+    if (key.length !== 32) {
+      throw new Error("Relay desktop storage key is invalid.");
+    }
+    return key;
+  }
+
+  if (options.createIfMissing === false) {
+    throw new Error("Relay desktop storage key is missing.");
+  }
+
+  const key = crypto.randomBytes(32);
+  fs.mkdirSync(path.dirname(keyPath), { recursive: true });
+  fs.writeFileSync(
+    keyPath,
+    `${JSON.stringify({ version: 1, algorithm: "aes-256-gcm", key: key.toString("base64") }, null, 2)}\n`,
+    { mode: 0o600 },
+  );
+  return key;
+}
+
+function encryptWorkspaceState(nextState) {
+  const key = readRelayDataKey();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([cipher.update(JSON.stringify(nextState), "utf8"), cipher.final()]);
+  return {
+    version: 2,
+    encrypted: true,
+    algorithm: "aes-256-gcm",
+    key: dataKeyFileName,
+    iv: iv.toString("base64"),
+    authTag: cipher.getAuthTag().toString("base64"),
+    payload: encrypted.toString("base64"),
+  };
+}
+
+function decryptWorkspaceState(stored) {
+  if (stored.algorithm !== "aes-256-gcm" || !stored.iv || !stored.authTag) {
+    throw new Error(
+      "Relay found an older OS-keychain encrypted data file. To avoid password prompts, Relay will not open it automatically. Keep a backup and move it aside to start fresh.",
+    );
+  }
+
+  const key = readRelayDataKey({ createIfMissing: false });
+  const decipher = crypto.createDecipheriv("aes-256-gcm", key, Buffer.from(stored.iv, "base64"));
+  decipher.setAuthTag(Buffer.from(stored.authTag, "base64"));
+  return JSON.parse(
+    Buffer.concat([
+      decipher.update(Buffer.from(stored.payload, "base64")),
+      decipher.final(),
+    ]).toString("utf8"),
+  );
+}
+
 function readDataFile(options = {}) {
   try {
     const dataFile = readableDataFilePath();
@@ -105,11 +171,8 @@ function readDataFile(options = {}) {
 
     const stored = JSON.parse(fs.readFileSync(dataFile, "utf8"));
     if (stored.encrypted && stored.payload) {
-      if (!safeStorage.isEncryptionAvailable()) {
-        throw new Error("Local Relay data encryption is not available.");
-      }
       dataFileReadError = null;
-      return JSON.parse(safeStorage.decryptString(Buffer.from(stored.payload, "base64")));
+      return decryptWorkspaceState(stored);
     }
     if (stored.version && stored.payload && stored.encrypted === false) {
       dataFileReadError = null;
@@ -176,17 +239,7 @@ function writeDataFile(payload) {
     billingProfile: payload.billingProfile,
     updatedAt: new Date().toISOString(),
   };
-  const stored = safeStorage.isEncryptionAvailable()
-    ? {
-        version: 1,
-        encrypted: true,
-        payload: safeStorage.encryptString(JSON.stringify(nextState)).toString("base64"),
-      }
-    : {
-        version: 1,
-        encrypted: false,
-        payload: nextState,
-      };
+  const stored = encryptWorkspaceState(nextState);
   const dataFile = currentDataFilePath();
   fs.mkdirSync(path.dirname(dataFile), { recursive: true });
   fs.writeFileSync(dataFile, `${JSON.stringify(stored, null, 2)}\n`, { mode: 0o600 });

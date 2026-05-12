@@ -312,7 +312,8 @@ Feature checks:
 15. Privacy page is accessible to teachers and exposes retention settings, export, delete class data, consent settings, and audit log.
 16. Account/session/browser roster fallback storage uses secure relay:secure:* localStorage keys; legacy plain relay:accounts/session keys should migrate away.
 17. Responsive layout has no horizontal overflow at a phone-sized viewport.
-18. Frontend formatting pass: no unreadable low-contrast text, overlapping form labels, clipped buttons, blank teacher-only panels, or unnecessary implementation details exposed to users.
+18. WCAG-targeted checks pass for keyboard navigation, focus order, visible focus indicators, accessible control names, live status announcements, contrast on key text/buttons, and mobile PWA/add-to-home-screen readability.
+19. Frontend formatting pass: no unreadable low-contrast text, overlapping form labels, clipped buttons, blank teacher-only panels, or unnecessary implementation details exposed to users.
 
 Import regression checks:
 - Compressed CS4All roster parses 18 students.
@@ -345,7 +346,7 @@ Playwright is a required dev dependency for Relay browser QA.
 
 ## 2026-05-06 Security/Storage Notes
 
-- Desktop `.relay-data.json` should be written encrypted with Electron `safeStorage` when the OS supports it.
+- Desktop `.relay-data.json` should be written encrypted with Relay's prompt-free local AES-GCM storage key (`.relay-storage-key`) rather than Electron `safeStorage`, so Relay does not trigger macOS Keychain or OS password prompts while saving.
 - Browser fallback storage should use `relay:secure:*` keys with AES-GCM encryption and migrate legacy plain localStorage keys.
 - This is local encryption at rest. It is not true multi-device sync. Real multi-device student access requires a backend database, server-side auth/session validation, HTTPS, and school-approved identity/OAuth.
 
@@ -404,6 +405,7 @@ When using the Relay testing script, also verify:
 - Publish preview and session report show publish audit evidence.
 - Student can submit a follow-up check-in, see the button text change to "Completed!", and get a celebratory confetti animation; teacher can mark it reviewed.
 - Session report exposes JSON export, CSV export, and print actions.
+- WCAG-targeted browser checks cover login keyboard/focus order, unnamed controls, contrast, student completion live announcements, hosted PWA add-to-home-screen status, and phone-width mobile readability.
 
 ## 2026-05-09 Backend / Freemium / Privacy Update
 
@@ -462,3 +464,10 @@ All three validate with `quick_validate.py`.
 - `/api/config` now returns a safe config version plus hosted backend booleans. If live Vercel still returns `stripeSchoolConfigured`, the deployed app is stale and must redeploy latest `main`.
 - Current active freemium model: Free is 1 generated session per day; Pro is `$9/month` with unlimited sessions, live capture modes, multi-device cloud sync, delivery logs, privacy exports, and advanced reports. School pilot UI/env keys remain removed/deferred.
 - Verification passed after landing update: `npm run build`, `npm run test:import`, `npm run test:browser` (14/14), `node -c desktop/main.cjs`, `node --check api/*.js api/billing/*.js`, and `git diff --check -- ':!dist/**'`.
+
+## 2026-05-12 Prompt-Free Storage / Routed Landing Update
+
+- Relay desktop state now uses a prompt-free local AES-GCM storage key file (`.relay-storage-key`) next to `.relay-data.json` instead of Electron `safeStorage`, avoiding OS password/Keychain prompts while keeping the data file encrypted.
+- Public landing navigation is now page-based rather than one long scroll: Home, Features, Docs, Privacy, Donate, and Download live at `#/features`, `#/docs`, `#/privacy`, `#/donate`, and `#/download`.
+- The Donate path is visible and supports `VITE_RELAY_DONATE_URL`; when unset, the UI explicitly says the donation link is not connected instead of pretending payment works.
+- QA coverage should include prompt-free desktop encrypted state, routed landing pages, donation fallback messaging, platform download fallbacks, and PWA add-to-phone behavior on the Download page.

@@ -51,10 +51,10 @@
 - **Locked UI Behavior**: Browser tests verify unpaid users see Pro-only live capture cards, Free one-session-per-day copy, disabled second draft generation, local upgrade unlocks paid controls, and downgrade returns the locks.
 
 ### Security / Secrets / Legal Baseline
-- **Local Data Tracking**: `npm run test:security` verifies `.env.local`, `.relay-data.json`, and legacy local data files are ignored and not tracked.
+- **Local Data Tracking**: `npm run test:security` verifies `.env.local`, `.relay-data.json`, `.relay-storage-key`, and legacy local data files are ignored and not tracked.
 - **Secret Scanning**: The same script scans tracked text files for high-confidence Stripe, OpenAI, GitHub, private-key, and non-empty server-secret env assignments.
 - **Storage Hardening**: The script verifies browser data uses `relay:secure:*` AES-GCM storage keys, demo data is filtered before persistence, and the cloud offline queue is Relay-namespaced.
-- **Desktop / Hosted Boundaries**: The script verifies Electron `safeStorage`, restrictive desktop data permissions, trusted-origin local APIs, server-side email session lookup, Supabase auth requirements, Stripe webhook signature verification, and workspace RLS markers.
+- **Desktop / Hosted Boundaries**: The script verifies prompt-free desktop AES-GCM state encryption, restrictive desktop data permissions, trusted-origin local APIs, server-side email session lookup, Supabase auth requirements, Stripe webhook signature verification, and workspace RLS markers.
 - **Logging / Legal Baseline**: The script blocks runtime debug/info logs and requires [LEGAL.md](LEGAL.md) to cover Terms, Privacy, EULA, support, retention, and child-appropriate safety.
 
 ### Browser Access Tests
@@ -76,13 +76,16 @@
 - **Report Exports**: Session report exposes JSON, CSV, and print actions.
 - **Appearance**: Students can change appearance while signed in; logout returns the login screen to the default theme; sign-in restores the saved account theme.
 - **Responsive Layout**: Core controls remain visible at phone-sized width without horizontal overflow.
+- **WCAG-Targeted Accessibility Smoke**: Browser tests cover keyboard tab order, visible focus indicators, accessible names for controls, contrast ratios on key app and landing surfaces, screen-reader status announcements, and phone-width PWA readability.
 
 ### Hosted Web Smoke Tests
-- **Landing Page**: Hosted root page loads Relay marketing/download UI.
+- **Landing Page**: Hosted root page loads Relay marketing UI, with separate `#/features`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` routes instead of one scroll-through page.
 - **Desktop Downloads**: macOS, Windows, and Linux download controls are visible; missing installer URLs show packaging/demo fallback copy.
-- **Mobile/PWA Access**: Hosted root exposes the "Add to phone" action, standalone web app manifest, app icon, and service worker shell.
+- **Donation Path**: Donate route exposes support amounts and clearly reports when `VITE_RELAY_DONATE_URL` has not been connected.
+- **Mobile/PWA Access**: Hosted root and Download route expose the "Add to phone" action, standalone web app manifest, app icon, and service worker shell.
 - **Sample-Only Demo**: Hosted demo exposes teacher/student demo choices instead of editable email/password fields.
 - **Demo Walkthrough**: Teacher sample demo starts the guided walkthrough and shows the unsaved demo banner after skip.
+- **Hosted WCAG/PWA Checks**: Hosted smoke tests verify landing controls have accessible names, key text/buttons meet contrast targets, add-to-home-screen feedback is announced with a live status region, and mobile PWA content avoids horizontal overflow or clipped primary controls.
 
 ### Release And Incident Drills
 - **Bad Release Rollback**: `npm run drill:rollback` checks packaged release artifacts, `latest*.yml` metadata, and unpacked `app.asar` contents for macOS, Windows, and Linux across x64 and arm64 where packaged. It writes a non-destructive quarantine simulation for restoring known-good download URLs or falling back to `Packaging pending`.
@@ -147,8 +150,8 @@ Playwright is installed in the repo through `@playwright/test`.
 **Run rollback drill**: `npm run drill:rollback`
 **Run incident drill**: `npm run drill:incidents`
 
-Playwright starts the Vite dev server on `127.0.0.1:5177` and runs Chromium checks across desktop and mobile-sized projects.
-Hosted web tests use `playwright.web.config.ts` and default to `https://relay-class.vercel.app`. Override with:
+Playwright starts the Vite dev server on `127.0.0.1:5177` and runs Chromium checks across desktop and mobile-sized projects, including WCAG-targeted keyboard, focus, labels, contrast, status-announcement, and mobile PWA readability checks.
+Hosted web tests use `playwright.web.config.ts` and default to `https://relay-class.vercel.app`; they include the same landing/PWA accessibility smoke on desktop and phone-sized viewports. Override with:
 
 ```bash
 RELAY_WEB_TEST_URL=https://your-domain.com npm run test:web
@@ -176,6 +179,7 @@ When the user says "use the testing script," run the saved Relay QA sequence and
 - whether the hosted web demo still hides editable login fields and exposes platform download controls
 - whether missing desktop installer links visibly show "Packaging pending" before click and show a pending fallback after click
 - whether the hosted web demo exposes mobile/PWA install controls and passes the manifest/service-worker checks
+- whether WCAG-targeted keyboard navigation, focus order, visible focus, screen-reader labels/status announcements, contrast, and mobile PWA readability checks pass
 - whether rollback and incident drills passed, including clear behavior for bad release quarantine, billing outage, auth outage, sync outage, and parser regression
 - concise feedback on how the run went
 - what could be improved

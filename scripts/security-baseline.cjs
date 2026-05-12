@@ -114,7 +114,8 @@ function verifyDesktopAndHostedSecurity() {
 
   const checks = [
     ["desktop uses current Relay data filename", desktop, /const dataFileName = "\.relay-data\.json"/],
-    ["desktop encrypts state with safeStorage", desktop, /safeStorage\.encryptString/],
+    ["desktop uses prompt-free Relay storage key", desktop, /const dataKeyFileName = "\.relay-storage-key"/],
+    ["desktop encrypts state with AES-GCM", desktop, /crypto\.createCipheriv\("aes-256-gcm"/],
     ["desktop writes restrictive data-file permissions", desktop, /mode: 0o600/],
     ["desktop blocks untrusted mutating local API origins", desktop, /Blocked untrusted local API origin/],
     ["desktop blocks writes after unreadable encrypted state", desktop, /if \(dataFileReadError\)/],
@@ -156,7 +157,7 @@ function verifyLegalBaseline() {
 
 function main() {
   const files = trackedFiles();
-  verifyIgnoredLocalFiles([".env.local", ".env.test.local", ".relay-data.json", ".classloop-data.json"]);
+  verifyIgnoredLocalFiles([".env.local", ".env.test.local", ".relay-data.json", ".relay-storage-key", ".classloop-data.json"]);
   verifyNoHighConfidenceSecrets(trackedTextFiles(files));
   verifyLocalStorageSecurity();
   verifyDesktopAndHostedSecurity();

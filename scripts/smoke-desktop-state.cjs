@@ -5,6 +5,7 @@ const { _electron: electron } = require("playwright");
 
 const rootDir = path.resolve(__dirname, "..");
 const dataFileName = ".relay-data.json";
+const dataKeyFileName = ".relay-storage-key";
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -136,6 +137,7 @@ async function run() {
 
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "relay-desktop-state-"));
   const dataFile = path.join(userDataDir, dataFileName);
+  const dataKeyFile = path.join(userDataDir, dataKeyFileName);
   const backupFile = path.join(userDataDir, `${dataFileName}.backup`);
   const expected = sampleState();
   let relay;
@@ -155,11 +157,14 @@ async function run() {
 
     const storedText = fs.readFileSync(dataFile, "utf8");
     const stored = JSON.parse(storedText);
-    if (!stored.encrypted || typeof stored.payload !== "string") {
-      throw new Error("Desktop state was not written as an encrypted safeStorage payload.");
+    if (!stored.encrypted || stored.algorithm !== "aes-256-gcm" || typeof stored.payload !== "string") {
+      throw new Error("Desktop state was not written as an encrypted Relay AES-GCM payload.");
     }
     if (storedText.includes(expected.accounts[0].email) || storedText.includes(expected.sessions[0].title)) {
       throw new Error("Encrypted desktop state file contains plaintext account or session data.");
+    }
+    if (!fs.existsSync(dataKeyFile)) {
+      throw new Error("Encrypted desktop state key was not created next to the data file.");
     }
 
     const decryptedRead = await apiState(relay.page);

@@ -56,7 +56,7 @@ Relay still works through transcript paste/upload, browser live audio notes when
 ## Privacy and Security Controls
 
 - Real secrets live in `.env.local`, which is ignored by git.
-- Desktop account/session state is encrypted with Electron `safeStorage` when available.
+- Desktop account/session state is encrypted with Relay's prompt-free local AES-GCM storage key.
 - Browser fallback storage is AES-GCM encrypted locally. True multi-device sync still requires a backend database and server-side authentication.
 - Local API routes reject requests from untrusted origins.
 - Static and API responses include restrictive security headers.

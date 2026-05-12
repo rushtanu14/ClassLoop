@@ -5,6 +5,7 @@ node_modules
 dist/assets/index-*.js
 dist/assets/index-*.css
 .relay-data.json
+.relay-storage-key
 .classloop-data.json
 .classloop-integrations.json
 .env.local
