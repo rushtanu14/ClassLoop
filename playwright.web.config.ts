@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.RELAY_WEB_TEST_URL || "https://class-loop-ten.vercel.app";
+const baseURL = process.env.RELAY_WEB_TEST_URL || "https://relay-class.vercel.app";
 
 export default defineConfig({
   testDir: "./tests/browser",

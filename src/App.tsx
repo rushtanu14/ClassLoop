@@ -285,8 +285,8 @@ const studentNavSections: Array<{ label: string; items: NavItem[] }> = [
 const studentRoutes = new Set<RouteKey>(["student", "student-session", "tutorial", "appearance"]);
 const demoTeacherEmail = "teacher@relay.demo";
 const demoStudentEmail = "maya@relay.demo";
-const teacherPasswordHash = "92d96446c5fa184300fb96631d4ca0b18e536cfab5c0da5eead1edb535190e84";
-const studentPasswordHash = "fecc0c0136b0cc27f320c7bdf5ffb1f6b902f517595f243cfa07999ef9035fe7";
+const teacherPasswordHash = "6418bf0b9c6e86b3692853359bfbf7da7553edce12a60e215ffed83833e29fa1";
+const studentPasswordHash = "d278b06dee12d7297b5c3a189d024b18fb3a1e69aa03769be71b9c153c771b27";
 const demoAccounts: Account[] = [
   {
     id: "demo-teacher",

@@ -100,7 +100,7 @@ Playwright is installed in the repo through `@playwright/test`.
 **Run hosted web smoke**: `npm run test:web`
 
 Playwright starts the Vite dev server on `127.0.0.1:5177` and runs Chromium checks across desktop and mobile-sized projects.
-Hosted web tests use `playwright.web.config.ts` and default to `https://class-loop-ten.vercel.app`. Override with:
+Hosted web tests use `playwright.web.config.ts` and default to `https://relay-class.vercel.app`. Override with:
 
 ```bash
 RELAY_WEB_TEST_URL=https://your-domain.com npm run test:web
