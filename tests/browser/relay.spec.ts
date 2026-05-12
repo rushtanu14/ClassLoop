@@ -208,6 +208,10 @@ test("public root shows landing page and can enter the app demo", async ({ page 
   await expect(page.getByRole("heading", { name: /features for classroom continuity/i })).toBeVisible();
   await expect(page.getByText(/Transcript intelligence/i)).toBeVisible();
 
+  await page.goto("/#/screenshots");
+  await expect(page.getByRole("heading", { name: /screenshots: how relay works/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /student dashboard/i })).toBeVisible();
+
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /^Relay$/i })).toBeVisible();
   await expect(

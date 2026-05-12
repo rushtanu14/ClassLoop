@@ -79,7 +79,8 @@
 - **WCAG-Targeted Accessibility Smoke**: Browser tests cover keyboard tab order, visible focus indicators, accessible names for controls, contrast ratios on key app and landing surfaces, screen-reader status announcements, and phone-width PWA readability.
 
 ### Hosted Web Smoke Tests
-- **Landing Page**: Hosted root page loads Relay marketing UI, with separate `#/features`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` routes instead of one scroll-through page.
+- **Landing Page**: Hosted root page loads Relay marketing UI, with separate `#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` routes instead of one scroll-through page.
+- **Screenshots / Workflow**: `#/screenshots` shows Relay teacher review, student dashboard, and analytics screenshots with readable explanations.
 - **Desktop Downloads**: macOS, Windows, and Linux download controls are visible; missing installer URLs show packaging/demo fallback copy.
 - **Donation Path**: Donate route exposes support amounts and clearly reports when `VITE_RELAY_DONATE_URL` has not been connected.
 - **Mobile/PWA Access**: Hosted root and Download route expose the "Add to phone" action, standalone web app manifest, app icon, and service worker shell.

@@ -14,6 +14,7 @@ const landingContrastSelectors = [
 test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   await page.goto("/?demoOnly=1");
   await expect(page.getByRole("heading", { name: /^Relay$/i })).toBeVisible();
+  const screenshotsButton = page.getByRole("button", { name: /^screenshots$/i });
   const docsButton = page.getByRole("button", { name: /^docs$/i });
   const donateButton = page.getByRole("button", { name: /^donate$/i });
   const isWideViewport = (page.viewportSize()?.width ?? 0) > 920;
@@ -23,6 +24,7 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
     }),
   ).toBeVisible();
   if (isWideViewport) {
+    await expect(screenshotsButton).toBeVisible();
     if (await docsButton.isVisible().catch(() => false)) {
       await expect(docsButton).toBeVisible();
     } else {
@@ -52,6 +54,14 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
     await expect(page.locator("p.landing-message, [role='status']").filter({ hasText: installMessage }).first()).toBeVisible();
   }
 
+  if (await screenshotsButton.isVisible().catch(() => false)) {
+    await screenshotsButton.click();
+    await expect(page.getByRole("heading", { name: /screenshots: how relay works/i })).toBeVisible();
+    await expect(page.getByRole("img", { name: /teacher import and review screen/i })).toBeVisible();
+    await expect(page.getByRole("img", { name: /student dashboard/i })).toBeVisible();
+    await expect(page.getByRole("img", { name: /teacher analytics screen/i })).toBeVisible();
+  }
+
   if (await docsButton.isVisible().catch(() => false)) {
     await docsButton.click();
     await expect(page.getByRole("heading", { name: /^Relay docs\.$/i })).toBeVisible();
@@ -66,7 +76,7 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
 
   await page.goto("/?demoOnly=1");
   if (!(await page.locator(".landing-platform-list").count())) {
-    await page.goto("/#/download");
+    await page.goto("/?demoOnly=1#/download");
   }
   const downloadRouteHeading = page.getByRole("heading", { name: /download relay/i });
   if (await downloadRouteHeading.isVisible().catch(() => false)) {

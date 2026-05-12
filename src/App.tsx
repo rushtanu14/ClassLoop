@@ -134,7 +134,7 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-type LandingPageKey = "home" | "features" | "docs" | "privacy" | "donate" | "download";
+type LandingPageKey = "home" | "features" | "screenshots" | "docs" | "privacy" | "donate" | "download";
 
 type Account = {
   id: string;
@@ -477,7 +477,7 @@ function getRoute(): RouteKey {
 function getLandingPage(): LandingPageKey {
   const hash = window.location.hash.trim().replace(/^#\/?/, "");
   const route = hash.split("?")[0].replace(/^landing\/?/, "");
-  if (route === "features" || route === "docs" || route === "privacy" || route === "donate" || route === "download") {
+  if (route === "features" || route === "screenshots" || route === "docs" || route === "privacy" || route === "donate" || route === "download") {
     return route;
   }
   if (route === "mobile") return "download";
@@ -496,11 +496,13 @@ function isLandingHash() {
     route === "home" ||
     route === "features" ||
     route === "docs" ||
+    route === "screenshots" ||
     route === "mobile" ||
     route === "privacy" ||
     route === "donate" ||
     route === "download" ||
     hash === "#features" ||
+    hash === "#screenshots" ||
     hash === "#mobile" ||
     hash === "#privacy" ||
     hash === "#donate" ||
@@ -2429,6 +2431,7 @@ function LandingPage({
   const publicNav: Array<{ page: LandingPageKey; label: string }> = [
     { page: "home", label: "Home" },
     { page: "features", label: "Features" },
+    { page: "screenshots", label: "Screenshots" },
     { page: "docs", label: "Docs" },
     { page: "privacy", label: "Privacy" },
     { page: "donate", label: "Donate" },
@@ -2549,8 +2552,8 @@ function LandingPage({
                 </div>
                 <h1>Relay</h1>
                 <p>
-                  Turn class transcripts, notes, rosters, and resources into edited recaps, student follow-ups,
-                  and completion check-ins that keep learning moving after class.
+                  Relay shows teachers exactly how messy class records become approved recaps, personalized student
+                  tasks, resource links, and follow-up analytics—without making the public website feel like one giant scroll.
                 </p>
                 <div className="landing-actions">
                   <button
@@ -2581,91 +2584,25 @@ function LandingPage({
                   </p>
                 )}
               </div>
-              <div className="landing-product-board" aria-label="Relay classroom follow-up preview">
-                <div className="board-window">
-                  <div className="board-window-top">
-                    <span />
-                    <span />
-                    <span />
-                    <strong>CS4All follow-up</strong>
-                  </div>
-                  <div className="board-flow">
-                    <article>
-                      <FileText size={18} />
-                      <strong>Transcript</strong>
-                      <span>Keisha shared decomposition steps</span>
-                    </article>
-                    <ChevronRight size={18} />
-                    <article>
-                      <Wand2 size={18} />
-                      <strong>Teacher review</strong>
-                      <span>3 questions, 2 resources, 1 overdue task</span>
-                    </article>
-                    <ChevronRight size={18} />
-                    <article>
-                      <GraduationCap size={18} />
-                      <strong>Student portal</strong>
-                      <span>Personal tasks and check-ins</span>
-                    </article>
-                  </div>
-                  <div className="board-followup-card">
-                    <div>
-                      <strong>Maya Chen</strong>
-                      <span>Ready for Thursday</span>
-                    </div>
-                    <CheckCircle2 size={20} />
-                  </div>
-                </div>
-              </div>
+              <button className="landing-screenshot-preview" type="button" onClick={() => goToPage("screenshots")}>
+                <span className="landing-screenshot-label">Actual Relay workflow preview</span>
+                <img
+                  src="/screenshots/relay-import-review.svg"
+                  alt="Relay teacher import and review screen showing transcript, roster matching, and student follow-up cards"
+                />
+              </button>
             </section>
 
-            <section className="landing-stat-row" aria-label="Relay plan highlights">
-              {[
-                { value: "1", label: "daily free session" },
-                { value: "3", label: "inputs become one review flow" },
-                { value: "PWA", label: "phone-ready student access" },
-              ].map((stat) => (
-                <div className="landing-stat" key={stat.label}>
-                  <strong>{stat.value}</strong>
-                  <span>{stat.label}</span>
-                </div>
-              ))}
-            </section>
-
-            <section className="landing-feature-band" aria-label="Relay overview">
+            <section className="landing-home-paths" aria-label="Relay website sections">
               <article>
-                <BookOpen size={24} />
-                <h2>Class records in</h2>
-                <p>Paste Zoom exports, meeting notes, rosters, and resource links without forcing a perfect format.</p>
+                <strong>See the app</strong>
+                <p>Open a screenshot gallery for the teacher import flow, student dashboard, and private analytics.</p>
+                <button className="landing-secondary" type="button" onClick={() => goToPage("screenshots")}>View screenshots</button>
               </article>
               <article>
-                <ClipboardCheck size={24} />
-                <h2>Review before publish</h2>
-                <p>Teachers approve the recap, matching, participation highlights, tasks, and student-facing details.</p>
-              </article>
-              <article>
-                <Users size={24} />
-                <h2>Every student gets next steps</h2>
-                <p>Relay turns shared classroom memory into individual reminders, due dates, and completion check-ins.</p>
-              </article>
-            </section>
-
-            <section className="landing-callout-grid" aria-label="More Relay paths">
-              <article>
-                <FileText size={22} />
-                <h2>Documentation that reads like a field guide.</h2>
-                <p>Use the docs page for import recipes, privacy notes, release setup, and mobile installation details.</p>
-                <button className="landing-secondary" type="button" onClick={() => goToPage("docs")}>
-                  Read docs
-                </button>
-              </article>
-              <article>
-                <ShieldCheck size={22} />
-                <h2>Local-first by default, donation-supported by choice.</h2>
-                <p>The desktop app stays useful without paid services. Donations can support packaging, QA, and teacher pilots.</p>
-                <button className="landing-secondary" type="button" onClick={() => goToPage("donate")}>
-                  Donation path
-                </button>
+                <strong>Understand the product</strong>
+                <p>Use separate pages for features, docs, privacy, donations, and downloads instead of one crowded page.</p>
+                <button className="landing-secondary" type="button" onClick={() => goToPage("features")}>Explore features</button>
               </article>
             </section>
           </>
@@ -2709,6 +2646,62 @@ function LandingPage({
                     <h2>{title}</h2>
                     <p>{body}</p>
                   </div>
+                </article>
+              ))}
+            </section>
+          </>
+        )}
+
+        {page === "screenshots" && (
+          <>
+            <header className="landing-page-header compact">
+              <h1>Screenshots: how Relay works.</h1>
+              <p>
+                Three focused views show the core product story: teachers import class records, students receive
+                clear next steps, and teachers use private analytics to decide who needs support.
+              </p>
+            </header>
+            <section className="landing-screenshot-gallery" aria-label="Relay screenshots">
+              {[
+                {
+                  title: "Teacher import and review",
+                  body: "Relay turns a transcript, roster, notes, and links into a reviewable draft. The teacher edits the recap, confirms tasks, and publishes only when it is ready.",
+                  src: "/screenshots/relay-import-review.svg",
+                  alt: "Relay teacher import and review screen with transcript inputs, roster matching, and follow-up cards",
+                },
+                {
+                  title: "Student follow-up dashboard",
+                  body: "Students see the recap, tasks, resources, due dates, and completion check-ins that apply to them—without the full teacher workspace.",
+                  src: "/screenshots/relay-student-dashboard.svg",
+                  alt: "Relay student dashboard with recap, assigned next steps, resources, and check-in progress",
+                },
+                {
+                  title: "Private teacher analytics",
+                  body: "Teachers can review participation, quiet students, overdue work, and resource engagement as support signals, not public rankings.",
+                  src: "/screenshots/relay-analytics.svg",
+                  alt: "Relay teacher analytics screen showing participation, quiet students, overdue tasks, and resource signals",
+                },
+              ].map((shot) => (
+                <article key={shot.title} className="landing-screenshot-card">
+                  <img src={shot.src} alt={shot.alt} />
+                  <div>
+                    <h2>{shot.title}</h2>
+                    <p>{shot.body}</p>
+                  </div>
+                </article>
+              ))}
+            </section>
+            <section className="landing-workflow-strip" aria-label="Relay workflow summary">
+              {[
+                ["Import", "Paste or upload transcript, roster, notes, and resources."],
+                ["Review", "Approve speaker matching, recap, action items, and resources."],
+                ["Publish", "Send student-specific follow-ups and completion check-ins."],
+                ["Support", "Use private analytics to decide who needs attention next."],
+              ].map(([title, body], index) => (
+                <article key={title}>
+                  <strong>{index + 1}</strong>
+                  <h2>{title}</h2>
+                  <p>{body}</p>
                 </article>
               ))}
             </section>
@@ -3573,7 +3566,7 @@ function GuidedWalkthroughOverlay({
         return;
       }
       const popoverWidth = Math.min(430, viewportWidth - viewportInset * 2);
-      const estimatedPopoverHeight = 240;
+      const estimatedPopoverHeight = 320;
       const gap = 18;
       const maxPopoverLeft = Math.max(viewportInset, viewportWidth - popoverWidth - viewportInset);
       const maxPopoverTop = Math.max(viewportInset, viewportHeight - estimatedPopoverHeight - viewportInset);
@@ -3592,6 +3585,8 @@ function GuidedWalkthroughOverlay({
       const firstSlide = stepIndex === 0;
       const candidates = firstSlide
         ? [
+            { left: highlight.left + highlight.width + gap, top: rect.top },
+            { left: highlight.left - popoverWidth - gap, top: rect.top },
             { left: rect.left, top: highlight.top - estimatedPopoverHeight - gap },
             { left: rect.right - popoverWidth, top: highlight.top - estimatedPopoverHeight - gap },
             { left: rect.left, top: highlight.top + highlight.height + gap },
