@@ -1,10 +1,11 @@
-const CACHE_NAME = "relay-mobile-shell-v1";
+const CACHE_NAME = "relay-mobile-shell-v2";
 const SHELL_ASSETS = [
   "/",
   "/manifest.webmanifest",
   "/relay-app-icon.svg",
   "/relay-app-icon-192.png",
   "/relay-app-icon-512.png",
+  "/classroom-background.svg",
   "/abyssal-hero.png",
   "/abyssal-landscape.png"
 ];

@@ -180,10 +180,11 @@ select:focus-visible,
   min-height: 100vh;
   color: #0b1724;
   background:
-    linear-gradient(180deg, rgba(248, 252, 255, 0.9), rgba(242, 247, 244, 0.98)),
-    url("/abyssal-hero.png");
+    linear-gradient(180deg, rgba(248, 252, 255, 0.96), rgba(242, 247, 244, 0.985)),
+    linear-gradient(90deg, rgba(248, 252, 255, 0.82), rgba(248, 252, 255, 0.3) 42%, rgba(248, 252, 255, 0.84)),
+    url("/classroom-background.svg");
   background-size: cover;
-  background-position: center top;
+  background-position: center center;
 }
 
 .landing-nav {

@@ -109,7 +109,11 @@ test.describe("WCAG-targeted accessibility checks", () => {
     await expectNoUnnamedInteractive(page, ".landing-page");
     await expectContrast(page, landingContrastSelectors);
 
-    await page.locator(".landing-hero").getByRole("button", { name: /^add to phone$/i }).click();
+    await expect(page.locator(".landing-hero").getByRole("button", { name: /^add to phone$/i })).toHaveCount(0);
+
+    await page.goto("/#/download");
+    await expect(page.getByRole("heading", { name: /use relay from a browser or add it to your home screen/i })).toBeVisible();
+    await page.locator(".landing-mobile-band").getByRole("button", { name: /^add to phone$/i }).click();
     await expect(
       page.getByRole("status").filter({ hasText: /home screen|install app|install menu|already running|added/i }),
     ).toBeVisible();
