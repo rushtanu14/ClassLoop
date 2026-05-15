@@ -192,6 +192,40 @@ const zoomChatTranscript = `[Chat] Aaliyah Carter: resource for later https://ex
 [00:00:05] [Chat] Danny Reyes: recipes are algorithms
 [00:00:09] Jalen Thompson: I can compare directions and maps.`;
 
+const scratchStressRoster = `Scratch Club roster export
+Facilitator: Rushil Agrawal
+Name,Email,Aliases
+
+Mina Park,mina@relay.test,Mina P; Mina Laptop
+Owen Brooks,owen@relay.test,O Brooks
+Aarav Singh,aarav@relay.test,Aarav S
+Nia Johnson,nia@relay.test,Nia J; Nia Chromebook
+Sam Rivera,sam@relay.test,Sam R
+Leah Kim,leah@relay.test,Leah K
+Mina Park,mina@relay.test,Mina duplicate alias
+,blank-name@relay.test
+Malformed row with no deliverable email`;
+
+const scratchStressTranscript = `CS4ALL/Scratch Club Monday reconstructed transcript
+Meeting Title: Scratch maze debugging lab
+Practice goals: motion blocks, repeat loops, broadcasts, and testing
+Privacy reminder before recording: use fake names in support notes.
+Debug targets: sprite movement, wall collisions, and win-state broadcast.
+
+[00:00:11] Student (Mina Park): My sprite keeps spinning forever after the green flag?
+[00:00:18] Speaker - Owen Brooks: I think the repeat block needs a stop condition because it never changes the variable.
+Nia Chromebook: [Chat] Scratch sensing blocks resource https://scratch.mit.edu/projects/editor/?tutorial=getStarted
+[Chat] Sam R: I can test the maze after we add the broadcast.
+Leah K
+5/13/2026, 6:34 PM
+I was late but I can finish the backdrop at home.
+Mr. Agrawal: Leah late today but present.
+Mr. Agrawal: Nia is quiet today; please submit a confidence check-in.
+Mr. Agrawal: Aarav is absent and needs the catch-up recap.
+Unclear Guest: I am observing from another club.
+Student (Mina Park): [Chat] screenshot of the bug https://example.com/scratch-bug.png).
+Mr. Agrawal: Homework for next Monday: finish the maze starter and submit one reflection.`;
+
 const zoomDottedVttTranscript = `WEBVTT
 
 00:00:01.000 --> 00:00:04.000
@@ -355,6 +389,65 @@ assert(
   ),
   "alias-only transcript speakers should still create participation events for the linked roster student",
 );
+
+const scratchStressSession = createGeneratedSession({
+  title: "CS4ALL/Scratch Club Stress-Test Chaos",
+  template: "CS workshop",
+  transcript: scratchStressTranscript,
+  notes: "Reconstructed from Monday Scratch Club notes with fake student identities.",
+  roster: scratchStressRoster,
+  resources: "",
+});
+const scratchUnmatchedNames = (scratchStressSession.unmatchedParticipants ?? []).map((participant) => participant.name);
+const scratchStudentByEmail = new Map(scratchStressSession.students.map((student) => [student.email, student]));
+assertEqual(scratchStressSession.students.length, 6, "Scratch stress roster should keep six valid students");
+assertEqual(scratchStressSession.followUps.length, 6, "Scratch stress import should create follow-ups for every rostered student");
+assertEqual(new Set(scratchStressSession.students.map((student) => student.email)).size, 6, "Scratch stress roster should merge duplicate emails");
+assert(
+  scratchStudentByEmail.get("mina@relay.test")?.aliases?.includes("Mina duplicate alias") ?? false,
+  "Scratch stress duplicate roster row should merge extra aliases",
+);
+assertEqual(scratchStressSession.attendance[scratchStudentByEmail.get("aarav@relay.test")?.id ?? ""], "absent", "Aarav should be marked absent");
+assertEqual(scratchStressSession.attendance[scratchStudentByEmail.get("leah@relay.test")?.id ?? ""], "late", "Leah should be marked late");
+assert(
+  scratchStressSession.participationEvents.some(
+    (event) => event.studentId === scratchStudentByEmail.get("nia@relay.test")?.id && event.type === "quiet",
+  ),
+  "Scratch stress transcript should create a quiet support signal for Nia",
+);
+assert(
+  scratchStressSession.participationEvents.some(
+    (event) =>
+      event.studentId === scratchStudentByEmail.get("nia@relay.test")?.id &&
+      event.type === "chat" &&
+      event.text.includes("Scratch sensing blocks resource"),
+  ),
+  "Scratch stress resource links with query strings should stay chat events instead of becoming questions",
+);
+assert(
+  scratchStressSession.participationEvents.some(
+    (event) => event.studentId === scratchStudentByEmail.get("sam@relay.test")?.id,
+  ),
+  "Scratch stress aliases should match chat speakers",
+);
+assert(
+  scratchStressSession.actionItems.some((item) => /maze starter|reflection/i.test(`${item.title} ${item.description}`)),
+  "Scratch stress homework should become a reviewable action item",
+);
+assert(
+  scratchStressSession.resources.some(
+    (resource) => resource.url === "https://scratch.mit.edu/projects/editor/?tutorial=getStarted",
+  ),
+  "Scratch stress import should preserve Scratch resource links",
+);
+assert(
+  scratchStressSession.resources.some((resource) => resource.url === "https://example.com/scratch-bug.png"),
+  "Scratch stress import should strip trailing punctuation from resource links",
+);
+["Practice goals", "Privacy reminder before recording", "Debug targets"].forEach((label) => {
+  assert(!scratchUnmatchedNames.includes(label), `${label} should be ignored as metadata in the Scratch stress transcript`);
+});
+assert(scratchUnmatchedNames.includes("Unclear Guest"), "Scratch stress import should surface unknown observers for review");
 
 const transcriptOnlySession = createGeneratedSession({
   title: "Transcript-only roster estimate",

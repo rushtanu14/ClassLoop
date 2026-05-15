@@ -489,7 +489,8 @@ function parseRoster(roster: string, transcript: string): Student[] {
 
 function cleanLine(line: string) {
   const parsed = parseSpeakerLine(line);
-  return (parsed?.text ?? line).replace(/^[-*]\s*/, "").replace(/^[^:]{2,40}:\s*/, "").trim();
+  if (parsed) return parsed.text.replace(/^[-*]\s*/, "").trim();
+  return line.replace(/^[-*]\s*/, "").replace(/^[^:]{2,40}:\s*/, "").trim();
 }
 
 function shortText(value: string, maxLength = 96) {
@@ -526,10 +527,13 @@ function extractTopics(title: string, text: string, template: SessionType) {
 }
 
 function extractAssignment(text: string) {
-  const line = text
+  const lines = text
     .split(/\n+/)
     .map(cleanLine)
-    .find((item) => /(homework|assignment|problems?|finish|complete|submit|due)/i.test(item));
+    .filter(Boolean);
+  const explicitAssignment = lines.find((item) => /(homework|assignment|problems?|due)/i.test(item));
+  const genericAssignment = lines.find((item) => /(finish|complete|submit)/i.test(item));
+  const line = explicitAssignment ?? genericAssignment;
   return line || "Review the session recap and complete the assigned follow-up check.";
 }
 
@@ -624,8 +628,9 @@ function generateEssentialQuestions(text: string, topics: string[], dueDate: str
 }
 
 function eventTypeFromText(text: string) {
-  if (text.includes("?")) return "asked_question" as const;
-  if (/(because|so|should|equals|answer|i think|we can|it is|therefore|the fix|the reason)/i.test(text)) {
+  const withoutUrls = text.replace(/https?:\/\/\S+/gi, "");
+  if (withoutUrls.includes("?")) return "asked_question" as const;
+  if (/\b(because|so|should|equals|answer|i think|we can|it is|therefore|the fix|the reason)\b/i.test(withoutUrls)) {
     return "answered_question" as const;
   }
   return "chat" as const;
@@ -884,7 +889,7 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
       id: `task-class-${suffix}`,
       title: assignment.length > 72 ? "Complete assigned follow-up work" : assignment,
       description: hasSubstantiveSessionText
-        ? `Class-level follow-up generated from the imported ${input.template.toLowerCase()} record.`
+        ? `Class-level follow-up generated from the imported ${input.template.toLowerCase()} record. Assignment: ${assignment}`
         : "No reliable transcript text was available, so confirm the actual student task before publishing.",
       dueDate,
       status: "todo",

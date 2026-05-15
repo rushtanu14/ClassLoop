@@ -109,6 +109,7 @@ function verifyDesktopAndHostedSecurity() {
   const desktop = readText("desktop/main.cjs");
   const shared = readText("api/_shared.js");
   const profile = readText("api/profile.js");
+  const feedback = readText("api/feedback.js");
   const webhook = readText("api/billing/webhook.js");
   const schema = readText("supabase/schema.sql");
 
@@ -123,6 +124,9 @@ function verifyDesktopAndHostedSecurity() {
     ["hosted APIs require bearer Supabase auth", shared, /Sign in with Supabase before using hosted sync/],
     ["server-only Supabase key stays server-side", shared, /SUPABASE_SERVICE_ROLE_KEY/],
     ["profile patch ignores paid entitlement fields", profile, /profilePatchColumns/],
+    ["anonymous feedback has rate limiting", feedback, /assertFeedbackRateLimit\(request\)/],
+    ["anonymous feedback has body limits", feedback, /assertFeedbackBodyLimit\(request\.body\)/],
+    ["feedback metadata is sanitized", feedback, /sanitizeFeedbackMetadata\(request\.body\?\.metadata\)/],
     ["Stripe webhook verifies raw signed body", webhook, /constructEvent\(rawBody, signature, requiredEnv\("STRIPE_WEBHOOK_SECRET"\)\)/],
     ["workspace RLS enabled", schema, /alter table public\.relay_workspace_state enable row level security/i],
     ["workspace own-record policy exists", schema, /workspace_state_select_own/i],
@@ -144,6 +148,15 @@ function verifyRuntimeLogging() {
   if (noisyLogs.length) {
     fail(`Runtime files contain debug/info logs that may leak user data: ${noisyLogs.join(", ")}`);
   }
+
+  const desktop = readText("desktop/main.cjs");
+  if (!/Relay desktop startup failed:/.test(desktop)) {
+    fail("Desktop startup logging is missing a stable support prefix.");
+  }
+  const riskyErrorLog = /console\.error\((?!"Relay desktop startup failed:").*(accounts|sessions|transcript|password|payload|student)/is;
+  if (riskyErrorLog.test(desktop)) {
+    fail("Desktop error logging may include raw classroom state or secrets.");
+  }
 }
 
 function verifyLegalBaseline() {
@@ -154,18 +167,23 @@ function verifyLegalBaseline() {
   const requiredLegalLanguage = [
     ["not legal advice disclaimer", /not legal advice/i],
     ["public signup status", /Public Signup Status/i],
+    ["reviewed docs required before signup", /reviewed public Terms of Use, Privacy Policy, and desktop EULA pages/i],
+    ["hosted signup stays sample-only", /Hosted Relay should stay sample-only until these documents are reviewed and published/i],
     ["sample-only hosted demo boundary", /sample accounts/i],
     ["Terms", /Terms/i],
     ["Privacy", /Privacy/i],
     ["EULA", /EULA/i],
     ["Support", /Support/i],
     ["support contact", /relay\.donotreply@gmail\.com/i],
+    ["privacy-safe support requests", /support requests should avoid raw student transcripts/i],
     ["Data retention", /Data Retention/i],
+    ["hosted retention SLA before public accounts", /retention and deletion SLAs must be published before durable public hosted accounts are enabled/i],
     ["local desktop encryption", /Desktop data is local-first/i],
     ["manual install-over-replace updates", /manual install-over-replace/i],
     ["no-training default", /no-training/i],
     ["gradebook boundary", /not an official gradebook/i],
     ["Child-appropriate safety", /Child-Appropriate Safety/i],
+    ["no unsupervised child public accounts", /should not invite children to create unsupervised public accounts/i],
     ["school privacy laws", /COPPA/i],
     ["education records law", /FERPA/i],
   ];

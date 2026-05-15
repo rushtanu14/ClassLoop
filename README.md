@@ -112,6 +112,7 @@ Hosted route behavior:
 - `https://your-domain.com/api/config` returns safe booleans that confirm whether server-only Supabase and Stripe env vars were picked up by Vercel.
 - Set desktop installer URLs when release assets are ready: `VITE_RELAY_MAC_DOWNLOAD_URL`, `VITE_RELAY_WINDOWS_DOWNLOAD_URL`, and `VITE_RELAY_LINUX_DOWNLOAD_URL`. Until then, the landing page clearly says installers are still being packaged and directs visitors to the web demo.
 - Set `VITE_RELAY_DONATE_URL` to a public donation page when donations are ready. Until then, the Donate page explains that the donation link has not been connected.
+- Student follow-up usefulness ratings are product feedback for the Relay creator. Hosted builds post them to `/api/feedback`; set `RELAY_FEEDBACK_NOTIFY_EMAIL` plus SMTP/Gmail env vars for email notifications. Desktop builds can set `VITE_RELAY_PRODUCT_FEEDBACK_URL` to the hosted feedback endpoint.
 - Phone and tablet access runs through the hosted web app. Visitors can open the Vercel URL in Safari/Chrome and use Add to Home Screen or Install app for app-like access.
 
 Suggested pricing:
@@ -188,6 +189,8 @@ VITE_RELAY_MAC_DOWNLOAD_URL=
 VITE_RELAY_WINDOWS_DOWNLOAD_URL=
 VITE_RELAY_LINUX_DOWNLOAD_URL=
 VITE_RELAY_DONATE_URL=
+VITE_RELAY_PRODUCT_FEEDBACK_URL=
+RELAY_FEEDBACK_NOTIFY_EMAIL=
 ```
 
 macOS apps should be signed and notarized before broad distribution to avoid Gatekeeper warnings. Windows builds should eventually use code signing to avoid SmartScreen friction. If one of the installer URLs is missing, the landing page must visibly show "Packaging pending" for that platform and route visitors to the hosted demo instead of implying a download succeeded. If the donation URL is missing, the donation path must be visible but clearly marked as not connected.
@@ -202,7 +205,8 @@ The rollback drill validates the packaged artifacts and writes a non-destructive
 
 ## Privacy And School Readiness
 
-- Retention settings, export/delete workspace data, audit logs, and pilot feedback live in the teacher-only privacy area.
+- Retention settings, export/delete workspace data, and audit logs live in the teacher-only privacy area.
+- Student usefulness ratings are product feedback for the Relay creator and should be routed without student names/emails.
 - Recording or live capture should require clear consent before use.
 - Student data is marked as “no training” by default unless a school or teacher explicitly allows otherwise.
 - Analytics stay teacher-only and should be framed as private support signals, not public rankings.

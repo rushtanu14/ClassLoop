@@ -310,10 +310,13 @@ Feature checks:
 13. Paid/API-key/external-platform features are absent from the working app: no OpenAI transcription, custom transcription endpoint, Google Classroom posting, or LMS posting. Browser-only in-person/online-meeting capture is allowed because it uses free local browser capabilities and still treats transcript paste/upload as the reliable path.
 14. Publish preview shows delivery logs after email send actions.
 15. Privacy page is accessible to teachers and exposes retention settings, export, delete class data, consent settings, and audit log.
-16. Account/session/browser roster fallback storage uses secure relay:secure:* localStorage keys; legacy plain relay:accounts/session keys should migrate away.
-17. Responsive layout has no horizontal overflow at a phone-sized viewport.
-18. WCAG-targeted checks pass for keyboard navigation, focus order, visible focus indicators, accessible control names, live status announcements, contrast on key text/buttons, and mobile PWA/add-to-home-screen readability.
-19. Frontend formatting pass: no unreadable low-contrast text, overlapping form labels, clipped buttons, blank teacher-only panels, or unnecessary implementation details exposed to users.
+16. After students mark a follow-up complete, student follow-up pages show a bottom-right Relay usefulness feedback popup; low ratings ask what would make Relay better, post product feedback to the creator feedback endpoint without student names/emails, and do not appear in teacher Analytics or action queues.
+17. Account/session/browser roster fallback storage uses secure relay:secure:* localStorage keys; legacy plain relay:accounts/session keys should migrate away.
+18. Responsive layout has no horizontal overflow at a phone-sized viewport.
+19. WCAG-targeted checks pass for keyboard navigation, focus order, visible focus indicators, accessible control names, live status announcements, contrast on key text/buttons, and mobile PWA/add-to-home-screen readability.
+20. Error-state recovery checks pass for bad transcript format, malformed URLs, sync API outage/local fallback, package init failures, desktop storage corruption, and privacy-safe actionable logging.
+21. Public signup legal gate remains set: durable hosted signups stay sample-only until reviewed public Terms of Use, Privacy Policy, desktop EULA, hosted retention/deletion SLAs, support contact, and child-safety expectations are published.
+22. Frontend formatting pass: no unreadable low-contrast text, overlapping form labels, clipped buttons, blank teacher-only panels, or unnecessary implementation details exposed to users.
 
 Import regression checks:
 - Compressed CS4All roster parses 18 students.
@@ -404,8 +407,11 @@ When using the Relay testing script, also verify:
 - Saved roster and class pages support CSV import/export.
 - Publish preview and session report show publish audit evidence.
 - Student can submit a follow-up check-in, see the button text change to "Completed!", and get a celebratory confetti animation; teacher can mark it reviewed.
+- Student usefulness feedback stays hidden until completion, captures high and low ratings as creator product feedback, asks for improvement notes on low ratings, posts to the feedback endpoint without student names/emails, and stays out of teacher analytics/action queues.
 - Session report exposes JSON export, CSV export, and print actions.
 - WCAG-targeted browser checks cover login keyboard/focus order, unnamed controls, contrast, student completion live announcements, hosted PWA add-to-home-screen status, and phone-width mobile readability.
+- Error-state checks cover visible recovery for malformed import inputs and sync API outage, package init failure messages, desktop corrupt-state recovery, and privacy-safe support logging.
+- Public signup/legal gate checks confirm Terms, Privacy Policy, support contact, EULA, retention/deletion expectations, and child-appropriate safety language are present while durable hosted signups remain sample-only until those public docs are reviewed and published.
 
 ## 2026-05-09 Backend / Freemium / Privacy Update
 

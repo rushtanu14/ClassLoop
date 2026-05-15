@@ -15,7 +15,7 @@ Hosted Relay should stay sample-only until these documents are reviewed and publ
 
 ## Privacy Baseline
 
-- Relay processes classroom transcripts, notes, rosters, resource links, account profiles, student follow-up tasks, completion states, audit history, and optional pilot feedback.
+- Relay processes classroom transcripts, notes, rosters, resource links, account profiles, student follow-up tasks, completion states, audit history, and optional product/pilot feedback.
 - Desktop data is local-first. Electron state is encrypted with Relay's prompt-free local AES-GCM storage key, and browser fallback storage uses local AES-GCM encrypted `relay:secure:*` keys.
 - Hosted sync, when configured, uses Supabase Auth and Row Level Security so each account can access only its own workspace state.
 - Stripe is used only for Pro billing. Subscription status is updated by signed Stripe webhooks and stored server-side.

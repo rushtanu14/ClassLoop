@@ -82,6 +82,17 @@ async function expectEmptyWorkspace(page, label) {
   return read;
 }
 
+function assertNoSensitiveLeak(value, label, tokens) {
+  const text = JSON.stringify(value);
+  for (const token of tokens) {
+    if (token && text.includes(token)) {
+      throw new Error(label + " leaked sensitive desktop state token: " + token);
+    }
+  }
+  if (/passwordHash|State Student:|Desktop state smoke fixture/i.test(text)) {
+    throw new Error(label + " leaked account, transcript, or fixture details.");
+  }
+}
 function sampleState() {
   const now = new Date().toISOString();
   return {
@@ -208,10 +219,23 @@ async function run() {
     if (corruptRead.status !== 423 || !corruptRead.body.readOnly || !corruptRead.body.readError) {
       throw new Error(`Corrupt desktop state should surface read-only 423, got ${corruptRead.status}.`);
     }
+    assertNoSensitiveLeak(corruptRead.body, "Corrupt desktop read response", [
+      expected.accounts[0].email,
+      expected.sessions[0].title,
+      expected.sessions[0].transcript,
+    ]);
+    if (!/could not read|fix|export|restore|before saving/i.test(JSON.stringify(corruptRead.body))) {
+      throw new Error("Corrupt desktop state error should explain recovery without exposing state contents.");
+    }
     const blockedWrite = await apiState(relay.page, "PUT", sampleState());
     if (blockedWrite.status !== 423) {
       throw new Error(`Corrupt desktop state should block overwrite with 423, got ${blockedWrite.status}.`);
     }
+    assertNoSensitiveLeak(blockedWrite.body, "Corrupt desktop blocked-write response", [
+      expected.accounts[0].email,
+      expected.sessions[0].title,
+      expected.sessions[0].transcript,
+    ]);
     await close(relay.app);
     relay = null;
 

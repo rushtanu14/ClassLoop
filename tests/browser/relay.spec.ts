@@ -182,8 +182,19 @@ async function completeScenarioAsStudent(page: Page, scenario: EndToEndScenario,
   for (const otherTitle of allTitles.filter((title) => title !== scenario.title)) {
     await expect(page.locator(".student-page").getByText(otherTitle)).toHaveCount(0);
   }
+  await expect(page.getByRole("region", { name: /relay product feedback/i })).toHaveCount(0);
   await page.getByRole("button", { name: /mark complete/i }).click();
   await expect(page.locator(".today-card").getByText(/submitted/i)).toBeVisible();
+  await expect(page.getByRole("region", { name: /relay product feedback/i })).toBeVisible();
+  if (scenario.template === "Math review") {
+    await page.getByRole("button", { name: /rate 2 out of 5/i }).click();
+    await expect(page.getByLabel(/what would make relay better/i)).toBeVisible();
+    await page.getByLabel(/what would make relay better/i).fill("Show one worked example before the task list.");
+    await page.getByRole("button", { name: /send feedback/i }).click();
+  } else {
+    await page.getByRole("button", { name: /rate 5 out of 5/i }).click();
+  }
+  await expect(page.getByText(/thanks. your feedback helps improve relay/i)).toBeVisible();
   await waitForPersistedSessions(page);
   await signOut(page);
 }
@@ -417,6 +428,17 @@ Leo Martinez, leo-club-${runId}@relay.test`,
     },
   ];
   const allTitles = scenarios.map((scenario) => scenario.title);
+  const productFeedbackPayloads: Array<Record<string, unknown>> = [];
+  await page.route("**/api/feedback", async (route) => {
+    if (route.request().method() === "POST") {
+      productFeedbackPayloads.push(route.request().postDataJSON() as Record<string, unknown>);
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true }),
+    });
+  });
 
   await createAccount(page, "teacher", teacherA.name, teacherA.email, teacherA.password);
   await expect(page.getByText("Today in Relay")).toBeVisible();
@@ -431,6 +453,17 @@ Leo Martinez, leo-club-${runId}@relay.test`,
   for (const scenario of scenarios) {
     await completeScenarioAsStudent(page, scenario, allTitles);
   }
+  await expect.poll(() => productFeedbackPayloads.length).toBe(scenarios.length);
+  const lowProductFeedback = productFeedbackPayloads.find((payload) => payload.rating === 2);
+  expect(lowProductFeedback).toMatchObject({
+    rating: 2,
+    role: "student",
+    source: "student_followup_popup",
+    note: "Show one worked example before the task list.",
+  });
+  const feedbackJson = JSON.stringify(productFeedbackPayloads);
+  expect(feedbackJson).not.toContain("Maya Vale");
+  expect(feedbackJson).not.toContain(`maya-${runId}@relay.test`);
 
   await signInAccount(page, "teacher", teacherA.email, teacherA.password);
   await expect(page.getByText("Today in Relay")).toBeVisible();
@@ -438,9 +471,13 @@ Leo Martinez, leo-club-${runId}@relay.test`,
     await expect(page.locator(".session-row").filter({ hasText: title })).toBeVisible();
   }
 
+  await expect(page.locator(".nav-list").getByRole("button", { name: /low feedback item/i })).toHaveCount(0);
   await page.locator(".nav-list").getByRole("button", { name: /^analytics$/i }).click();
   await expect(page.getByText(/participation and follow-through/i)).toBeVisible();
   await expect(page.getByText(/3 finished/i)).toBeVisible();
+  await expect(page.getByText(/student feedback/i)).toHaveCount(0);
+  await expect(page.getByText(/show one worked example before the task list/i)).toHaveCount(0);
+  await expect(page.getByText(/Maya Vale's follow-up needs review/i)).toHaveCount(0);
 
   for (const scenario of scenarios) {
     await openTeacherReport(page, scenario.title);

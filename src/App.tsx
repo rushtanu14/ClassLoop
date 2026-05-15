@@ -48,9 +48,11 @@ import {
   UserX,
   Users,
   Wand2,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import {
   createGeneratedSession,
   extractTranscriptSpeakers,
@@ -144,6 +146,7 @@ type Account = {
   passwordHash: string;
   createdAt: string;
   theme?: ThemeSettings;
+  submittedProductFeedbackKeys?: string[];
   demo?: boolean;
 };
 
@@ -250,6 +253,8 @@ type EmailDeliveryResult = {
   skipped: string[];
   failed: string[];
 };
+
+type ProductFeedbackSubmitter = (session: Session, student: Student, rating: number, note: string) => Promise<boolean>;
 
 const navItems: NavItem[] = [
   { route: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -672,6 +677,28 @@ async function apiJson<T>(url: string, options?: RequestInit): Promise<T> {
   return data as T;
 }
 
+function productFeedbackKey(sessionId: string, studentId: string) {
+  return `${sessionId}:${studentId}`;
+}
+
+async function sendProductFeedbackToCreator(payload: {
+  rating: number;
+  note: string;
+  role: AuthRole;
+  source: "student_followup_popup";
+  metadata: Record<string, string | number | boolean>;
+}) {
+  const feedbackEndpoint = (import.meta.env.VITE_RELAY_PRODUCT_FEEDBACK_URL as string | undefined)?.trim() || "/api/feedback";
+  const response = await fetch(feedbackEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(`Feedback request failed with status ${response.status}.`);
+  }
+}
+
 function makeAccountId(role: AuthRole) {
   return `${role}-${crypto.randomUUID()}`;
 }
@@ -679,9 +706,13 @@ function makeAccountId(role: AuthRole) {
 function mergeAccounts(accounts: Account[] = []) {
   const merged = new Map<string, Account>();
   [...demoAccounts, ...accounts].forEach((account) => {
+    const submittedProductFeedbackKeys = Array.isArray(account.submittedProductFeedbackKeys)
+      ? uniqueText(account.submittedProductFeedbackKeys).slice(-500)
+      : [];
     merged.set(`${account.role}:${normalizeEmail(account.email)}`, {
       ...account,
       email: normalizeEmail(account.email),
+      submittedProductFeedbackKeys,
     });
   });
   return Array.from(merged.values());
@@ -1732,6 +1763,7 @@ function App() {
     teacherSessions.filter((session) => localDayKey(session.date) === todayKey).length +
     (visibleDraft && localDayKey(visibleDraft.date) === todayKey ? 1 : 0);
   const freeLimitReached = !hasPaidAccess && freeSessionsToday >= 1;
+  const activeAccount = auth ? accounts.find((account) => account.id === auth.accountId) : undefined;
 
   const updateSession = (session: Session) => {
     setSessions((current) => {
@@ -1923,6 +1955,40 @@ function App() {
           : session,
       ),
     );
+  };
+
+  const submitProductFeedback: ProductFeedbackSubmitter = async (session, student, rating, note) => {
+    if (!auth || auth.role !== "student") return false;
+    const safeRating = Math.max(1, Math.min(5, Math.round(rating)));
+    const trimmedNote = note.trim().slice(0, 600);
+    const feedbackKey = productFeedbackKey(session.id, student.id);
+    const followUp = session.followUps.find((item) => item.studentId === student.id);
+    try {
+      await sendProductFeedbackToCreator({
+        rating: safeRating,
+        note: trimmedNote,
+        role: "student",
+        source: "student_followup_popup",
+        metadata: {
+          sessionType: session.type,
+          sessionStatus: session.status,
+          followUpStatus: followUp?.status ?? "unknown",
+          taskCount: followUp?.tasks.length ?? 0,
+          resourceCount: session.resources.length,
+          completedFollowUp: true,
+        },
+      });
+      setAccounts((current) =>
+        current.map((account) => {
+          if (account.id !== auth.accountId) return account;
+          const keys = uniqueText([...(account.submittedProductFeedbackKeys ?? []), feedbackKey]).slice(-500);
+          return { ...account, submittedProductFeedbackKeys: keys };
+        }),
+      );
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const handleLogin = async (role: AuthRole, email: string, password: string) => {
@@ -2200,7 +2266,12 @@ function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar route={effectiveRoute} auth={auth} onLogout={logout} showDemoCard={Boolean(auth.demo && demoLoaded)} />
+      <Sidebar
+        route={effectiveRoute}
+        auth={auth}
+        onLogout={logout}
+        showDemoCard={Boolean(auth.demo && demoLoaded)}
+      />
       <main className="main-area">
         {auth.demo && <DemoAccountBanner />}
         <Topbar
@@ -2316,6 +2387,8 @@ function App() {
             markFollowUpComplete={markFollowUpComplete}
             auth={auth}
             updateSession={auth.role === "teacher" ? updateSessionById : undefined}
+            submitProductFeedback={auth.role === "student" ? submitProductFeedback : undefined}
+            submittedProductFeedbackKeys={activeAccount?.submittedProductFeedbackKeys ?? []}
           />
         )}
         {effectiveRoute === "student-session" && (
@@ -2325,6 +2398,8 @@ function App() {
             markFollowUpComplete={markFollowUpComplete}
             auth={auth}
             updateSession={auth.role === "teacher" ? updateSessionById : undefined}
+            submitProductFeedback={auth.role === "student" ? submitProductFeedback : undefined}
+            submittedProductFeedbackKeys={activeAccount?.submittedProductFeedbackKeys ?? []}
           />
         )}
         {effectiveRoute === "analytics" && <TeacherAnalytics sessions={teacherSessions} />}
@@ -2348,6 +2423,8 @@ function App() {
               setSelectedStudentId={setSelectedStudentId}
               markFollowUpComplete={markFollowUpComplete}
               auth={auth}
+              submitProductFeedback={submitProductFeedback}
+              submittedProductFeedbackKeys={activeAccount?.submittedProductFeedbackKeys ?? []}
             />
           ))}
         {effectiveRoute === "appearance" && <DesignSystemPage theme={activeTheme} setTheme={handleThemeChange} />}
@@ -4644,6 +4721,28 @@ function ImportSession({
     [classGroups, template],
   );
   const [loadedClassGroupId, setLoadedClassGroupId] = useState("");
+  const transcriptSpeakerCount = useMemo(
+    () => (transcript.trim() ? extractTranscriptSpeakers(transcript).length : 0),
+    [transcript],
+  );
+  const transcriptFormatWarning =
+    transcript.trim().length > 80 && transcriptSpeakerCount === 0
+      ? "No speaker labels were detected. Relay can still draft from the roster, notes, and transcript text, but review matching before publishing."
+      : "";
+  const malformedResourceLineCount = useMemo(
+    () =>
+      resources
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line && !/https?:\/\/[^\s)]+/i.test(line)).length,
+    [resources],
+  );
+  const resourceFormatWarning = malformedResourceLineCount
+    ? String(malformedResourceLineCount) +
+      " resource " +
+      (malformedResourceLineCount === 1 ? "line needs" : "lines need") +
+      " http:// or https://. Relay will ignore malformed links until corrected."
+    : "";
 
   useEffect(() => {
     const matchingTemplate = rosterTemplates.find((templateItem) => templateItem.sessionType === template);
@@ -5190,6 +5289,16 @@ function ImportSession({
               <PlayCircle size={18} />
               Use geometry sample
             </button>
+            {transcriptFormatWarning && (
+              <p className="settings-message" role="status">
+                {transcriptFormatWarning}
+              </p>
+            )}
+            {resourceFormatWarning && (
+              <p className="settings-message" role="status">
+                {resourceFormatWarning}
+              </p>
+            )}
             <button className="primary-button full" onClick={generateDraft} disabled={!canCreateSession}>
               <Wand2 size={18} />
               Generate draft
@@ -5301,6 +5410,7 @@ function ReviewDraft({
   studentAccountEmails: string[];
 }) {
   const [saveMessage, setSaveMessage] = useState("");
+  const [activeReviewTab, setActiveReviewTab] = useState<"roster" | "recap" | "followup">("roster");
 
   if (!draft) {
     return (
@@ -5315,7 +5425,6 @@ function ReviewDraft({
   }
 
   const update = (changes: Partial<Session>) => setDraft({ ...draft, ...changes });
-  const [activeReviewTab, setActiveReviewTab] = useState<"roster" | "recap" | "followup">("roster");
 
   const updateAction = (id: string, changes: Partial<ActionItem>) => {
     update({ actionItems: draft.actionItems.map((item) => (item.id === id ? { ...item, ...changes } : item)) });
@@ -6819,6 +6928,121 @@ function SessionReport({
   );
 }
 
+function ProductFeedbackPrompt({
+  session,
+  student,
+  onSubmit,
+  submittedProductFeedbackKeys,
+}: {
+  session: Session;
+  student: Student;
+  onSubmit: ProductFeedbackSubmitter;
+  submittedProductFeedbackKeys: string[];
+}) {
+  const existingFeedback = submittedProductFeedbackKeys.includes(productFeedbackKey(session.id, student.id));
+  const [dismissed, setDismissed] = useState(false);
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [note, setNote] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    setDismissed(false);
+    setSelectedRating(0);
+    setNote("");
+    setSubmitted(false);
+    setSubmitting(false);
+    setSubmitError("");
+  }, [session.id, student.id]);
+
+  if ((existingFeedback && !submitted) || dismissed) return null;
+
+  const submit = async (rating: number, feedbackNote = note) => {
+    if (submitting) return;
+    setSubmitting(true);
+    setSubmitError("");
+    const delivered = await onSubmit(session, student, rating, feedbackNote);
+    setSubmitting(false);
+    if (!delivered) {
+      setSubmitError("Feedback could not be sent. Try again in a moment.");
+      return;
+    }
+    setSubmitted(true);
+    window.setTimeout(() => setDismissed(true), 1800);
+  };
+
+  const prompt = (
+    <section className="student-feedback-toast" role="region" aria-label="Relay product feedback">
+      {submitted ? (
+        <div className="feedback-thanks" role="status" aria-live="polite">
+          <CheckCircle2 size={18} />
+          <span>Thanks. Your feedback helps improve Relay.</span>
+        </div>
+      ) : (
+        <>
+          <div className="feedback-toast-header">
+            <span>
+              <strong>Help improve Relay?</strong>
+              <small>Rate this follow-up. Your teacher will not see this product feedback.</small>
+            </span>
+            <button className="icon-button" type="button" aria-label="Dismiss Relay product feedback" onClick={() => setDismissed(true)}>
+              <X size={16} />
+            </button>
+          </div>
+          <div className="feedback-rating-row" aria-label="Feedback score">
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <button
+                key={rating}
+                type="button"
+                className={selectedRating === rating ? "selected" : ""}
+                aria-label={`Rate ${rating} out of 5`}
+                disabled={submitting}
+                onClick={() => {
+                  setSelectedRating(rating);
+                  if (rating >= 4) void submit(rating, "");
+                }}
+              >
+                {rating}
+              </button>
+            ))}
+          </div>
+          {submitError && (
+            <p className="settings-message" role="status">
+              {submitError}
+            </p>
+          )}
+          {selectedRating > 0 && selectedRating <= 3 && (
+            <form
+              className="feedback-improvement-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submit(selectedRating);
+              }}
+            >
+              <label className="field compact">
+                <span>What would make Relay better?</span>
+                <textarea
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  maxLength={600}
+                  placeholder="Example: show one worked example or explain the task more clearly."
+                />
+              </label>
+              <button className="primary-button" type="submit" disabled={submitting}>
+                <Send size={16} />
+                {submitting ? "Sending..." : "Send feedback"}
+              </button>
+            </form>
+          )}
+        </>
+      )}
+    </section>
+  );
+
+  return createPortal(prompt, document.body);
+}
+
 function StudentDashboard({
   sessions,
   selectedStudentId,
@@ -6826,6 +7050,8 @@ function StudentDashboard({
   markFollowUpComplete,
   auth,
   updateSession,
+  submitProductFeedback,
+  submittedProductFeedbackKeys,
 }: {
   sessions: Session[];
   selectedStudentId: string;
@@ -6833,6 +7059,8 @@ function StudentDashboard({
   markFollowUpComplete: (sessionId: string, studentId: string) => void;
   auth: AuthSession;
   updateSession?: (sessionId: string, updater: (session: Session) => Session) => void;
+  submitProductFeedback?: ProductFeedbackSubmitter;
+  submittedProductFeedbackKeys?: string[];
 }) {
   const published = sessions.filter((session) => session.status === "published");
   const visibleSessions =
@@ -6876,6 +7104,7 @@ function StudentDashboard({
   const activeStudentId = matchedStudent?.id ?? (roster.some((student) => student.id === selectedStudentId) ? selectedStudentId : roster[0].id);
   const student = studentById(activeStudentId, roster);
   const latestFollowUp = latest?.followUps.find((followUp) => followUp.studentId === activeStudentId);
+  const latestFollowUpCompleted = ["submitted", "reviewed", "complete"].includes(latestFollowUp?.status ?? "");
   const studentTasks = visibleSessions.flatMap((session) =>
     session.followUps
       .filter((followUp) => followUp.studentId === activeStudentId)
@@ -7001,6 +7230,15 @@ function StudentDashboard({
           </div>
         </Panel>
       </section>
+
+      {auth.role === "student" && latest && latestFollowUpCompleted && submitProductFeedback && (
+        <ProductFeedbackPrompt
+          session={latest}
+          student={student}
+          onSubmit={submitProductFeedback}
+          submittedProductFeedbackKeys={submittedProductFeedbackKeys ?? []}
+        />
+      )}
     </div>
   );
 }
@@ -7011,12 +7249,16 @@ function StudentSessionDetail({
   markFollowUpComplete,
   auth,
   updateSession,
+  submitProductFeedback,
+  submittedProductFeedbackKeys,
 }: {
   sessions: Session[];
   selectedStudentId: string;
   markFollowUpComplete: (sessionId: string, studentId: string) => void;
   auth: AuthSession;
   updateSession?: (sessionId: string, updater: (session: Session) => Session) => void;
+  submitProductFeedback?: ProductFeedbackSubmitter;
+  submittedProductFeedbackKeys?: string[];
 }) {
   const sessionId = getParam("session");
   const session = sessions.find((item) => item.id === sessionId) ?? sessions[0];
@@ -7153,6 +7395,15 @@ function StudentSessionDetail({
           </div>
         </Panel>
       </section>
+
+      {auth.role === "student" && isFollowUpCompleted && submitProductFeedback && (
+        <ProductFeedbackPrompt
+          session={session}
+          student={student}
+          onSubmit={submitProductFeedback}
+          submittedProductFeedbackKeys={submittedProductFeedbackKeys ?? []}
+        />
+      )}
     </div>
   );
 }

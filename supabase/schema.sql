@@ -23,14 +23,21 @@ create table if not exists public.relay_workspace_state (
 
 create table if not exists public.relay_pilot_feedback (
   id bigint generated always as identity primary key,
-  owner_id uuid not null references auth.users(id) on delete cascade,
+  owner_id uuid references auth.users(id) on delete cascade,
   rating int not null check (rating between 1 and 5),
   note text not null default '',
+  role text not null default 'unknown',
+  source text not null default 'pilot_feedback',
+  metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 
 alter table public.relay_profiles add column if not exists subscription_id text;
 alter table public.relay_profiles add column if not exists current_period_end timestamptz;
+alter table public.relay_pilot_feedback alter column owner_id drop not null;
+alter table public.relay_pilot_feedback add column if not exists role text not null default 'unknown';
+alter table public.relay_pilot_feedback add column if not exists source text not null default 'pilot_feedback';
+alter table public.relay_pilot_feedback add column if not exists metadata jsonb not null default '{}'::jsonb;
 
 create index if not exists relay_profiles_stripe_customer_id_idx
   on public.relay_profiles(stripe_customer_id);
