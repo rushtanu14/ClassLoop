@@ -2179,6 +2179,16 @@ button:disabled:hover {
   align-items: flex-start;
 }
 
+.dashboard-hero > div:first-child,
+.review-banner > div:first-child,
+.student-hero > div:first-child,
+.analytics-header > div:first-child,
+.student-session-header > div:first-child,
+.today-card > div:first-child {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .report-hero > div:first-child {
   flex: 1 1 560px;
   min-width: 0;
@@ -2273,8 +2283,11 @@ button:disabled:hover {
 .processing-core p,
 .readable {
   max-width: 760px;
+  min-width: 0;
   color: var(--muted);
   line-height: 1.65;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .transform-visual {
