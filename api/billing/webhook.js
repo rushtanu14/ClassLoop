@@ -1,6 +1,8 @@
-import Stripe from "stripe";
 import { getSupabaseAdmin, json, requiredEnv } from "../_shared.js";
 import { applySubscriptionProfileUpdate, currentPeriodEnd } from "./entitlements.js";
+import { createStripeClient } from "./stripe-client.js";
+
+const maxWebhookBodyBytes = 1_048_576;
 
 export const config = {
   api: {
@@ -9,23 +11,75 @@ export const config = {
 };
 
 async function readRawBody(request) {
-  if (Buffer.isBuffer(request.body)) return request.body;
-  if (typeof request.body === "string") return Buffer.from(request.body);
+  if (Buffer.isBuffer(request.body)) {
+    if (request.body.length > maxWebhookBodyBytes) {
+      const error = new Error("Stripe webhook payload is too large.");
+      error.statusCode = 413;
+      throw error;
+    }
+    return request.body;
+  }
+  if (typeof request.body === "string") {
+    const body = Buffer.from(request.body);
+    if (body.length > maxWebhookBodyBytes) {
+      const error = new Error("Stripe webhook payload is too large.");
+      error.statusCode = 413;
+      throw error;
+    }
+    return body;
+  }
   const chunks = [];
+  let totalBytes = 0;
   for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += buffer.length;
+    if (totalBytes > maxWebhookBodyBytes) {
+      const error = new Error("Stripe webhook payload is too large.");
+      error.statusCode = 413;
+      throw error;
+    }
+    chunks.push(buffer);
   }
   return Buffer.concat(chunks);
+}
+
+export function subscriptionIdFromInvoice(invoice) {
+  const legacySubscription = invoice?.subscription;
+  const parentSubscription = invoice?.parent?.subscription_details?.subscription;
+  if (typeof legacySubscription === "string") return legacySubscription;
+  if (legacySubscription?.id) return legacySubscription.id;
+  if (typeof parentSubscription === "string") return parentSubscription;
+  if (parentSubscription?.id) return parentSubscription.id;
+  return "";
+}
+
+async function applySubscriptionUpdate(supabase, subscription, fallbackStatus = "active") {
+  await applySubscriptionProfileUpdate(supabase, {
+    customerId: String(subscription.customer || ""),
+    userId: subscription.metadata?.supabaseUserId,
+    tier: "pro",
+    status: subscription.status || fallbackStatus,
+    subscriptionId: subscription.id,
+    currentPeriodEndIso: currentPeriodEnd(subscription),
+  });
+}
+
+async function applyInvoiceSubscriptionUpdate(stripe, supabase, invoice, fallbackStatus) {
+  const subscriptionId = subscriptionIdFromInvoice(invoice);
+  if (!subscriptionId) return;
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  await applySubscriptionUpdate(supabase, subscription, fallbackStatus);
 }
 
 export default async function handler(request, response) {
   if (request.method !== "POST") return json(response, 405, { error: "Method not allowed." });
 
   try {
-    const stripe = new Stripe(requiredEnv("STRIPE_SECRET_KEY"));
+    const stripe = createStripeClient();
     const signature = request.headers["stripe-signature"];
     const rawBody = await readRawBody(request);
     const event = stripe.webhooks.constructEvent(rawBody, signature, requiredEnv("STRIPE_WEBHOOK_SECRET"));
+    const supabase = getSupabaseAdmin();
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
@@ -33,30 +87,35 @@ export default async function handler(request, response) {
         typeof session.subscription === "string"
           ? await stripe.subscriptions.retrieve(session.subscription)
           : session.subscription;
-      await applySubscriptionProfileUpdate(getSupabaseAdmin(), {
-        customerId: String(session.customer || subscription?.customer || ""),
-        userId: session.metadata?.supabaseUserId,
-        tier: "pro",
-        status: subscription?.status || "active",
-        subscriptionId: typeof session.subscription === "string" ? session.subscription : subscription?.id,
-        currentPeriodEndIso: subscription ? currentPeriodEnd(subscription) : null,
-      });
+      if (subscription) {
+        await applySubscriptionUpdate(supabase, subscription);
+      } else {
+        await applySubscriptionProfileUpdate(supabase, {
+          customerId: String(session.customer || ""),
+          userId: session.metadata?.supabaseUserId,
+          tier: "pro",
+          status: "active",
+          subscriptionId: typeof session.subscription === "string" ? session.subscription : undefined,
+          currentPeriodEndIso: null,
+        });
+      }
     }
 
     if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
       const subscription = event.data.object;
-      await applySubscriptionProfileUpdate(getSupabaseAdmin(), {
-        customerId: String(subscription.customer || ""),
-        userId: subscription.metadata?.supabaseUserId,
-        tier: "pro",
-        status: subscription.status || "canceled",
-        subscriptionId: subscription.id,
-        currentPeriodEndIso: currentPeriodEnd(subscription),
-      });
+      await applySubscriptionUpdate(supabase, subscription, "canceled");
+    }
+
+    if (event.type === "invoice.paid") {
+      await applyInvoiceSubscriptionUpdate(stripe, supabase, event.data.object, "active");
+    }
+
+    if (event.type === "invoice.payment_failed") {
+      await applyInvoiceSubscriptionUpdate(stripe, supabase, event.data.object, "past_due");
     }
 
     return json(response, 200, { received: true });
   } catch (error) {
-    return json(response, 400, { error: error.message || "Invalid Stripe webhook." });
+    return json(response, error.statusCode || 400, { error: error.message || "Invalid Stripe webhook." });
   }
 }

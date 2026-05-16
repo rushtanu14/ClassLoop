@@ -13,16 +13,17 @@ const landingContrastSelectors = [
 
 test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   await page.goto("/?demoOnly=1");
-  await expect(page.getByRole("heading", { name: /^Relay$/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^ClassLoop$/i })).toBeVisible();
   const screenshotsButton = page.getByRole("button", { name: /^screenshots$/i });
   const docsButton = page.getByRole("button", { name: /^docs$/i });
   const donateButton = page.getByRole("button", { name: /^donate$/i });
   const isWideViewport = (page.viewportSize()?.width ?? 0) > 920;
   const heroCopy = page.locator(".landing-hero-copy");
-  await expect(heroCopy.getByRole("button")).toHaveCount(2);
+  await expect(heroCopy.getByRole("button")).toHaveCount(3);
   await expect(heroCopy.getByRole("button", { name: /open web demo/i })).toBeVisible();
+  await expect(heroCopy.getByRole("button", { name: /add to phone/i })).toBeVisible();
   await expect(heroCopy.getByRole("button", { name: /view screenshots/i })).toBeVisible();
-  await expect(heroCopy.getByRole("button", { name: /download|macos|add to phone|support relay/i })).toHaveCount(0);
+  await expect(heroCopy.getByRole("button", { name: /download|macos|support classloop/i })).toHaveCount(0);
   await expect(page.locator(".landing-hero .landing-platform-list")).toHaveCount(0);
   if (isWideViewport) {
     await expect(screenshotsButton).toBeVisible();
@@ -47,7 +48,7 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
 
   if (await screenshotsButton.isVisible().catch(() => false)) {
     await screenshotsButton.click();
-    await expect(page.getByRole("heading", { name: /screenshots: how relay works/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /screenshots: how classloop works/i })).toBeVisible();
     await expect(page.getByRole("img", { name: /teacher import and review screen/i })).toBeVisible();
     await expect(page.getByRole("img", { name: /student dashboard/i })).toBeVisible();
     await expect(page.getByRole("img", { name: /teacher analytics screen/i })).toBeVisible();
@@ -55,12 +56,12 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
 
   if (await docsButton.isVisible().catch(() => false)) {
     await docsButton.click();
-    await expect(page.getByRole("heading", { name: /^Relay docs\.$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^ClassLoop docs\.$/i })).toBeVisible();
   }
 
   if (await donateButton.isVisible().catch(() => false)) {
     await donateButton.click();
-    await expect(page.getByRole("heading", { name: /support relay development/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /support classloop development/i })).toBeVisible();
     await page.getByRole("button", { name: /support \$3/i }).click();
     await expect(page.getByRole("status").filter({ hasText: /donation link has not been connected/i })).toBeVisible();
   }
@@ -69,13 +70,14 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   if (!(await page.locator(".landing-platform-list").count())) {
     await page.goto("/?demoOnly=1#/download");
   }
-  const downloadRouteHeading = page.getByRole("heading", { name: /download relay/i });
+  const downloadRouteHeading = page.getByRole("heading", { name: /download classloop/i });
   if (await downloadRouteHeading.isVisible().catch(() => false)) {
     await expect(downloadRouteHeading).toBeVisible();
   }
-  await expect(page.getByRole("heading", { name: /use relay from a browser or add it to your home screen/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^add to phone$/i })).toBeVisible();
-  await page.getByRole("button", { name: /^add to phone$/i }).click();
+  await expect(page.getByRole("heading", { name: /use classloop from a browser or add it to your home screen/i })).toBeVisible();
+  const addToPhoneButton = page.locator(".landing-mobile-band").getByRole("button", { name: /^add to phone$/i });
+  await expect(addToPhoneButton).toBeVisible();
+  await addToPhoneButton.click();
   const installMessage = /home screen|install app|install menu|already running|added|share then add to home screen|browser menu/i;
   const statusMessage = page.getByRole("status").filter({ hasText: installMessage });
   if (await statusMessage.isVisible().catch(() => false)) {
@@ -83,7 +85,12 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   } else {
     await expect(page.locator("p.landing-message, [role='status']").filter({ hasText: installMessage }).first()).toBeVisible();
   }
+  const revealInstallers = page.getByRole("button", { name: /not your system|view desktop installers/i }).first();
+  if (await revealInstallers.isVisible().catch(() => false)) {
+    await revealInstallers.click();
+  }
   const platformDownloads = page.locator(".landing-platform-list");
+  await expect(platformDownloads).toBeVisible();
   await expect(platformDownloads.getByRole("button", { name: /windows.*packaging pending/i })).toBeVisible();
   await expect(platformDownloads.getByRole("button", { name: /linux.*packaging pending/i })).toBeVisible();
   await expectContrast(page, [
@@ -106,11 +113,11 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   const manifestJson = await manifest.json();
   expect(manifestJson.display).toBe("standalone");
   expect(manifestJson.start_url).toContain("source=pwa");
-  expect(manifestJson.icons?.map((icon: { src: string }) => icon.src)).toContain("/relay-app-icon-512.png");
+  expect(manifestJson.icons?.map((icon: { src: string }) => icon.src)).toContain("/classloop-app-icon-512.png");
 
   const serviceWorker = await page.request.get("/sw.js");
   expect(serviceWorker.ok()).toBeTruthy();
-  await expect(serviceWorker.text()).resolves.toContain("relay-mobile-shell");
+  await expect(serviceWorker.text()).resolves.toContain("classloop-mobile-shell");
 
   const downloadPromise = page.waitForEvent("download", { timeout: 5_000 }).catch(() => null);
   await page.locator(".landing-platform-list").getByRole("button", { name: /macos.*packaging pending/i }).click();
@@ -122,28 +129,28 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   }
 
   await page.getByRole("button", { name: /open web demo|open demo/i }).first().click();
-  await expect(page.getByRole("heading", { name: /try relay as a teacher or student/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /try classloop as a teacher or student/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /demo teacher side/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /demo student side/i })).toBeVisible();
   await expect(page.getByPlaceholder("name@example.com")).toHaveCount(0);
   await expect(page.getByPlaceholder("Enter password")).toHaveCount(0);
 
   await page.getByRole("button", { name: /demo teacher side/i }).click();
-  await expect(page.getByRole("dialog", { name: /relay guided walkthrough/i })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
   await page.getByRole("button", { name: /skip/i }).click();
   await expect(page.getByText(/You are on a demo account/i)).toBeVisible();
 });
 
 test("hosted public screenshots and privacy routes expose compliance boundaries", async ({ page }) => {
   await page.goto("/?demoOnly=1#/screenshots");
-  await expect(page.getByRole("heading", { name: /screenshots: how relay works/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /screenshots: how classloop works/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /teacher import and review screen/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /student dashboard/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /teacher analytics screen/i })).toBeVisible();
   for (const screenshotPath of [
-    "/screenshots/relay-import-review.svg",
-    "/screenshots/relay-student-dashboard.svg",
-    "/screenshots/relay-analytics.svg",
+    "/screenshots/classloop-import-review.svg",
+    "/screenshots/classloop-student-dashboard.svg",
+    "/screenshots/classloop-analytics.svg",
   ]) {
     const response = await page.request.get(screenshotPath);
     expect(response.ok()).toBeTruthy();

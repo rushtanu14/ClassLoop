@@ -3,22 +3,31 @@ const os = require("os");
 const path = require("path");
 const { _electron: electron } = require("playwright");
 
-const appName = "Relay";
+const appName = "ClassLoop";
 
-function defaultExecutablePath() {
+function candidateAppNames() {
+  return [appName];
+}
+
+function executablePathForName(name) {
   if (process.platform === "darwin") {
     const archDir = process.arch === "arm64" ? "mac-arm64" : "mac";
-    return path.join("release", archDir, `${appName}.app`, "Contents", "MacOS", appName);
+    return path.join("release", archDir, `${name}.app`, "Contents", "MacOS", name);
   }
   if (process.platform === "win32") {
     const archDir = process.arch === "arm64" ? "win-arm64-unpacked" : "win-unpacked";
-    return path.join("release", archDir, `${appName}.exe`);
+    return path.join("release", archDir, `${name}.exe`);
   }
   if (process.platform === "linux") {
     const archDir = process.arch === "arm64" ? "linux-arm64-unpacked" : "linux-unpacked";
-    return path.join("release", archDir, appName.toLowerCase());
+    return path.join("release", archDir, name.toLowerCase());
   }
   throw new Error(`Unsupported platform for packaged smoke test: ${process.platform}`);
+}
+
+function defaultExecutablePath() {
+  const candidates = candidateAppNames().map(executablePathForName);
+  return candidates.find((candidate) => fs.existsSync(path.resolve(candidate))) || candidates[0];
 }
 
 function resolveExecutable() {
@@ -33,13 +42,14 @@ function log(message) {
   console.log(`[packaged-smoke] ${message}`);
 }
 
-async function waitForFile(filePath, timeoutMs = 8_000) {
+async function waitForAnyFile(filePaths, timeoutMs = 8_000) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
-    if (fs.existsSync(filePath)) return;
+    const found = filePaths.find((filePath) => fs.existsSync(filePath));
+    if (found) return found;
     await wait(200);
   }
-  throw new Error(`Timed out waiting for ${filePath}`);
+  throw new Error(`Timed out waiting for one of: ${filePaths.join(", ")}`);
 }
 
 async function close(app) {
@@ -60,15 +70,15 @@ async function run() {
     throw new Error(`Packaged executable was not found: ${executablePath}`);
   }
 
-  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "relay-first-run-"));
-  const dataFile = path.join(userDataDir, ".relay-data.json");
-  const email = `packaged-${Date.now()}@relay.test`;
-  const password = "relay-packaged-smoke";
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "classloop-first-run-"));
+  const dataFiles = [path.join(userDataDir, ".classloop-data.json")];
+  const email = `packaged-${Date.now()}@classloop.test`;
+  const password = "classloop-packaged-smoke";
   const launchOptions = {
     executablePath,
     env: {
       ...process.env,
-      RELAY_USER_DATA_DIR: userDataDir,
+      CLASSLOOP_USER_DATA_DIR: userDataDir,
     },
   };
 
@@ -90,13 +100,13 @@ async function run() {
     await firstPage.locator('input[placeholder="Re-enter password"]').fill(password);
     await firstPage.locator("form.login-form button[type='submit']").click();
     log("Waiting for teacher dashboard");
-    await firstPage.getByText("Today in Relay").waitFor({ timeout: 20_000 });
-    const walkthrough = firstPage.getByRole("dialog", { name: /relay guided walkthrough/i });
+    await firstPage.getByText("Today in ClassLoop").waitFor({ timeout: 20_000 });
+    const walkthrough = firstPage.getByRole("dialog", { name: /classloop guided walkthrough/i });
     if (await walkthrough.isVisible().catch(() => false)) {
       await walkthrough.getByRole("button", { name: /skip/i }).click();
     }
     log("Waiting for encrypted desktop state file");
-    await waitForFile(dataFile);
+    const dataFile = await waitForAnyFile(dataFiles);
     const stored = JSON.parse(fs.readFileSync(dataFile, "utf8"));
     if (!stored || typeof stored !== "object" || !("payload" in stored)) {
       throw new Error("Packaged first-run data file was created without the expected payload wrapper.");
@@ -112,7 +122,7 @@ async function run() {
     await secondPage.getByPlaceholder("name@example.com").fill(email);
     await secondPage.getByPlaceholder("Enter password").fill(password);
     await secondPage.locator("form.login-form button[type='submit']").click();
-    await secondPage.getByText("Today in Relay").waitFor({ timeout: 20_000 });
+    await secondPage.getByText("Today in ClassLoop").waitFor({ timeout: 20_000 });
 
     console.log(`Packaged first-run smoke passed for ${executablePath}`);
     console.log(`Clean user data dir: ${userDataDir}`);

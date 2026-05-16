@@ -7,8 +7,8 @@ const rootDir = path.resolve(__dirname, "..");
 const releaseDir = path.join(rootDir, "release");
 const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
 const version = packageJson.version;
-const productName = packageJson.build?.productName || "Relay";
-const rollbackTarget = process.argv[2] || process.env.RELAY_ROLLBACK_TARGET_VERSION || "last-known-good";
+const productName = packageJson.build?.productName || "ClassLoop";
+const rollbackTarget = process.argv[2] || process.env.CLASSLOOP_ROLLBACK_TARGET_VERSION || "last-known-good";
 
 const requiredArtifacts = [
   { rel: `${productName}-${version}.dmg`, label: "macOS x64 DMG" },
@@ -20,8 +20,8 @@ const requiredArtifacts = [
   { rel: `${productName}-${version}-arm64-win.zip`, label: "Windows arm64 ZIP" },
   { rel: `${productName}-${version}.AppImage`, label: "Linux x64 AppImage" },
   { rel: `${productName}-${version}-arm64.AppImage`, label: "Linux arm64 AppImage" },
-  { rel: `relay_${version}_amd64.deb`, label: "Linux x64 deb" },
-  { rel: `relay_${version}_arm64.deb`, label: "Linux arm64 deb" },
+  { rel: `classloop_${version}_amd64.deb`, label: "Linux x64 deb" },
+  { rel: `classloop_${version}_arm64.deb`, label: "Linux arm64 deb" },
   { rel: "latest-mac.yml", label: "macOS update metadata" },
   { rel: "latest.yml", label: "Windows update metadata" },
   { rel: "latest-linux.yml", label: "Linux x64 update metadata" },
@@ -103,7 +103,7 @@ function verifyPackagedApp(target) {
 }
 
 function writeRollbackSimulation() {
-  const drillDir = fs.mkdtempSync(path.join(os.tmpdir(), "relay-rollback-drill-"));
+  const drillDir = fs.mkdtempSync(path.join(os.tmpdir(), "classloop-rollback-drill-"));
   const timestamp = new Date().toISOString();
   const manifest = {
     generatedAt: timestamp,
@@ -119,29 +119,29 @@ function writeRollbackSimulation() {
       action: "Restore the previous known-good hosted deployment and public installer URLs.",
     },
     publicDownloadEnv: [
-      "VITE_RELAY_MAC_DOWNLOAD_URL",
-      "VITE_RELAY_WINDOWS_DOWNLOAD_URL",
-      "VITE_RELAY_LINUX_DOWNLOAD_URL",
+      "VITE_CLASSLOOP_MAC_DOWNLOAD_URL",
+      "VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL",
+      "VITE_CLASSLOOP_LINUX_DOWNLOAD_URL",
     ],
     verification: [
       "Hosted landing page shows the previous known-good installer link or Packaging pending.",
       "Manual install-over-replace keeps Electron user data in the per-user data directory.",
-      "Run npm run test:desktop:first-run on each host OS before re-opening downloads.",
+      "Run npm run test:desktop:first-run on each host OS and npm run test:release:distribution before re-opening downloads.",
     ],
   };
   const comms = [
-    `Relay rollback drill ${timestamp}`,
+    `ClassLoop rollback drill ${timestamp}`,
     "",
     `Bad release quarantined: ${productName} ${version}`,
     `Rollback target: ${rollbackTarget}`,
     "",
     "Teacher-facing status:",
-    "We paused the latest desktop download while we validate a replacement build. Existing local Relay data is not affected.",
+    "We paused the latest desktop download while we validate a replacement build. Existing local ClassLoop data is not affected.",
     "",
     "Internal next steps:",
     "1. Restore the previous Vercel deployment or redeploy main at the known-good commit.",
     "2. Replace bad installer URLs with known-good URLs, or leave them unset so the UI says Packaging pending.",
-    "3. Run hosted web smoke and packaged first-run smoke before announcing recovery.",
+    "3. Run hosted web smoke, packaged first-run smoke, and release distribution verification before announcing recovery.",
     "",
   ].join("\n");
 

@@ -6,7 +6,7 @@ export default async function handler(request, response) {
 
     if (request.method === "GET") {
       const { data, error } = await supabase
-        .from("relay_workspace_state")
+        .from("classloop_workspace_state")
         .select("state, updated_at")
         .eq("owner_id", user.id)
         .maybeSingle();
@@ -16,7 +16,7 @@ export default async function handler(request, response) {
 
     if (request.method === "PUT") {
       const payload = request.body && typeof request.body === "object" ? request.body : {};
-      const { error } = await supabase.from("relay_workspace_state").upsert({
+      const { error } = await supabase.from("classloop_workspace_state").upsert({
         owner_id: user.id,
         state: payload,
         updated_at: new Date().toISOString(),

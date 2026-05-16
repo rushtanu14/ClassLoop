@@ -29,7 +29,7 @@ export function subscriptionProfilePayload({
 
 export async function applySubscriptionProfileUpdate(supabase, { userId, customerId, ...details }) {
   const payload = subscriptionProfilePayload({ customerId, ...details });
-  const query = supabase.from("relay_profiles").update(payload);
+  const query = supabase.from("classloop_profiles").update(payload);
   const { error } = userId ? await query.eq("id", userId) : await query.eq("stripe_customer_id", customerId);
   if (error) throw error;
   return payload;

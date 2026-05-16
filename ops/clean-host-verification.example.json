@@ -1,0 +1,32 @@
+{
+  "version": "0.1.0",
+  "checks": [
+    {
+      "target": "macos-arm64",
+      "status": "pass",
+      "verifiedAt": "2026-05-15T00:00:00.000Z",
+      "host": "Fresh macOS arm64 user or VM description",
+      "artifact": "release/ClassLoop-0.1.0-arm64.dmg",
+      "command": "npm run test:desktop:first-run -- release/mac-arm64/ClassLoop.app/Contents/MacOS/ClassLoop",
+      "notes": "Record Gatekeeper result, notarization/stapling result, and any first-run prompts here."
+    },
+    {
+      "target": "windows-x64",
+      "status": "pass",
+      "verifiedAt": "2026-05-15T00:00:00.000Z",
+      "host": "Fresh Windows x64 VM description",
+      "artifact": "release/ClassLoop Setup 0.1.0.exe",
+      "command": "npm run test:desktop:first-run -- release/win-unpacked/ClassLoop.exe",
+      "notes": "Record SmartScreen/signing warnings and first-run persistence behavior here."
+    },
+    {
+      "target": "linux-x64",
+      "status": "pass",
+      "verifiedAt": "2026-05-15T00:00:00.000Z",
+      "host": "Fresh Linux x64 VM description",
+      "artifact": "release/ClassLoop-0.1.0.AppImage",
+      "command": "npm run test:desktop:first-run -- release/linux-unpacked/classloop",
+      "notes": "Record AppImage/deb launch behavior and first-run persistence behavior here."
+    }
+  ]
+}

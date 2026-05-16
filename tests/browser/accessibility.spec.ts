@@ -6,10 +6,10 @@ import {
   expectReadableMobileLayout,
 } from "./accessibility-helpers";
 
-const teacherEmail = "teacher@relay.demo";
-const teacherPassword = "relay-teacher";
-const studentEmail = "maya@relay.demo";
-const studentPassword = "relay-student";
+const teacherEmail = "teacher@classloop.demo";
+const teacherPassword = "classloop-teacher";
+const studentEmail = "maya@classloop.demo";
+const studentPassword = "classloop-student";
 
 const landingContrastSelectors = [
   ".landing-hero h1",
@@ -43,7 +43,7 @@ async function resetBrowser(page: Page) {
 }
 
 async function skipAutoWalkthrough(page: Page) {
-  const dialog = page.getByRole("dialog", { name: /relay guided walkthrough/i });
+  const dialog = page.getByRole("dialog", { name: /classloop guided walkthrough/i });
   await dialog.waitFor({ state: "visible", timeout: 5_000 }).catch(() => undefined);
   if (await dialog.isVisible().catch(() => false)) {
     await dialog.getByRole("button", { name: /skip/i }).click();
@@ -99,7 +99,7 @@ test.describe("WCAG-targeted accessibility checks", () => {
 
   test("landing PWA install controls expose names, contrast, and screen-reader status announcements", async ({ page }) => {
     await page.goto("/?demoOnly=1");
-    await expect(page.getByRole("heading", { name: /^Relay$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^ClassLoop$/i })).toBeVisible();
     if ((page.viewportSize()?.width ?? 0) > 920) {
       await expect(page.getByRole("button", { name: /^screenshots$/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /^docs$/i })).toBeVisible();
@@ -109,10 +109,10 @@ test.describe("WCAG-targeted accessibility checks", () => {
     await expectNoUnnamedInteractive(page, ".landing-page");
     await expectContrast(page, landingContrastSelectors);
 
-    await expect(page.locator(".landing-hero").getByRole("button", { name: /^add to phone$/i })).toHaveCount(0);
+    await expect(page.locator(".landing-hero").getByRole("button", { name: /^add to phone$/i })).toBeVisible();
 
     await page.goto("/#/download");
-    await expect(page.getByRole("heading", { name: /use relay from a browser or add it to your home screen/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /use classloop from a browser or add it to your home screen/i })).toBeVisible();
     await page.locator(".landing-mobile-band").getByRole("button", { name: /^add to phone$/i }).click();
     await expect(
       page.getByRole("status").filter({ hasText: /home screen|install app|install menu|already running|added/i }),
@@ -122,7 +122,7 @@ test.describe("WCAG-targeted accessibility checks", () => {
   test("screenshot gallery stays readable on a phone viewport", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 850 });
     await page.goto("/#/screenshots");
-    await expect(page.getByRole("heading", { name: /screenshots: how relay works/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /screenshots: how classloop works/i })).toBeVisible();
     await expect(page.getByRole("img", { name: /teacher import and review screen/i })).toBeVisible();
     await expectReadableMobileLayout(page, ".landing-page");
     await expectContrast(page, [
@@ -138,7 +138,7 @@ test.describe("WCAG-targeted accessibility checks", () => {
   test("PWA and add-to-home-screen layout stays readable on a phone viewport", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 850 });
     await page.goto("/#/download");
-    await expect(page.getByRole("heading", { name: /use relay from a browser or add it to your home screen/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /use classloop from a browser or add it to your home screen/i })).toBeVisible();
 
     await expectReadableMobileLayout(page, ".landing-page");
     await expectContrast(page, [

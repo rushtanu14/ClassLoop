@@ -45,7 +45,7 @@ export async function requireUser(request) {
 
 export function publicConfig() {
   return {
-    version: "relay-free-pro-2026-05-10",
+    version: "classloop-free-pro-2026-05-10",
     supabaseConfigured: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
     stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRO_PRICE_ID),
   };

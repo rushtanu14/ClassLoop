@@ -1,6 +1,6 @@
 # Release Rollback Drill
 
-Relay desktop releases are manual download/install releases. The app does not auto-download desktop updates yet, so rollback means stopping distribution of the bad artifacts, restoring a known-good hosted deployment or download URLs, and telling teachers whether to reinstall.
+ClassLoop desktop releases are manual download/install releases. The app does not auto-download desktop updates yet, so rollback means stopping distribution of the bad artifacts, restoring a known-good hosted deployment or download URLs, and telling teachers whether to reinstall.
 
 ## Run The Drill
 
@@ -20,15 +20,15 @@ Pass criteria:
 
 1. Freeze the bad release: stop uploads, remove the bad GitHub/Vercel/S3/Blob release assets from public download links, and keep the files locally for diagnosis.
 2. Restore the previous hosted deployment in Vercel, or redeploy `main` at the last known-good commit.
-3. Set `VITE_RELAY_MAC_DOWNLOAD_URL`, `VITE_RELAY_WINDOWS_DOWNLOAD_URL`, and `VITE_RELAY_LINUX_DOWNLOAD_URL` to known-good installers. Leave any uncertain platform blank so the UI shows `Packaging pending`.
+3. Set `VITE_CLASSLOOP_MAC_DOWNLOAD_URL`, `VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL`, and `VITE_CLASSLOOP_LINUX_DOWNLOAD_URL` to known-good installers. Leave any uncertain platform blank so the UI shows `Packaging pending`.
 4. Run `npm run test:web` against the restored hosted URL.
-5. On each host OS, run `npm run test:desktop:first-run` against the known-good packaged app.
+5. On each host OS, run `npm run test:desktop:first-run` against the known-good packaged app, record the result in `test-results/clean-host-verification.json`, and run `npm run test:release:distribution` before re-opening public installer links.
 6. Publish a short teacher-facing status update: what was paused, whether local data is affected, and what to reinstall.
 
 ## Teacher Status Template
 
 ```text
-We paused the latest Relay desktop download while we validate a replacement build.
-Existing local Relay data is not affected because it is stored in your user data folder, not inside the app bundle.
+We paused the latest ClassLoop desktop download while we validate a replacement build.
+Existing local ClassLoop data is not affected because it is stored in your user data folder, not inside the app bundle.
 Use the hosted demo or reinstall the previous desktop build until the replacement is posted.
 ```

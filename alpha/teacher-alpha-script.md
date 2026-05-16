@@ -1,6 +1,6 @@
-# Relay Teacher Alpha Script
+# ClassLoop Teacher Alpha Script
 
-Thanks for helping test Relay. This is an early alpha, so the goal is not to impress you. The goal is to find where Relay is useful, confusing, or wrong.
+Thanks for helping test ClassLoop. This is an early alpha, so the goal is not to impress you. The goal is to find where ClassLoop is useful, confusing, or wrong.
 
 ## Before You Start
 
@@ -15,7 +15,7 @@ Bring:
 
 ## Task 1: First Run
 
-Open Relay and get to the teacher dashboard.
+Open ClassLoop and get to the teacher dashboard.
 
 Observer notes:
 
@@ -31,7 +31,7 @@ Think aloud:
 
 - What feels clear?
 - What feels too much?
-- What do you expect Relay to do after clicking Generate?
+- What do you expect ClassLoop to do after clicking Generate?
 
 Observer notes:
 
@@ -73,7 +73,7 @@ Answer:
 - Would you publish this after editing?
 - What would you still need to change?
 - Would you trust a student to see this?
-- Would you use Relay again next week?
+- Would you use ClassLoop again next week?
 
 ## Wrap Questions
 
@@ -81,4 +81,4 @@ Answer:
 2. What was the most confusing part?
 3. What felt inaccurate or risky?
 4. What support did you need?
-5. What would make Relay worth using again?
+5. What would make ClassLoop worth using again?

@@ -39,9 +39,9 @@
 - **Repeated Imports**: Multiple back-to-back large imports produce unique session ids and preserve full roster/follow-up/signal counts without sharing parser state.
 
 ### Desktop State Reliability Tests
-- **Encrypted Local State**: `npm run test:desktop:state` launches the Electron app with a temporary `RELAY_USER_DATA_DIR`, writes state through `/api/state`, verifies the desktop data file is encrypted, and reads it back through the app.
+- **Encrypted Local State**: `npm run test:desktop:state` launches the Electron app with a temporary `CLASSLOOP_USER_DATA_DIR`, writes state through `/api/state`, verifies the desktop data file is encrypted, and reads it back through the app.
 - **Crash Recovery / Partial Failure**: The desktop state smoke corrupts the encrypted data file, verifies `/api/state` returns a read-only `423` instead of silently resetting, verifies writes are blocked while the file is unreadable, and checks recovery errors are actionable without exposing account/transcript payloads.
-- **Backup / Restore**: The same smoke backs up the encrypted data file, restores it after corruption, relaunches Relay, and verifies the restored session is readable.
+- **Backup / Restore**: The same smoke backs up the encrypted data file, restores it after corruption, relaunches ClassLoop, and verifies the restored session is readable.
 
 ### Hosted Auth / Cloud Sync Tests
 - **Supabase Auth State**: `npm run test:cloud` covers signed-out, signed-in, logout, token-expired, and credential-absent states without requiring live Supabase credentials.
@@ -51,7 +51,7 @@
 
 ### Entitlement Gate Tests
 - **Free / Paid Boundaries**: `npm run test:entitlements` verifies Free, active Pro, trialing Pro, past-due, canceled, unpaid, paused, and incomplete subscription states map to the right feature access.
-- **Webhook-Owned Updates**: Entitlement tests verify Stripe checkout/subscription webhook payload mapping updates `relay_profiles` with `plan_tier`, `subscription_status`, customer id, subscription id, and current period end.
+- **Webhook-Owned Updates**: Entitlement tests verify Stripe checkout/subscription/invoice webhook payload mapping updates `classloop_profiles` with `plan_tier`, `subscription_status`, customer id, subscription id, and current period end.
 - **Client Tampering Guard**: Entitlement tests verify `/api/profile` PATCH helpers ignore client-submitted paid fields like `plan_tier`, camelCase paid entitlement fields, `subscription_status`, Stripe customer ids, nested billing profiles, invalid roles, and snake-case privacy tampering.
 - **Locked UI Behavior**: Browser tests verify unpaid users see Pro-only live capture cards, Free one-session-per-day copy, disabled second draft generation, local upgrade unlocks paid controls, and downgrade returns the locks.
 
@@ -60,9 +60,9 @@
 - **Missing App Build Guard**: The same smoke verifies desktop startup has a stable support log prefix and clear `dist/index.html` recovery guidance for package/init failures.
 
 ### Security / Secrets / Legal Baseline
-- **Local Data Tracking**: `npm run test:security` verifies `.env.local`, `.relay-data.json`, `.relay-storage-key`, and legacy local data files are ignored and not tracked.
+- **Local Data Tracking**: `npm run test:security` verifies `.env.local`, `.classloop-data.json`, `.classloop-storage-key`, and legacy local data files are ignored and not tracked.
 - **Secret Scanning**: The same script scans tracked text files for high-confidence Stripe, OpenAI, GitHub, private-key, and non-empty server-secret env assignments.
-- **Storage Hardening**: The script verifies browser data uses `relay:secure:*` AES-GCM storage keys, demo data is filtered before persistence, and the cloud offline queue is Relay-namespaced.
+- **Storage Hardening**: The script verifies browser data uses `classloop:secure:*` AES-GCM storage keys, demo data is filtered before persistence, and the cloud offline queue is ClassLoop-namespaced.
 - **Desktop / Hosted Boundaries**: The script verifies prompt-free desktop AES-GCM state encryption, restrictive desktop data permissions, trusted-origin local APIs, server-side email session lookup, Supabase auth requirements, Stripe webhook signature verification, and workspace RLS markers.
 - **Logging / Legal Baseline**: The script blocks runtime debug/info logs and requires [LEGAL.md](LEGAL.md) plus public privacy-route copy to cover Terms, Privacy, EULA, support, retention, local encryption, no-training posture, public signup boundaries, school-safety expectations, and child-appropriate safety. It also asserts durable public hosted signups stay sample-only until reviewed public Terms/Privacy/EULA pages and hosted retention/deletion SLAs are published.
 
@@ -77,7 +77,7 @@
 - **Class Manager**: Saved classes show reusable rosters, default templates, and linked session history.
 - **Student View**: Published sessions appear in the student-facing portal.
 - **Student Completion**: Students can mark work complete, which moves the follow-up into a submitted state for teacher review.
-- **Student Feedback Popup**: After marking a follow-up complete, students can rate Relay usefulness from the bottom-right popup; low ratings request improvement notes, post product feedback to the creator feedback endpoint, and do not appear in teacher analytics or action queues.
+- **Student Feedback Popup**: After marking a follow-up complete, students can rate ClassLoop usefulness from the bottom-right popup; low ratings request improvement notes, post transcript-attached product feedback to the creator feedback endpoint, disclose that the teacher will not see it, and do not appear in teacher analytics or action queues.
 - **Multi-Session E2E**: Fresh teacher/student accounts run Math review, CS workshop, and Club meeting imports through review, publish, student dashboard, completion, and teacher report export.
 - **Workspace Isolation**: Browser tests verify another teacher cannot see the first teacher's sessions, saved roster, or class group, and each student account sees only sessions rostered to that student's email.
 - **Teacher Review Loop**: Teacher preview can mark submitted student check-ins as reviewed.
@@ -90,11 +90,11 @@
 - **WCAG-Targeted Accessibility Smoke**: Browser tests cover keyboard tab order, visible focus indicators, accessible names for controls, contrast ratios on key app and landing surfaces, screen-reader status announcements, and phone-width PWA readability.
 
 ### Hosted Web Smoke Tests
-- **Landing Page**: Hosted root page loads Relay marketing UI, with separate `#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` routes instead of one scroll-through page.
-- **Screenshots / Workflow**: `#/screenshots` shows Relay teacher review, student dashboard, and analytics screenshots with readable explanations.
+- **Landing Page**: Hosted root page loads ClassLoop marketing UI, with separate `#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` routes instead of one scroll-through page.
+- **Screenshots / Workflow**: `#/screenshots` shows ClassLoop teacher review, student dashboard, and analytics screenshots with readable explanations.
 - **Public Privacy Boundary**: `#/privacy` exposes local desktop storage, no-training, retention/export, and sample-only hosted-demo boundary copy without revealing sign-in form fields.
 - **Desktop Downloads**: macOS, Windows, and Linux download controls are visible; missing installer URLs show packaging/demo fallback copy.
-- **Donation Path**: Donate route exposes support amounts and clearly reports when `VITE_RELAY_DONATE_URL` has not been connected.
+- **Donation Path**: Donate route exposes support amounts and clearly reports when `VITE_CLASSLOOP_DONATE_URL` has not been connected.
 - **Mobile/PWA Access**: Hosted root and Download route expose the "Add to phone" action, standalone web app manifest, app icon, and service worker shell.
 - **Sample-Only Demo**: Hosted demo exposes teacher/student demo choices instead of editable email/password fields.
 - **Demo Walkthrough**: Teacher sample demo starts the guided walkthrough and shows the unsaved demo banner after skip.
@@ -162,19 +162,22 @@ Playwright is installed in the repo through `@playwright/test`.
 **Run hosted web smoke**: `npm run test:web`
 **Run desktop state smoke**: `npm run build && npm run test:desktop:state`
 **Run packaged first-run smoke**: `npm run test:desktop:first-run`
+**Run release distribution verifier**: `npm run test:release:distribution`
 **Print full manual QA checklist**: `npm run test:manual`
 **Write full manual QA checklist**: `npm run test:manual:write`
 **Run rollback drill**: `npm run drill:rollback`
 **Run incident drill**: `npm run drill:incidents`
 
 Playwright starts the Vite dev server on `127.0.0.1:5177` and runs Chromium checks across desktop and mobile-sized projects, including WCAG-targeted keyboard, focus, labels, contrast, status-announcement, and mobile PWA readability checks.
-Hosted web tests use `playwright.web.config.ts` and default to `https://relay-class.vercel.app`; they include the same landing/PWA accessibility smoke on desktop and phone-sized viewports. Override with:
+Hosted web tests use `playwright.web.config.ts` and default to `https://classloop-followup.vercel.app/`; they include the same landing/PWA accessibility smoke on desktop and phone-sized viewports. Override with:
 
 ```bash
-RELAY_WEB_TEST_URL=https://your-domain.com npm run test:web
+CLASSLOOP_WEB_TEST_URL=https://your-domain.com npm run test:web
 ```
 
-For desktop state QA, run `npm run build && npm run test:desktop:state`; this covers encrypted local state read/write, corrupt-file crash recovery, read-only overwrite protection, and encrypted backup restore against the local Electron app. For desktop release QA, run the package command for the current OS first, then `npm run test:desktop:first-run`. The first-run smoke uses a temporary `RELAY_USER_DATA_DIR` to simulate a clean packaged launch, creates a local teacher account, confirms state writes outside the app bundle, relaunches, and signs back in. Cross-platform launch still needs an actual macOS, Windows, or Linux host for the matching binary; building artifacts alone does not prove a foreign OS can launch them.
+For desktop state QA, run `npm run build && npm run test:desktop:state`; this covers encrypted local state read/write, corrupt-file crash recovery, read-only overwrite protection, and encrypted backup restore against the local Electron app. The smoke uses configurable startup guards (`CLASSLOOP_DESKTOP_LAUNCH_TIMEOUT_MS`, `CLASSLOOP_DESKTOP_FIRST_WINDOW_TIMEOUT_MS`, and `CLASSLOOP_DESKTOP_LOGIN_READY_TIMEOUT_MS`) so slow Electron launches fail with a specific launch/window/login readiness reason. For desktop release QA, run the package command for the current OS first, then `npm run test:desktop:first-run`. The first-run smoke uses a temporary `CLASSLOOP_USER_DATA_DIR` to simulate a clean packaged launch, creates a local teacher account, confirms state writes outside the app bundle, relaunches, and signs back in. Cross-platform launch still needs an actual macOS, Windows, or Linux host for the matching binary; building artifacts alone does not prove a foreign OS can launch them.
+
+For installer publication QA, run `npm run test:release:distribution` after packaging. Free mode is the default: it accepts unsigned/ad-hoc macOS artifacts with explicit warnings and does not require paid Apple Developer ID notarization. Add `npm run release:checksums` before publishing so visitors can verify downloads. Set `CLASSLOOP_DISTRIBUTION_MODE=developer-id` to enforce paid Developer ID signing, Gatekeeper assessment, stapled notarization tickets on DMGs, and ignored clean-host evidence in `test-results/clean-host-verification.json` for each packaged macOS/Windows/Linux target, using `ops/clean-host-verification.example.json` as the template.
 
 For ops readiness, run `npm run drill:rollback` after packaging and `npm run drill:incidents` before alpha or release handoff. The runbooks live in `ops/rollback-drill.md` and `ops/incident-response.md`, with a reusable log template in `ops/drill-log-template.md`.
 
@@ -182,13 +185,13 @@ For manual all-feature QA, run `npm run test:manual` after the automated gate. U
 
 ## Testing Script Response
 
-When the user says "use the testing script," run the saved Relay QA sequence and report:
+When the user says "use the testing script," run the saved ClassLoop QA sequence and report:
 - pass/fail by command
 - browser workflow result
 - anything not verifiable without the configured Gmail/SMTP sender
 - whether paid/API-key/external-platform features remain absent from the app, except Gmail/SMTP email through a user-owned sender
 - whether class manager, CSV roster import/export, publish audit, student submitted/reviewed states, and report exports are reachable
-- whether student feedback popups stay hidden until completion, capture high and low usefulness ratings as creator product feedback, request improvement notes for low ratings, post to the feedback endpoint without student names/emails, and stay out of teacher analytics/action queues
+- whether student feedback popups stay hidden until completion, capture high and low usefulness ratings as transcript-attached creator product feedback, request improvement notes for low ratings, disclose creator/transcript routing, avoid separate roster/email/grade payloads, and stay out of teacher analytics/action queues
 - whether every supported noisy Zoom/CSV import variation still parses, including malformed rows, duplicate emails/names, mixed aliases, and transcript-only roster estimation
 - whether Supabase auth transitions, token expiry handling, conflict resolution, network-loss queueing, and missing-credential desktop fallback pass
 - whether Free/Pro entitlement boundaries, webhook-driven entitlement updates, upgrade/downgrade flows, and unpaid locked-feature UI pass
@@ -200,12 +203,14 @@ When the user says "use the testing script," run the saved Relay QA sequence and
 - whether desktop encrypted-state read/write, corrupt-state recovery, write blocking, and backup/restore pass
 - whether the hosted web demo still hides editable login fields and exposes platform download controls
 - whether missing desktop installer links visibly show "Packaging pending" before click and show a pending fallback after click
+- whether the Download and Docs routes explain the free unsigned/ad-hoc install path, checksum file, macOS Open Anyway flow, and Windows/Linux unsigned-app warning
 - whether the hosted web demo exposes mobile/PWA install controls and passes the manifest/service-worker checks
 - whether WCAG-targeted keyboard navigation, focus order, visible focus, screen-reader labels/status announcements, contrast, and mobile PWA readability checks pass
 - whether rollback and incident drills passed, including clear behavior for bad release quarantine, billing outage, auth outage, sync outage, and parser regression
+- whether `npm run test:release:distribution` passed in free mode, or in Developer ID mode remains blocked on paid signing/notarization credentials or missing clean-host Windows/Linux evidence
 - whether the manual QA checklist was run, which operator mode was used, and what evidence was captured
 - correctness errors found, clearly separated from feature issues
-- suggested new features and functions that would improve Relay
+- suggested new features and functions that would improve ClassLoop
 - cohesion improvements for copy, layout, workflow order, naming, role boundaries, and cross-feature polish
 - concise feedback on how the run went
 - what could be improved
@@ -215,7 +220,7 @@ When the user says "use the testing script," run the saved Relay QA sequence and
 
 **When Adding Features**:
 1. Add test case to `import-flow.test.ts` first
-2. Add browser coverage in `tests/browser/relay.spec.ts` when the feature changes access, routing, or user workflow
+2. Add browser coverage in `tests/browser/classloop.spec.ts` when the feature changes access, routing, or user workflow
 3. Update parser logic in `src/data.ts` or UI logic in `src/App.tsx`
 4. Verify tests pass
 5. Update the feature QA prompt in `codexsecondbrain-sync-2026-04-30.md` so future browser QA includes the new workflow and obvious formatting checks

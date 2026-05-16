@@ -22,7 +22,7 @@ export function profilePatchColumns(payload = {}) {
 
 async function ensureProfile(supabase, user) {
   const { data, error } = await supabase
-    .from("relay_profiles")
+    .from("classloop_profiles")
     .select("email, role, plan_tier, subscription_status, stripe_customer_id, current_period_end, no_training_on_student_data")
     .eq("id", user.id)
     .maybeSingle();
@@ -30,7 +30,7 @@ async function ensureProfile(supabase, user) {
   if (data) return data;
 
   const { data: inserted, error: insertError } = await supabase
-    .from("relay_profiles")
+    .from("classloop_profiles")
     .insert({
       id: user.id,
       email: user.email || "",
@@ -65,7 +65,7 @@ export default async function handler(request, response) {
       if (!Object.keys(allowed).length) return json(response, 400, { error: "No supported profile updates were provided." });
 
       const { data, error } = await supabase
-        .from("relay_profiles")
+        .from("classloop_profiles")
         .upsert({ id: user.id, email: user.email || "", ...allowed, updated_at: new Date().toISOString() })
         .select("email, role, plan_tier, subscription_status, stripe_customer_id, current_period_end, no_training_on_student_data")
         .single();

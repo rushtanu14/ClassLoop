@@ -8,7 +8,6 @@ const rootDir = path.resolve(__dirname, "..");
 const protectedHandlers = [
   { rel: "api/cloud-state.js", method: "GET", label: "cloud sync read" },
   { rel: "api/profile.js", method: "GET", label: "profile/auth read" },
-  { rel: "api/feedback.js", method: "POST", body: { rating: 5, note: "drill" }, label: "pilot feedback write" },
   { rel: "api/billing/checkout.js", method: "POST", label: "billing checkout" },
   { rel: "api/billing/portal.js", method: "POST", label: "billing portal" },
 ];
@@ -53,7 +52,7 @@ function mockRequest({ method = "GET", headers = {}, body } = {}) {
   return {
     method,
     headers: {
-      host: "relay-drill.local",
+      host: "classloop-drill.local",
       "x-forwarded-proto": "https",
       ...headers,
     },
@@ -125,6 +124,19 @@ async function verifyApiFailClosed() {
     console.log(`PASS ${handler.label} fails closed with clear auth message`);
   }
 
+  const feedbackResponse = await callHandler("api/feedback.js", {
+    method: "POST",
+    body: { rating: 5, note: "drill", role: "student", source: "incident_drill", transcript: "Drill transcript" },
+  });
+  const feedbackPayload = feedbackResponse.json();
+  if (feedbackResponse.statusCode !== 503) {
+    fail(`product feedback write should fail closed with 503 when hosted credentials are unavailable; got ${feedbackResponse.statusCode}.`);
+  }
+  if (!/missing supabase/i.test(feedbackPayload.error || "")) {
+    fail(`product feedback outage copy should explain missing hosted credentials: ${JSON.stringify(feedbackPayload)}`);
+  }
+  console.log("PASS product feedback write fails closed when hosted credentials are missing");
+
   const configResponse = await callHandler("api/config.js", { method: "GET" });
   const config = configResponse.json();
   if (configResponse.statusCode !== 200) fail(`/api/config should remain readable during credential outages.`);
@@ -152,12 +164,13 @@ async function verifyApiFailClosed() {
 function verifySupabaseSchema() {
   const schema = fs.readFileSync(path.join(rootDir, "supabase", "schema.sql"), "utf8");
   const checks = [
-    ["profiles table", /create table if not exists public\.relay_profiles/i],
-    ["workspace state table", /create table if not exists public\.relay_workspace_state/i],
-    ["pilot feedback table", /create table if not exists public\.relay_pilot_feedback/i],
-    ["profile RLS", /alter table public\.relay_profiles enable row level security/i],
-    ["workspace RLS", /alter table public\.relay_workspace_state enable row level security/i],
-    ["feedback RLS", /alter table public\.relay_pilot_feedback enable row level security/i],
+    ["profiles table", /create table if not exists public\.classloop_profiles/i],
+    ["workspace state table", /create table if not exists public\.classloop_workspace_state/i],
+    ["pilot feedback table", /create table if not exists public\.classloop_pilot_feedback/i],
+    ["transcript-attached feedback column", /classloop_pilot_feedback add column if not exists transcript text not null default ''/i],
+    ["profile RLS", /alter table public\.classloop_profiles enable row level security/i],
+    ["workspace RLS", /alter table public\.classloop_workspace_state enable row level security/i],
+    ["feedback RLS", /alter table public\.classloop_pilot_feedback enable row level security/i],
     ["own-profile policy", /profiles_select_own/i],
     ["own-workspace policy", /workspace_state_select_own/i],
     ["own-feedback policy", /feedback_insert_own/i],

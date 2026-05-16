@@ -1,10 +1,10 @@
-# Relay Alpha Usage Runbook
+# ClassLoop Alpha Usage Runbook
 
 This runbook is for a 1-2 day teacher alpha focused on usability, interpretation quality, false positives, and support burden.
 
 ## Goal
 
-Validate whether teachers can use Relay with their own classroom artifacts and whether the generated review workflow is trustworthy enough to keep testing.
+Validate whether teachers can use ClassLoop with their own classroom artifacts and whether the generated review workflow is trustworthy enough to keep testing.
 
 Primary questions:
 
@@ -36,7 +36,7 @@ Recommended participant mix:
 
 1. Send each teacher the current desktop build or hosted demo link.
 2. Share [alpha/teacher-alpha-script.md](alpha/teacher-alpha-script.md).
-3. Prepare one row per teacher in [alpha/relay-alpha-tracker.csv](alpha/relay-alpha-tracker.csv).
+3. Prepare one row per teacher in [alpha/classloop-alpha-tracker.csv](alpha/classloop-alpha-tracker.csv).
 4. Ask each teacher to bring:
    - transcript, meeting notes, or pasted class notes
    - roster CSV or pasted roster
@@ -78,11 +78,11 @@ Focus on repeat use:
 - CSV import/export
 - student dashboard interpretation
 - report export
-- whether the teacher would use Relay again next week
+- whether the teacher would use ClassLoop again next week
 
 ## Metrics
 
-Track these in [alpha/relay-alpha-tracker.csv](alpha/relay-alpha-tracker.csv).
+Track these in [alpha/classloop-alpha-tracker.csv](alpha/classloop-alpha-tracker.csv).
 
 - `time_to_first_draft_minutes`
 - `time_to_publish_or_preview_minutes`
@@ -121,3 +121,12 @@ After each day, use [alpha/day-end-synthesis-template.md](alpha/day-end-synthesi
 - interpretation quality issues
 - support burden hotspots
 - product fixes before the next alpha round
+
+## Public Transcript Proxy
+
+If live teacher observations are unavailable, keep proxy data separate from the real tracker:
+
+- [alpha/public-proxy-alpha-tracker.csv](alpha/public-proxy-alpha-tracker.csv)
+- [alpha/public-proxy-synthesis-2026-05-15.md](alpha/public-proxy-synthesis-2026-05-15.md)
+
+Proxy rows can use public Zoom/classroom/chat transcripts to stress-test interpretation, speaker matching, participation detection, and support burden. Do not treat proxy rows as real teacher field feedback.

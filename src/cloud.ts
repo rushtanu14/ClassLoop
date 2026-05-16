@@ -64,7 +64,7 @@ export const planCatalog = [
 const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? {};
 const supabaseUrl = viteEnv.VITE_SUPABASE_URL;
 const supabaseAnonKey = viteEnv.VITE_SUPABASE_ANON_KEY;
-const offlineQueueKey = "relay:cloud-offline-queue:v1";
+const offlineQueueKey = "classloop:cloud-offline-queue:v1";
 
 let supabaseClient: SupabaseClient | null = null;
 

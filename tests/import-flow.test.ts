@@ -196,14 +196,14 @@ const scratchStressRoster = `Scratch Club roster export
 Facilitator: Rushil Agrawal
 Name,Email,Aliases
 
-Mina Park,mina@relay.test,Mina P; Mina Laptop
-Owen Brooks,owen@relay.test,O Brooks
-Aarav Singh,aarav@relay.test,Aarav S
-Nia Johnson,nia@relay.test,Nia J; Nia Chromebook
-Sam Rivera,sam@relay.test,Sam R
-Leah Kim,leah@relay.test,Leah K
-Mina Park,mina@relay.test,Mina duplicate alias
-,blank-name@relay.test
+Mina Park,mina@classloop.test,Mina P; Mina Laptop
+Owen Brooks,owen@classloop.test,O Brooks
+Aarav Singh,aarav@classloop.test,Aarav S
+Nia Johnson,nia@classloop.test,Nia J; Nia Chromebook
+Sam Rivera,sam@classloop.test,Sam R
+Leah Kim,leah@classloop.test,Leah K
+Mina Park,mina@classloop.test,Mina duplicate alias
+,blank-name@classloop.test
 Malformed row with no deliverable email`;
 
 const scratchStressTranscript = `CS4ALL/Scratch Club Monday reconstructed transcript
@@ -240,6 +240,22 @@ const zoomDottedVttTranscript = `WEBVTT
 const genericSpeakerLabelsTranscript = `Participant - Aaliyah Carter: I can explain decomposition.
 Attendee (Danny Reyes): I think the recipe is an algorithm.
 User (Jalen Thompson): Does the reflection count as homework?`;
+
+const publicProxyGenericClassroomTranscript = `STUDENT: I think we can divide both sides by the same number.
+STUDENT: But I am not sure whose equation that is.
+TEACHER: Keep this as a class-level discussion until speakers are linked.`;
+
+const publicProxyNoisyZoomTranscript = `Maya Chen: um okay like so the triangle thing is uh kind of there but the audio unclear and I think the side um like yeah because it is maybe same same.
+Jordan Lee: uh yeah okay like I was saying the number is kind of there and the transcript unclear so maybe homework maybe no.
+Teacher: [inaudible] finish the practice when the recording makes sense.`;
+
+const publicProxyChatOnlyTranscript = `[Chat] Maya Chen: hello
+[Chat] Maya Chen: resource link https://example.com/public-proxy-resource
+[Chat] Jordan Lee: Can you share the slides after class?
+[Chat] Priya Shah: my wifi dropped can you hear me?
+[Chat] Staff Host: Here is the registration link for adults.
+[Chat] AI Notetaker: joined the meeting.
+[Direct Message] Maya Chen to Staff Host: private follow-up`;
 
 const expectedStudents = [
   ["Aaliyah Carter", "acarter@cs4all.nyc"],
@@ -349,6 +365,90 @@ Jalen Thompson, jthompson@cs4all.nyc`,
   assert(transcriptSession.participationEvents.length > 0, `${name} should create participation events`);
 });
 
+const publicProxyGenericSession = createGeneratedSession({
+  title: "Public proxy generic classroom transcript",
+  template: "Math review",
+  transcript: publicProxyGenericClassroomTranscript,
+  notes: "",
+  roster: `Maya Chen, maya@classloop.test
+Jordan Lee, jordan@classloop.test`,
+  resources: "",
+});
+assert(
+  publicProxyGenericSession.importWarnings?.some(
+    (warning) => warning.id === "generic-speaker-labels" && warning.severity === "blocking",
+  ) ?? false,
+  "public proxy generic student labels should create a blocking import warning",
+);
+assertEqual(
+  publicProxyGenericSession.participationEvents.length,
+  0,
+  "generic student labels should not create roster-attributed participation events before linking",
+);
+
+const publicProxyNoisySession = createGeneratedSession({
+  title: "Public proxy noisy Zoom ASR transcript",
+  template: "General classroom",
+  transcript: publicProxyNoisyZoomTranscript,
+  notes: "",
+  roster: `Maya Chen, maya@classloop.test
+Jordan Lee, jordan@classloop.test`,
+  resources: "",
+});
+assert(
+  publicProxyNoisySession.importWarnings?.some((warning) => warning.id === "noisy-asr" && warning.severity === "blocking") ??
+    false,
+  "noisy public Zoom-style ASR should create a blocking review warning",
+);
+assert(
+  publicProxyNoisySession.participationEvents.every((event) => !event.approved && event.reviewRequired && event.sourceLine),
+  "noisy ASR participation should stay unapproved and show source-line evidence",
+);
+assert(
+  publicProxyNoisySession.followUps.every((followUp) => !followUp.tasks.some((task) => /your question|idea you contributed/i.test(task))),
+  "unapproved noisy-ASR signals should not personalize student follow-up tasks by default",
+);
+
+const publicProxyChatSession = createGeneratedSession({
+  title: "Public proxy Zoom chat transcript",
+  template: "General classroom",
+  transcript: publicProxyChatOnlyTranscript,
+  notes: "",
+  roster: `Maya Chen, maya@classloop.test
+Jordan Lee, jordan@classloop.test
+Priya Shah, priya@classloop.test`,
+  resources: "",
+});
+assert(
+  publicProxyChatSession.importWarnings?.some((warning) => warning.id === "chat-only" && warning.severity === "warning") ?? false,
+  "chat-only public transcript proxy should create a review warning",
+);
+assert(
+  publicProxyChatSession.importWarnings?.some((warning) => warning.id === "private-chat-artifacts") ?? false,
+  "private Zoom chat artifacts should be reported as ignored",
+);
+assert(
+  publicProxyChatSession.importWarnings?.some((warning) => warning.id === "staff-or-bot-speakers") ?? false,
+  "staff and bot chat speakers should be filtered and reported",
+);
+assertEqual(
+  publicProxyChatSession.unmatchedParticipants?.length ?? 0,
+  0,
+  "staff, bot, and private chat artifacts should not create unmatched student speakers",
+);
+assert(
+  publicProxyChatSession.resources.some((resource) => resource.url === "https://example.com/public-proxy-resource"),
+  "chat-only proxy should still extract resource links",
+);
+assert(
+  publicProxyChatSession.participationEvents.every((event) => !event.approved && event.reviewRequired && event.sourceLine),
+  "chat-only participation signals should stay unapproved with source-line evidence",
+);
+assert(
+  !publicProxyChatSession.participationEvents.some((event) => /hello|wifi|can you hear/i.test(event.text)),
+  "greetings and technical-access chat lines should not become participation events",
+);
+
 const malformedRosterSession = createGeneratedSession({
   title: "Malformed roster and alias handling",
   template: "General classroom",
@@ -359,12 +459,12 @@ Jordan Alt: I can revise the exit ticket tonight.`,
   notes: "",
   roster: `Name,Email,Aliases
 
-Maya Chen,maya@relay.test,Maya C; Maya iPad
-Maya Chen,maya@relay.test,Maya Duplicate
-Maya Chen,maya.alt@relay.test,May C Alt
-Jordan Lee,jordan@relay.test,JL
-Jordan Lee,jordan.alt@relay.test,Jordan Alt
-,blank-name@relay.test
+Maya Chen,maya@classloop.test,Maya C; Maya iPad
+Maya Chen,maya@classloop.test,Maya Duplicate
+Maya Chen,maya.alt@classloop.test,May C Alt
+Jordan Lee,jordan@classloop.test,JL
+Jordan Lee,jordan.alt@classloop.test,Jordan Alt
+,blank-name@classloop.test
 Malformed row with no deliverable email
 Teacher: Ms. Rivera`,
   resources: "",
@@ -375,7 +475,7 @@ assertEqual(malformedRosterSession.students.length, 4, "malformed CSV rows shoul
 assertEqual(new Set(malformedEmails).size, 4, "duplicate email rows should merge instead of creating duplicate students");
 assertEqual(new Set(malformedIds).size, 4, "duplicate student names should receive unique ids");
 assert(
-  malformedRosterSession.students.find((student) => student.email === "maya@relay.test")?.aliases?.includes("Maya Duplicate") ?? false,
+  malformedRosterSession.students.find((student) => student.email === "maya@classloop.test")?.aliases?.includes("Maya Duplicate") ?? false,
   "duplicate email rows should merge alternate aliases onto the kept student",
 );
 assertEqual(
@@ -385,7 +485,7 @@ assertEqual(
 );
 assert(
   malformedRosterSession.participationEvents.some(
-    (event) => event.studentId === malformedRosterSession.students.find((student) => student.email === "jordan@relay.test")?.id,
+    (event) => event.studentId === malformedRosterSession.students.find((student) => student.email === "jordan@classloop.test")?.id,
   ),
   "alias-only transcript speakers should still create participation events for the linked roster student",
 );
@@ -404,21 +504,21 @@ assertEqual(scratchStressSession.students.length, 6, "Scratch stress roster shou
 assertEqual(scratchStressSession.followUps.length, 6, "Scratch stress import should create follow-ups for every rostered student");
 assertEqual(new Set(scratchStressSession.students.map((student) => student.email)).size, 6, "Scratch stress roster should merge duplicate emails");
 assert(
-  scratchStudentByEmail.get("mina@relay.test")?.aliases?.includes("Mina duplicate alias") ?? false,
+  scratchStudentByEmail.get("mina@classloop.test")?.aliases?.includes("Mina duplicate alias") ?? false,
   "Scratch stress duplicate roster row should merge extra aliases",
 );
-assertEqual(scratchStressSession.attendance[scratchStudentByEmail.get("aarav@relay.test")?.id ?? ""], "absent", "Aarav should be marked absent");
-assertEqual(scratchStressSession.attendance[scratchStudentByEmail.get("leah@relay.test")?.id ?? ""], "late", "Leah should be marked late");
+assertEqual(scratchStressSession.attendance[scratchStudentByEmail.get("aarav@classloop.test")?.id ?? ""], "absent", "Aarav should be marked absent");
+assertEqual(scratchStressSession.attendance[scratchStudentByEmail.get("leah@classloop.test")?.id ?? ""], "late", "Leah should be marked late");
 assert(
   scratchStressSession.participationEvents.some(
-    (event) => event.studentId === scratchStudentByEmail.get("nia@relay.test")?.id && event.type === "quiet",
+    (event) => event.studentId === scratchStudentByEmail.get("nia@classloop.test")?.id && event.type === "quiet",
   ),
   "Scratch stress transcript should create a quiet support signal for Nia",
 );
 assert(
   scratchStressSession.participationEvents.some(
     (event) =>
-      event.studentId === scratchStudentByEmail.get("nia@relay.test")?.id &&
+      event.studentId === scratchStudentByEmail.get("nia@classloop.test")?.id &&
       event.type === "chat" &&
       event.text.includes("Scratch sensing blocks resource"),
   ),
@@ -426,7 +526,7 @@ assert(
 );
 assert(
   scratchStressSession.participationEvents.some(
-    (event) => event.studentId === scratchStudentByEmail.get("sam@relay.test")?.id,
+    (event) => event.studentId === scratchStudentByEmail.get("sam@classloop.test")?.id,
   ),
   "Scratch stress aliases should match chat speakers",
 );
@@ -478,7 +578,7 @@ assert(transcriptOnlyNames.includes("Jalen Thompson"), "transcript-only estimate
 assert(!transcriptOnlyNames.includes("Student (Aaliyah Carter)"), "transcript-only estimates should avoid duplicate generic labels");
 assert(!transcriptOnlyNames.includes("Ms. Rivera"), "transcript-only estimates should exclude teacher-like speakers");
 assert(
-  transcriptOnlySession.students.every((student) => student.email.endsWith("@relay.local")),
+  transcriptOnlySession.students.every((student) => student.email.endsWith("@classloop.local")),
   "transcript-only estimated students should use local placeholder emails until teacher confirmation",
 );
 assertEqual(transcriptOnlySession.followUps.length, 3, "transcript-only estimates should create reviewable follow-ups");
@@ -497,8 +597,8 @@ Leo Martinez: I can email the coordinator.`,
   notes: `Decision made: keep three short stations instead of one long demo.
 Owners: Priya owns demo script; Leo owns coordinator email.
 Next checkpoint: Monday materials list and script draft.`,
-  roster: `Priya Shah, priya@relay.test
-Leo Martinez, leo@relay.test`,
+  roster: `Priya Shah, priya@classloop.test
+Leo Martinez, leo@classloop.test`,
   resources: "",
 });
 const notesUnmatchedNames = (meetingNotesMetadataSession.unmatchedParticipants ?? []).map((participant) => participant.name);
@@ -511,15 +611,15 @@ const complianceLabelSession = createGeneratedSession({
   template: "General classroom",
   transcript: `Ms. Ortiz: Today we are reviewing the ecosystem claim.
 Privacy reminder before recording: do not paste raw student data into support chats.
-Support contact for pilot issues: use relay.donotreply@gmail.com with redacted examples.
+Support contact for pilot issues: use classloop.donotreply@gmail.com with redacted examples.
 Data retention note: draft sessions should be exported before device replacement.
 Maya Chen: I can connect the evidence to population changes.
 Jordan Lee: The resource link helped me revise the claim: https://example.com/legal-baseline).`,
   notes: `Terms note: teacher must review generated follow-ups before publishing.
 EULA note: desktop updates are manual install-over-replace for now.
 Child-appropriate safety note: student views should show only approved follow-ups.`,
-  roster: `Maya Chen, maya@relay.test
-Jordan Lee, jordan@relay.test`,
+  roster: `Maya Chen, maya@classloop.test
+Jordan Lee, jordan@classloop.test`,
   resources: "",
 });
 const complianceUnmatchedNames = (complianceLabelSession.unmatchedParticipants ?? []).map((participant) => participant.name);
@@ -547,8 +647,8 @@ const badTranscriptFormatSession = createGeneratedSession({
 The class reviewed proportional reasoning and the teacher assigned a short reflection due Friday.
 Malformed links should not break parsing: not-a-url, www.example without protocol, https://example.com/reflection-guide.`,
   notes: "Maya needs a check-in; Jordan should redo one proportion.",
-  roster: `Maya Chen, maya@relay.test
-Jordan Lee, jordan@relay.test`,
+  roster: `Maya Chen, maya@classloop.test
+Jordan Lee, jordan@classloop.test`,
   resources: `not a url
 https://example.com/study-guide).`,
 });
@@ -573,7 +673,7 @@ const scaleStudents = Array.from({ length: scaleStudentCount }, (_, index) => {
   const number = `${index + 1}`.padStart(3, "0");
   return {
     name: `Nova Person ${number}`,
-    email: `nova.person.${number}@relay-scale.test`,
+    email: `nova.person.${number}@classloop-scale.test`,
   };
 });
 const scaleRoster = [

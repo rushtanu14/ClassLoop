@@ -81,6 +81,7 @@ import type {
   AttendanceStatus,
   ClassGroup,
   DeliveryLog,
+  ImportQualityWarning,
   ParticipationEvent,
   ParticipationType,
   PublishAuditEntry,
@@ -137,6 +138,7 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 type LandingPageKey = "home" | "features" | "screenshots" | "docs" | "privacy" | "donate" | "download";
+type DesktopInstallerId = "macos" | "windows" | "linux";
 
 type Account = {
   id: string;
@@ -256,6 +258,24 @@ type EmailDeliveryResult = {
 
 type ProductFeedbackSubmitter = (session: Session, student: Student, rating: number, note: string) => Promise<boolean>;
 
+type CelebrationMoment = {
+  id: number;
+  title: string;
+  detail: string;
+};
+
+function detectDesktopInstallerFromBrowser(): DesktopInstallerId | null {
+  if (typeof window === "undefined") return null;
+  const nav = window.navigator as Navigator & { userAgentData?: { platform?: string }; standalone?: boolean };
+  const hints = [nav.userAgentData?.platform, nav.platform, nav.userAgent].filter(Boolean).join(" ").toLowerCase();
+  const touchMac = /mac/.test(String(nav.platform || "").toLowerCase()) && (nav.maxTouchPoints ?? 0) > 1;
+  if (!hints || touchMac || /iphone|ipad|ipod|android|mobile|tablet|cros|chrome os/.test(hints)) return null;
+  if (/win/.test(hints)) return "windows";
+  if (/mac/.test(hints)) return "macos";
+  if (/linux|x11/.test(hints)) return "linux";
+  return null;
+}
+
 const navItems: NavItem[] = [
   { route: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { route: "new-session", label: "New session", icon: PlusCircle },
@@ -290,10 +310,10 @@ const studentNavSections: Array<{ label: string; items: NavItem[] }> = [
 ];
 
 const studentRoutes = new Set<RouteKey>(["student", "student-session", "tutorial", "appearance"]);
-const demoTeacherEmail = "teacher@relay.demo";
-const demoStudentEmail = "maya@relay.demo";
-const teacherPasswordHash = "6418bf0b9c6e86b3692853359bfbf7da7553edce12a60e215ffed83833e29fa1";
-const studentPasswordHash = "d278b06dee12d7297b5c3a189d024b18fb3a1e69aa03769be71b9c153c771b27";
+const demoTeacherEmail = "teacher@classloop.demo";
+const demoStudentEmail = "maya@classloop.demo";
+const teacherPasswordHash = "92d96446c5fa184300fb96631d4ca0b18e536cfab5c0da5eead1edb535190e84";
+const studentPasswordHash = "fecc0c0136b0cc27f320c7bdf5ffb1f6b902f517595f243cfa07999ef9035fe7";
 const demoAccounts: Account[] = [
   {
     id: "demo-teacher",
@@ -386,30 +406,30 @@ const defaultBillingProfile: BillingProfile = {
 };
 
 const secureLocalKeys = {
-  accounts: "relay:secure:accounts:v1",
-  sessions: "relay:secure:sessions:v3",
-  draft: "relay:secure:draft:v3",
-  demoLoaded: "relay:secure:demo-loaded:v1",
-  classGroups: "relay:secure:class-groups:v1",
-  rosterTemplates: "relay:secure:roster-templates:v1",
-  privacySettings: "relay:secure:privacy:v1",
-  auditLog: "relay:secure:audit:v1",
-  billingProfile: "relay:secure:billing:v1",
+  accounts: "classloop:secure:accounts:v1",
+  sessions: "classloop:secure:sessions:v3",
+  draft: "classloop:secure:draft:v3",
+  demoLoaded: "classloop:secure:demo-loaded:v1",
+  classGroups: "classloop:secure:class-groups:v1",
+  rosterTemplates: "classloop:secure:roster-templates:v1",
+  privacySettings: "classloop:secure:privacy:v1",
+  auditLog: "classloop:secure:audit:v1",
+  billingProfile: "classloop:secure:billing:v1",
 };
 
 const legacyLocalKeys = {
-  accounts: "relay:accounts:v1",
-  sessions: "relay:sessions:v3",
-  draft: "relay:draft:v3",
-  demoLoaded: "relay:demo-loaded:v1",
-  classGroups: "relay:class-groups:v1",
-  rosterTemplates: "relay:roster-templates:v1",
-  privacySettings: "relay:privacy:v1",
-  auditLog: "relay:audit:v1",
-  billingProfile: "relay:billing:v1",
+  accounts: "classloop:accounts:v1",
+  sessions: "classloop:sessions:v3",
+  draft: "classloop:draft:v3",
+  demoLoaded: "classloop:demo-loaded:v1",
+  classGroups: "classloop:class-groups:v1",
+  rosterTemplates: "classloop:roster-templates:v1",
+  privacySettings: "classloop:privacy:v1",
+  auditLog: "classloop:audit:v1",
+  billingProfile: "classloop:billing:v1",
 };
 
-const localPreferenceKeys = ["relay:selected-student", "relay:local-storage-key:v1"];
+const localPreferenceKeys = ["classloop:selected-student", "classloop:local-storage-key:v1"];
 
 const themePresets: Record<
   ThemeKey,
@@ -597,14 +617,14 @@ function localDayKey(dateInput?: string | Date) {
 function studentEmailRecipients(session: Session) {
   return session.students
     .map((student) => studentAccessEmails(student)[0] ?? "")
-    .filter((email) => email && !email.endsWith("@relay.local"));
+    .filter((email) => email && !email.endsWith("@classloop.local"));
 }
 
 function studentsWithoutDeliverableEmail(session: Session) {
   return session.students
     .filter((student) => {
       const email = normalizeEmail(student.linkedAccountEmail || student.email);
-      return !email || email.endsWith("@relay.local");
+      return !email || email.endsWith("@classloop.local");
     })
     .map((student) => student.name);
 }
@@ -686,9 +706,10 @@ async function sendProductFeedbackToCreator(payload: {
   note: string;
   role: AuthRole;
   source: "student_followup_popup";
+  transcript: string;
   metadata: Record<string, string | number | boolean>;
 }) {
-  const feedbackEndpoint = (import.meta.env.VITE_RELAY_PRODUCT_FEEDBACK_URL as string | undefined)?.trim() || "/api/feedback";
+  const feedbackEndpoint = (import.meta.env.VITE_CLASSLOOP_PRODUCT_FEEDBACK_URL as string | undefined)?.trim() || "/api/feedback";
   const response = await fetch(feedbackEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -813,7 +834,7 @@ function makeRosterStudent(name: string, email = "", index = 0, aliases: string[
   return {
     id,
     name: cleanName,
-    email: normalizeEmail(email || `${slugify(cleanName, `student-${index + 1}`)}@relay.local`),
+    email: normalizeEmail(email || `${slugify(cleanName, `student-${index + 1}`)}@classloop.local`),
     avatarColor: rosterAvatarColors[index % rosterAvatarColors.length],
     aliases: uniqueText(aliases),
   };
@@ -847,7 +868,7 @@ function syncSessionRoster(session: Session, students: Student[]): Session {
     .map((student, index) => ({
       ...student,
       name: student.name.trim() || `Student ${index + 1}`,
-      email: normalizeEmail(student.email || `${slugify(student.name || `student-${index + 1}`, `student-${index + 1}`)}@relay.local`),
+      email: normalizeEmail(student.email || `${slugify(student.name || `student-${index + 1}`, `student-${index + 1}`)}@classloop.local`),
       avatarColor: student.avatarColor || rosterAvatarColors[index % rosterAvatarColors.length],
       aliases: uniqueText(student.aliases ?? []),
     }));
@@ -917,6 +938,7 @@ function participantEventsFor(session: Session, participantName: string, student
         text,
         confidence: 0.84,
         approved: !existingTexts.has(`${studentId}:${text}`),
+        sourceLine: line.line,
       };
     })
     .filter((event) => event.approved);
@@ -949,7 +971,7 @@ function resolveParticipant(session: Session, participant: UnmatchedParticipant,
             catchUp:
               currentFollowUp?.catchUp && currentFollowUp.catchUp !== "You were added to this session roster. Use the recap, resources, and tasks to stay current."
                 ? currentFollowUp.catchUp
-                : "Relay matched this transcript speaker to the roster and connected their participation to this dashboard.",
+                : "ClassLoop matched this transcript speaker to the roster and connected their participation to this dashboard.",
             score: Math.max(followUp.score, nextEvents.length ? 72 : followUp.score),
           }
         : followUp,
@@ -1038,7 +1060,7 @@ function base64ToBytes(value: string) {
 }
 
 async function localStorageCryptoKey() {
-  const keyName = "relay:local-storage-key:v1";
+  const keyName = "classloop:local-storage-key:v1";
   let raw = localStorage.getItem(keyName);
   if (!raw) {
     const bytes = crypto.getRandomValues(new Uint8Array(32));
@@ -1124,7 +1146,7 @@ async function readLocalStateFallback(): Promise<SharedState> {
   });
 }
 
-function clearRelayLocalPersistence() {
+function clearClassLoopLocalPersistence() {
   [...Object.values(secureLocalKeys), ...Object.values(legacyLocalKeys), ...localPreferenceKeys].forEach((key) => {
     localStorage.removeItem(key);
   });
@@ -1170,7 +1192,7 @@ async function writeLocalStateFallback(
 ) {
   const persistable = persistableSharedState(state);
   if (!hasPersistableUserData(persistable)) {
-    clearRelayLocalPersistence();
+    clearClassLoopLocalPersistence();
     return;
   }
   await Promise.all([
@@ -1415,7 +1437,7 @@ function App() {
   const [accounts, setAccounts] = useState<Account[]>(demoAccounts);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [draft, setDraft] = useState<Session | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>(() => localStorage.getItem("relay:selected-student") ?? "maya");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(() => localStorage.getItem("classloop:selected-student") ?? "maya");
   const [auth, setAuth] = useState<AuthSession | null>(null);
   const [theme, setTheme] = useState<ThemeSettings>(defaultTheme);
   const [demoLoaded, setDemoLoaded] = useState(false);
@@ -1434,6 +1456,7 @@ function App() {
   const [publicDemoOnly] = useState(() => isPublicHostedDemo() || isDemoOnlyOverride());
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connecting");
   const [passwordResetCodes, setPasswordResetCodes] = useState<Record<string, PasswordResetRecord>>({});
+  const [celebrationMoment, setCelebrationMoment] = useState<CelebrationMoment | null>(null);
   const serverSyncRef = useRef(false);
   const demoSessionRef = useRef(false);
   const isSavingRef = useRef(false);
@@ -1464,7 +1487,7 @@ function App() {
   useEffect(() => {
     let active = true;
     if (publicDemoOnly) {
-      clearRelayLocalPersistence();
+      clearClassLoopLocalPersistence();
       setAccounts(demoAccounts);
       setSessions([]);
       setDraft(null);
@@ -1545,7 +1568,7 @@ function App() {
 
   useEffect(() => {
     if (publicDemoOnly || auth?.demo) return;
-    localStorage.setItem("relay:selected-student", selectedStudentId);
+    localStorage.setItem("classloop:selected-student", selectedStudentId);
   }, [auth?.demo, publicDemoOnly, selectedStudentId]);
 
   useEffect(() => {
@@ -1764,6 +1787,9 @@ function App() {
     (visibleDraft && localDayKey(visibleDraft.date) === todayKey ? 1 : 0);
   const freeLimitReached = !hasPaidAccess && freeSessionsToday >= 1;
   const activeAccount = auth ? accounts.find((account) => account.id === auth.accountId) : undefined;
+  const triggerCelebration = (title: string, detail: string) => {
+    setCelebrationMoment({ id: Date.now(), title, detail });
+  };
 
   const updateSession = (session: Session) => {
     setSessions((current) => {
@@ -1916,6 +1942,11 @@ function App() {
   const publishDraft = (sessionOverride?: Session) => {
     if (!visibleDraft || !auth) return;
     const source = sessionOverride ?? visibleDraft;
+    if (unresolvedBlockingImportWarnings(source).length) {
+      setDraft(source);
+      navigate("review", { session: source.id });
+      return;
+    }
     const published = {
       ...source,
       ownerEmail: auth.email,
@@ -1933,6 +1964,7 @@ function App() {
     updateSession(published);
     setDraft(published);
     appendAudit("publish_session", `Published ${published.title}.`);
+    triggerCelebration("Published to students", "Student follow-ups are live in their dashboards.");
     if (
       published.students.length > 0 &&
       !teacherRosterTemplates.some((template) => template.sessionType === published.type)
@@ -1969,12 +2001,14 @@ function App() {
         note: trimmedNote,
         role: "student",
         source: "student_followup_popup",
+        transcript: session.transcript,
         metadata: {
           sessionType: session.type,
           sessionStatus: session.status,
           followUpStatus: followUp?.status ?? "unknown",
           taskCount: followUp?.tasks.length ?? 0,
           resourceCount: session.resources.length,
+          transcriptCharacters: session.transcript.length,
           completedFollowUp: true,
         },
       });
@@ -2249,7 +2283,7 @@ function App() {
   }
 
   if (!sharedReady || authLoading) {
-    return <AppLoader message={authLoading ? "Opening your workspace" : "Loading Relay"} />;
+    return <AppLoader message={authLoading ? "Opening your workspace" : "Loading ClassLoop"} />;
   }
 
   if (!auth) {
@@ -2331,6 +2365,9 @@ function App() {
           <ImportSession
             ownerEmail={auth.email}
             setDraft={setDraft}
+            onDraftCreated={(session) =>
+              triggerCelebration("New session draft created", `${session.title} is ready for teacher review.`)
+            }
             onUseDemo={() => setDemoLoaded(true)}
             recordingConsentRequired={privacySettings.recordingConsentRequired}
             rosterTemplates={teacherRosterTemplates}
@@ -2467,7 +2504,42 @@ function App() {
           }}
         />
       )}
+      {celebrationMoment && (
+        <CelebrationMomentToast
+          moment={celebrationMoment}
+          onDone={() => setCelebrationMoment(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function CelebrationMomentToast({
+  moment,
+  onDone,
+}: {
+  moment: CelebrationMoment;
+  onDone: () => void;
+}) {
+  useEffect(() => {
+    const timer = window.setTimeout(onDone, 2600);
+    return () => window.clearTimeout(timer);
+  }, [moment.id, onDone]);
+
+  return createPortal(
+    <section className="celebration-toast" role="status" aria-live="polite">
+      <span className="confetti-burst" aria-hidden="true">
+        {Array.from({ length: 14 }).map((_, index) => (
+          <span key={index} className="confetti-piece" />
+        ))}
+      </span>
+      <Sparkles size={20} />
+      <span className="celebration-copy">
+        <strong>{moment.title}</strong>
+        <small>{moment.detail}</small>
+      </span>
+    </section>,
+    document.body,
   );
 }
 
@@ -2485,29 +2557,38 @@ function LandingPage({
   const [donationMessage, setDonationMessage] = useState("");
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandaloneMobile, setIsStandaloneMobile] = useState(false);
-  const donationUrl = (import.meta.env.VITE_RELAY_DONATE_URL as string | undefined)?.trim();
-  const downloadOptions = [
+  const [showDesktopInstallerChoices, setShowDesktopInstallerChoices] = useState(false);
+  const [detectedInstallerId] = useState<DesktopInstallerId | null>(() => detectDesktopInstallerFromBrowser());
+  const donationUrl = (import.meta.env.VITE_CLASSLOOP_DONATE_URL as string | undefined)?.trim();
+  const checksumUrl = (import.meta.env.VITE_CLASSLOOP_CHECKSUMS_URL as string | undefined)?.trim();
+  const downloadOptions: Array<{
+    id: DesktopInstallerId;
+    label: string;
+    helper: string;
+    url?: string;
+  }> = [
     {
       id: "macos",
       label: "macOS",
       helper: "Apple silicon and Intel Macs",
-      url: (import.meta.env.VITE_RELAY_MAC_DOWNLOAD_URL as string | undefined)?.trim(),
+      url: (import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL as string | undefined)?.trim(),
     },
     {
       id: "windows",
       label: "Windows",
       helper: "Windows 10 or newer",
-      url: (import.meta.env.VITE_RELAY_WINDOWS_DOWNLOAD_URL as string | undefined)?.trim(),
+      url: (import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL as string | undefined)?.trim(),
     },
     {
       id: "linux",
       label: "Linux",
       helper: "AppImage or Debian package",
-      url: (import.meta.env.VITE_RELAY_LINUX_DOWNLOAD_URL as string | undefined)?.trim(),
+      url: (import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL as string | undefined)?.trim(),
     },
   ];
   const availableDownloads = downloadOptions.filter((option) => option.url);
-  const primaryDownload = downloadOptions[0];
+  const detectedDownload = downloadOptions.find((option) => option.id === detectedInstallerId) ?? null;
+  const fallbackDownload = detectedDownload ?? downloadOptions[0];
   const downloadButtonLabel = (option: (typeof downloadOptions)[number]) =>
     option.url ? `Download ${option.label}` : `${option.label} packaging pending`;
   const publicNav: Array<{ page: LandingPageKey; label: string }> = [
@@ -2525,7 +2606,7 @@ function LandingPage({
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 0);
   };
 
-  const handleDownload = (option = primaryDownload) => {
+  const handleDownload = (option = fallbackDownload) => {
     if (option.url) {
       window.location.href = option.url;
       return;
@@ -2556,14 +2637,14 @@ function LandingPage({
       setInstallPrompt(null);
       setMobileMessage(
         choice.outcome === "accepted"
-          ? "Relay is ready to open from your phone home screen."
-          : "You can still add Relay from your browser share menu or install menu.",
+          ? "ClassLoop is ready to open from your phone home screen."
+          : "You can still add ClassLoop from your browser share menu or install menu.",
       );
       return;
     }
     setMobileMessage(
       isStandaloneMobile
-        ? "Relay is already running like an app on this device."
+        ? "ClassLoop is already running like an app on this device."
         : "On iPhone, tap Share then Add to Home Screen. On Android, open the browser menu and choose Install app.",
     );
   };
@@ -2579,11 +2660,11 @@ function LandingPage({
     const beforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
-      setMobileMessage("Relay can be added to this device for faster access.");
+      setMobileMessage("ClassLoop can be added to this device for faster access.");
     };
     const installed = () => {
       setInstallPrompt(null);
-      setMobileMessage("Relay was added to this device.");
+      setMobileMessage("ClassLoop was added to this device.");
       updateDisplayMode();
     };
     updateDisplayMode();
@@ -2599,12 +2680,12 @@ function LandingPage({
 
   return (
     <main className={`landing-page landing-page-${page}`}>
-      <nav className="landing-nav" aria-label="Relay public navigation">
+      <nav className="landing-nav" aria-label="ClassLoop public navigation">
         <button className="landing-brand" type="button" onClick={() => goToPage("home")}>
           <span className="brand-mark">
             <BrainCircuit size={24} />
           </span>
-          <span>Relay</span>
+          <span>ClassLoop</span>
         </button>
         <div className="landing-links">
           {publicNav.slice(1).map((item) => (
@@ -2632,7 +2713,7 @@ function LandingPage({
                 <div className="landing-icon" aria-hidden="true">
                   <Sparkles size={38} />
                 </div>
-                <h1>Relay</h1>
+                <h1>ClassLoop</h1>
                 <p>
                   Turn transcripts, rosters, notes, and links into reviewed student follow-ups without making teachers
                   rebuild the same classroom context by hand.
@@ -2642,6 +2723,10 @@ function LandingPage({
                     <PlayCircle size={20} />
                     Open web demo
                   </button>
+                  <button className="landing-secondary" type="button" onClick={handleMobileInstall}>
+                    <Smartphone size={20} />
+                    Add to phone
+                  </button>
                   <button className="landing-secondary quiet" type="button" onClick={() => goToPage("screenshots")}>
                     <Eye size={20} />
                     View screenshots
@@ -2649,15 +2734,15 @@ function LandingPage({
                 </div>
               </div>
               <button className="landing-screenshot-preview" type="button" onClick={() => goToPage("screenshots")}>
-                <span className="landing-screenshot-label">Actual Relay workflow preview</span>
+                <span className="landing-screenshot-label">Actual ClassLoop workflow preview</span>
                 <img
-                  src="/screenshots/relay-import-review.svg"
-                  alt="Relay teacher import and review screen showing transcript, roster matching, and student follow-up cards"
+                  src="/screenshots/classloop-import-review.svg"
+                  alt="ClassLoop teacher import and review screen showing transcript, roster matching, and student follow-up cards"
                 />
               </button>
             </section>
 
-            <section className="landing-home-paths" aria-label="Relay website sections">
+            <section className="landing-home-paths" aria-label="ClassLoop website sections">
               <article>
                 <strong>See the app</strong>
                 <p>Open a screenshot gallery for the teacher import flow, student dashboard, and private analytics.</p>
@@ -2677,11 +2762,11 @@ function LandingPage({
             <header className="landing-page-header">
               <h1>Features for classroom continuity.</h1>
               <p>
-                Relay is built around the teacher workflow after class: gather the messy record, clean it up,
+                ClassLoop is built around the teacher workflow after class: gather the messy record, clean it up,
                 publish specific follow-through, and see what needs attention next.
               </p>
             </header>
-            <section className="landing-feature-matrix" aria-label="Relay feature matrix">
+            <section className="landing-feature-matrix" aria-label="ClassLoop feature matrix">
               {([
                 ["Transcript intelligence", "Speaker cleanup, roster matching, unmatched participants, participation confidence, and teacher review states.", MessageSquare],
                 ["Reusable rosters", "Saved class groups and roster templates reduce repeated setup across sessions.", Users],
@@ -2697,10 +2782,10 @@ function LandingPage({
                 </article>
               ))}
             </section>
-            <section className="landing-workflow-list" aria-label="Relay workflow">
+            <section className="landing-workflow-list" aria-label="ClassLoop workflow">
               {[
                 ["Import", "Paste transcript, roster, notes, and links."],
-                ["Normalize", "Relay extracts speakers, resources, tasks, and likely student matches."],
+                ["Normalize", "ClassLoop extracts speakers, resources, tasks, and likely student matches."],
                 ["Review", "Teacher edits before anything reaches students."],
                 ["Publish", "Student dashboards update with only the relevant follow-up."],
               ].map(([title, body], index) => (
@@ -2719,31 +2804,31 @@ function LandingPage({
         {page === "screenshots" && (
           <>
             <header className="landing-page-header compact">
-              <h1>Screenshots: how Relay works.</h1>
+              <h1>Screenshots: how ClassLoop works.</h1>
               <p>
                 Three focused views show the core product story: teachers import class records, students receive
                 clear next steps, and teachers use private analytics to decide who needs support.
               </p>
             </header>
-            <section className="landing-screenshot-gallery" aria-label="Relay screenshots">
+            <section className="landing-screenshot-gallery" aria-label="ClassLoop screenshots">
               {[
                 {
                   title: "Teacher import and review",
-                  body: "Relay turns a transcript, roster, notes, and links into a reviewable draft. The teacher edits the recap, confirms tasks, and publishes only when it is ready.",
-                  src: "/screenshots/relay-import-review.svg",
-                  alt: "Relay teacher import and review screen with transcript inputs, roster matching, and follow-up cards",
+                  body: "ClassLoop turns a transcript, roster, notes, and links into a reviewable draft. The teacher edits the recap, confirms tasks, and publishes only when it is ready.",
+                  src: "/screenshots/classloop-import-review.svg",
+                  alt: "ClassLoop teacher import and review screen with transcript inputs, roster matching, and follow-up cards",
                 },
                 {
                   title: "Student follow-up dashboard",
                   body: "Students see the recap, tasks, resources, due dates, and completion check-ins that apply to them—without the full teacher workspace.",
-                  src: "/screenshots/relay-student-dashboard.svg",
-                  alt: "Relay student dashboard with recap, assigned next steps, resources, and check-in progress",
+                  src: "/screenshots/classloop-student-dashboard.svg",
+                  alt: "ClassLoop student dashboard with recap, assigned next steps, resources, and check-in progress",
                 },
                 {
                   title: "Private teacher analytics",
                   body: "Teachers can review participation, quiet students, overdue work, and resource engagement as support signals, not public rankings.",
-                  src: "/screenshots/relay-analytics.svg",
-                  alt: "Relay teacher analytics screen showing participation, quiet students, overdue tasks, and resource signals",
+                  src: "/screenshots/classloop-analytics.svg",
+                  alt: "ClassLoop teacher analytics screen showing participation, quiet students, overdue tasks, and resource signals",
                 },
               ].map((shot) => (
                 <article key={shot.title} className="landing-screenshot-card">
@@ -2755,7 +2840,7 @@ function LandingPage({
                 </article>
               ))}
             </section>
-            <section className="landing-workflow-strip" aria-label="Relay workflow summary">
+            <section className="landing-workflow-strip" aria-label="ClassLoop workflow summary">
               {[
                 ["Import", "Paste or upload transcript, roster, notes, and resources."],
                 ["Review", "Approve speaker matching, recap, action items, and resources."],
@@ -2775,15 +2860,15 @@ function LandingPage({
         {page === "docs" && (
           <>
             <header className="landing-page-header">
-              <h1>Relay docs.</h1>
+              <h1>ClassLoop docs.</h1>
               <p>
                 Practical setup notes for teachers, testers, and future contributors. No magic required:
                 paste reliable inputs first, then add hosted sync only when it is configured.
               </p>
             </header>
-            <section className="landing-docs-layout" aria-label="Relay documentation">
+            <section className="landing-docs-layout" aria-label="ClassLoop documentation">
               <aside className="landing-docs-index" aria-label="Documentation index">
-                {["Quick start", "Import formats", "Publishing", "Mobile access", "Release setup"].map((item) => (
+                {["Quick start", "Import formats", "Publishing", "Mobile access", "Free install", "Release setup"].map((item) => (
                   <span key={item}>{item}</span>
                 ))}
               </aside>
@@ -2795,7 +2880,7 @@ function LandingPage({
                 </article>
                 <article className="landing-doc-section">
                   <h2>Import formats</h2>
-                  <p>Relay accepts Zoom-style transcript lines, pasted rosters, CSV rows, compressed numbered rosters, notes, and resource URLs.</p>
+                  <p>ClassLoop accepts Zoom-style transcript lines, pasted rosters, CSV rows, compressed numbered rosters, notes, and resource URLs.</p>
                   <code>Student (Aaliyah Carter): Wait do we write it in a doc?</code>
                 </article>
                 <article className="landing-doc-section">
@@ -2804,12 +2889,17 @@ function LandingPage({
                 </article>
                 <article className="landing-doc-section">
                   <h2>Mobile access</h2>
-                  <p>The hosted shell includes a manifest and service worker, so students can add Relay to a phone home screen from the browser menu.</p>
+                  <p>The hosted shell includes a manifest and service worker, so students can add ClassLoop to a phone home screen from the browser menu.</p>
+                </article>
+                <article className="landing-doc-section">
+                  <h2>Free desktop install</h2>
+                  <p>ClassLoop can ship as a free unsigned/ad-hoc desktop build. Publish checksums with the installer and label macOS builds honestly so users expect the Open Anyway prompt.</p>
+                  <code>npm run package:mac && npm run release:checksums</code>
                 </article>
                 <article className="landing-doc-section">
                   <h2>Release setup</h2>
-                  <p>Set platform download URLs only after signed installers are ready. Missing URLs stay visibly marked as packaging pending.</p>
-                  <code>VITE_RELAY_MAC_DOWNLOAD_URL=https://...</code>
+                  <p>Set platform download URLs after the installer is uploaded. Missing URLs stay visibly marked as packaging pending, and checksums can be linked separately.</p>
+                  <code>VITE_CLASSLOOP_MAC_DOWNLOAD_URL=https://...</code>
                 </article>
               </div>
             </section>
@@ -2821,11 +2911,11 @@ function LandingPage({
             <header className="landing-page-header">
               <h1>Privacy controls before polish.</h1>
               <p>
-                Relay handles classroom records, so the product is designed around teacher review, local desktop storage,
+                ClassLoop handles classroom records, so the product is designed around teacher review, local desktop storage,
                 consent reminders, and hosted sync only when credentials are configured.
               </p>
             </header>
-            <section className="landing-feature-band" aria-label="Relay privacy principles">
+            <section className="landing-feature-band" aria-label="ClassLoop privacy principles">
               <article>
                 <ShieldCheck size={24} />
                 <h2>Local desktop data</h2>
@@ -2840,6 +2930,11 @@ function LandingPage({
                 <SlidersHorizontal size={24} />
                 <h2>Retention and exports</h2>
                 <p>Teachers can tune retention days, consent requirements, audit logging, and student export access.</p>
+              </article>
+              <article>
+                <MessageSquare size={24} />
+                <h2>Creator product feedback</h2>
+                <p>Student ratings from completed follow-ups go to ClassLoop's creator with related transcript context, not to teacher analytics.</p>
               </article>
             </section>
             <section className="landing-policy-panel">
@@ -2858,9 +2953,9 @@ function LandingPage({
         {page === "donate" && (
           <>
             <header className="landing-page-header">
-              <h1>Support Relay development.</h1>
+              <h1>Support ClassLoop development.</h1>
               <p>
-                Relay can stay free-first for teachers while donations help fund packaging, accessibility testing,
+                ClassLoop can stay free-first for teachers while donations help fund packaging, accessibility testing,
                 classroom pilots, and careful privacy work.
               </p>
             </header>
@@ -2872,7 +2967,7 @@ function LandingPage({
                     {amount === 3
                       ? "Bug-fix thank-you"
                       : amount === 9
-                        ? "One month of Relay Pro target pricing"
+                        ? "One month of ClassLoop Pro target pricing"
                         : "Packaging and teacher pilot support"}
                   </span>
                   <button className="landing-primary" type="button" onClick={() => handleDonate(amount)}>
@@ -2904,16 +2999,16 @@ function LandingPage({
         {page === "download" && (
           <>
             <header className="landing-page-header">
-              <h1>Download Relay.</h1>
+              <h1>Download ClassLoop.</h1>
               <p>
                 Start with the sample web demo, add the mobile shell to a phone, then move real daily classroom work
                 to the desktop app when installers are connected.
               </p>
             </header>
-            <section className="landing-mobile-band" aria-label="Relay on mobile">
+            <section className="landing-mobile-band" aria-label="ClassLoop on mobile">
               <div className="landing-mobile-card">
                 <Smartphone size={26} />
-                <h2>Use Relay from a browser or add it to your home screen.</h2>
+                <h2>Use ClassLoop from a browser or add it to your home screen.</h2>
                 <p>
                   The hosted web version is installable on modern mobile browsers, so teachers can check follow-ups
                   from a phone and students can open their dashboard without a desktop.
@@ -2926,7 +3021,7 @@ function LandingPage({
               <div className="mobile-step-grid">
                 <article className="mobile-step">
                   <strong>1</strong>
-                  <span>Open the hosted Relay link on your phone.</span>
+                  <span>Open the hosted ClassLoop link on your phone.</span>
                 </article>
                 <article className="mobile-step">
                   <strong>2</strong>
@@ -2943,23 +3038,87 @@ function LandingPage({
               <div>
                 <h2>Desktop installers</h2>
                 <p>
-                  {availableDownloads.length
-                    ? `${availableDownloads.length} desktop download ${availableDownloads.length === 1 ? "is" : "are"} connected.`
-                    : "Desktop installers are being packaged for macOS, Windows, and Linux."}
+                  {detectedDownload
+                    ? `ClassLoop detected ${detectedDownload.label} from browser hints. Use the detected installer or reveal the full desktop list.`
+                    : "This device looks best for the web/PWA path. You can still open desktop installers when downloading ClassLoop for another computer."}
                 </p>
               </div>
-              <div className="landing-platform-list" aria-label="Desktop download options">
-                {downloadOptions.map((option) => (
-                  <button key={option.id} type="button" onClick={() => handleDownload(option)}>
-                    <Download size={16} />
-                    <span>
-                      <strong>{option.label}</strong>
-                      <small>{option.url ? "Download ready" : "Packaging pending"}</small>
-                      {!option.url && <em>{option.helper}</em>}
-                    </span>
-                  </button>
-                ))}
+              <div className="landing-detected-download">
+                {detectedDownload ? (
+                  <>
+                    <button className="landing-primary" type="button" onClick={() => handleDownload(detectedDownload)}>
+                      <Download size={18} />
+                      {downloadButtonLabel(detectedDownload)}
+                    </button>
+                    <button
+                      className="landing-secondary installer-choice-toggle"
+                      type="button"
+                      onClick={() => setShowDesktopInstallerChoices((current) => !current)}
+                      aria-expanded={showDesktopInstallerChoices}
+                    >
+                      Not your system?
+                    </button>
+                  </>
+                ) : (
+                  <div className="landing-installer-fallback">
+                    <strong>Use the web app on this device.</strong>
+                    <span>Add ClassLoop to a phone or open the sample workspace now. Desktop installers stay one click away.</span>
+                    <div className="landing-actions compact">
+                      <button className="landing-primary" type="button" onClick={handleMobileInstall}>
+                        <Smartphone size={18} />
+                        Add to phone
+                      </button>
+                      <button
+                        className="landing-secondary installer-choice-toggle"
+                        type="button"
+                        onClick={() => setShowDesktopInstallerChoices((current) => !current)}
+                        aria-expanded={showDesktopInstallerChoices}
+                      >
+                        View desktop installers
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+              {showDesktopInstallerChoices && (
+                <div className="landing-platform-list" aria-label="Desktop download options">
+                  {downloadOptions.map((option) => (
+                    <button key={option.id} type="button" onClick={() => handleDownload(option)}>
+                      <Download size={16} />
+                      <span>
+                        <strong>{option.label}</strong>
+                        <small>{option.url ? "Download ready" : "Packaging pending"}</small>
+                        {!option.url && <em>{option.helper}</em>}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+            <section className="landing-policy-panel">
+              <h2>Free desktop install notes</h2>
+              <p>ClassLoop's free desktop builds may be unsigned or ad-hoc signed. Verify the checksum, then use the normal OS trust prompt only when the file came from the official ClassLoop download page.</p>
+              <div className="mobile-step-grid">
+                <article className="mobile-step">
+                  <strong>1</strong>
+                  <span>Download the installer for your platform and the SHA256 checksum file.</span>
+                </article>
+                <article className="mobile-step">
+                  <strong>2</strong>
+                  <span>On macOS, right-click the app or installer and choose Open, or use Privacy & Security, then Open Anyway.</span>
+                </article>
+                <article className="mobile-step">
+                  <strong>3</strong>
+                  <span>On Windows or Linux, expect unsigned-app warnings until paid code signing is added.</span>
+                </article>
+              </div>
+              {checksumUrl && (
+                <div className="landing-actions compact">
+                  <button className="landing-secondary" type="button" onClick={() => { window.location.href = checksumUrl; }}>
+                    Download checksums
+                  </button>
+                </div>
+              )}
             </section>
             <section className="landing-policy-panel">
               <h2>Safe demo path</h2>
@@ -2968,8 +3127,12 @@ function LandingPage({
                 <button className="landing-secondary" type="button" onClick={onOpenApp}>
                   Open web demo
                 </button>
-                <button className="landing-secondary" type="button" onClick={() => handleDownload(primaryDownload)}>
-                  {primaryDownload.url ? "Download macOS" : "macOS pending"}
+                <button
+                  className="landing-secondary"
+                  type="button"
+                  onClick={() => setShowDesktopInstallerChoices(true)}
+                >
+                  View desktop installers
                 </button>
               </div>
               {(downloadMessage || mobileMessage) && (
@@ -3015,7 +3178,7 @@ function LoginPage({
   const [role, setRole] = useState<AuthRole>("teacher");
   const [name, setName] = useState("");
   const [email, setEmail] = useState(demoOnly ? demoTeacherEmail : "");
-  const [password, setPassword] = useState(demoOnly ? "relay-teacher" : "");
+  const [password, setPassword] = useState(demoOnly ? "classloop-teacher" : "");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -3029,7 +3192,7 @@ function LoginPage({
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const demoEmail = role === "teacher" ? demoTeacherEmail : demoStudentEmail;
-  const demoPassword = role === "teacher" ? "relay-teacher" : "relay-student";
+  const demoPassword = role === "teacher" ? "classloop-teacher" : "classloop-student";
 
   useEffect(() => {
     if (!demoOnly || mode !== "signin") return;
@@ -3092,9 +3255,9 @@ function LoginPage({
 
   const openResetEmailDraft = () => {
     if (!issuedResetCode || !email) return;
-    const subject = encodeURIComponent("Relay password reset code");
+    const subject = encodeURIComponent("ClassLoop password reset code");
     const body = encodeURIComponent(
-      `Your Relay password reset code is ${issuedResetCode}.\n\nThis code expires in 15 minutes.\n`,
+      `Your ClassLoop password reset code is ${issuedResetCode}.\n\nThis code expires in 15 minutes.\n`,
     );
     window.open(`mailto:${normalizeEmail(email)}?subject=${subject}&body=${body}`);
   };
@@ -3157,7 +3320,7 @@ function LoginPage({
       const result = await onLogin(
         nextRole,
         nextRole === "teacher" ? demoTeacherEmail : demoStudentEmail,
-        nextRole === "teacher" ? "relay-teacher" : "relay-student",
+        nextRole === "teacher" ? "classloop-teacher" : "classloop-student",
       );
       if (!result.ok) setError(result.message ?? "Unable to open the demo.");
     } catch {
@@ -3176,13 +3339,13 @@ function LoginPage({
               <BrainCircuit size={26} />
             </span>
             <div>
-              <strong>Relay</strong>
+              <strong>ClassLoop</strong>
               <small>Web demo workspace</small>
             </div>
           </div>
           <div className="login-copy demo-choice-copy">
             <span className="eyebrow">Choose a demo</span>
-            <h1>Try Relay as a teacher or student.</h1>
+            <h1>Try ClassLoop as a teacher or student.</h1>
             <p>
               Pick a side to explore. This web demo resets sample work, so download the desktop app when
               you are ready to create your own account and save data.
@@ -3228,13 +3391,13 @@ function LoginPage({
             <BrainCircuit size={26} />
           </span>
           <div>
-            <strong>Relay</strong>
+            <strong>ClassLoop</strong>
             <small>Secure classroom workspace</small>
           </div>
         </div>
         <div className="login-copy">
           <span className="eyebrow">Welcome back</span>
-          <h1>{demoOnly ? "Try Relay with sample accounts." : "Sign in to Relay."}</h1>
+          <h1>{demoOnly ? "Try ClassLoop with sample accounts." : "Sign in to ClassLoop."}</h1>
           <p>
             {demoOnly
               ? "The web demo resets sample work. Download the desktop app when you are ready to create your own account and save data."
@@ -3357,8 +3520,8 @@ function LoginPage({
         </form>
         <div className="login-help">
           <strong>{demoOnly ? "Web demo accounts" : "Sample accounts"}</strong>
-          <span>Teacher: {demoTeacherEmail} / relay-teacher</span>
-          <span>Student: {demoStudentEmail} / relay-student</span>
+          <span>Teacher: {demoTeacherEmail} / classloop-teacher</span>
+          <span>Student: {demoStudentEmail} / classloop-student</span>
           {demoOnly && <span>Download the app to create an account and keep your own workspace.</span>}
           <button type="button" className="text-button sample-account-button" onClick={fillDemo}>
             Use sample {role} account
@@ -3468,7 +3631,7 @@ function AppLoader({ message }: { message: string }) {
         <span className="loader-ring">
           <BrainCircuit size={30} />
         </span>
-        <span className="eyebrow">Relay</span>
+        <span className="eyebrow">ClassLoop</span>
         <h1>{message}</h1>
         <p>{tip}</p>
         <div className="loader-track" aria-hidden="true">
@@ -3488,7 +3651,7 @@ function MeetingCaptureHelpModal({ onClose, onStart }: { onClose: () => void; on
             <span className="eyebrow">Online meeting capture</span>
             <h2 id="meeting-capture-title">Share the meeting tab or window with audio.</h2>
             <p>
-              Your browser will ask what to capture. Choose the tab or window where Zoom, Meet, or Teams is running, enable audio sharing if it appears, then keep Relay open.
+              Your browser will ask what to capture. Choose the tab or window where Zoom, Meet, or Teams is running, enable audio sharing if it appears, then keep ClassLoop open.
             </p>
           </div>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Close meeting capture help">
@@ -3498,7 +3661,7 @@ function MeetingCaptureHelpModal({ onClose, onStart }: { onClose: () => void; on
         <ol className="tutorial-steps">
           <li>
             <strong>Click Start capture</strong>
-            <span>Relay will request screen or tab audio if your browser supports it.</span>
+            <span>ClassLoop will request screen or tab audio if your browser supports it.</span>
           </li>
           <li>
             <strong>Pick the meeting source</strong>
@@ -3741,7 +3904,7 @@ function GuidedWalkthroughOverlay({
     : [];
 
   return (
-    <div className="guided-tour" role="dialog" aria-modal="true" aria-label="Relay guided walkthrough">
+    <div className="guided-tour" role="dialog" aria-modal="true" aria-label="ClassLoop guided walkthrough">
       {highlightStyle ? (
         <>
           {backdropPieces.map((piece, index) => (
@@ -3828,7 +3991,7 @@ function Sidebar({
           <BrainCircuit size={24} />
         </span>
         <span>
-          <strong>Relay</strong>
+          <strong>ClassLoop</strong>
           <small>Classroom continuity</small>
         </span>
       </button>
@@ -3907,9 +4070,9 @@ function Topbar({
         <span className="eyebrow">{routeLabels[route]}</span>
         <h1>
           {auth.role === "student"
-            ? "My Relay"
+            ? "My ClassLoop"
             : route === "dashboard"
-              ? "Today in Relay"
+              ? "Today in ClassLoop"
               : routeLabels[route]}
         </h1>
       </div>
@@ -4081,7 +4244,7 @@ function TeacherDashboard({
           <span className="eyebrow">Live class follow-up loop</span>
           <h2>Turn messy class records into edited recaps, personal tasks, and completion check-ins.</h2>
           <p>
-            You stay in control while Relay extracts what happened, who needs support, and what should happen
+            You stay in control while ClassLoop extracts what happened, who needs support, and what should happen
             next.
           </p>
           <div className="hero-actions" data-tour="dashboard-hero">
@@ -4421,7 +4584,7 @@ function SyncBillingPage({
   const uploadCloud = async () => {
     try {
       await cloudRequest("/api/cloud-state", { method: "PUT", body: JSON.stringify(currentState()) });
-      setMessage("Uploaded this device's Relay workspace to hosted sync.");
+      setMessage("Uploaded this device's ClassLoop workspace to hosted sync.");
       appendAudit("cloud_upload", "Uploaded workspace to hosted sync.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Cloud upload failed.");
@@ -4504,7 +4667,7 @@ function SyncBillingPage({
                 <strong>{backendStatus.supabaseConfigured ? "Cloud sync ready" : "Cloud keys needed"}</strong>
                 <small>
                   {backendStatus.supabaseConfigured
-                    ? "Sign in here to use the same Relay workspace across browser, desktop, and another device."
+                    ? "Sign in here to use the same ClassLoop workspace across browser, desktop, and another device."
                     : "Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable multi-device Pro login."}
                 </small>
               </div>
@@ -4665,6 +4828,7 @@ function SupportSnapshotChart({ session }: { session?: Session }) {
 function ImportSession({
   ownerEmail,
   setDraft,
+  onDraftCreated,
   onUseDemo,
   recordingConsentRequired,
   rosterTemplates,
@@ -4676,6 +4840,7 @@ function ImportSession({
 }: {
   ownerEmail: string;
   setDraft: (session: Session) => void;
+  onDraftCreated: (session: Session) => void;
   onUseDemo: () => void;
   recordingConsentRequired: boolean;
   rosterTemplates: RosterTemplate[];
@@ -4727,7 +4892,7 @@ function ImportSession({
   );
   const transcriptFormatWarning =
     transcript.trim().length > 80 && transcriptSpeakerCount === 0
-      ? "No speaker labels were detected. Relay can still draft from the roster, notes, and transcript text, but review matching before publishing."
+      ? "No speaker labels were detected. ClassLoop can still draft from the roster, notes, and transcript text, but review matching before publishing."
       : "";
   const malformedResourceLineCount = useMemo(
     () =>
@@ -4741,7 +4906,7 @@ function ImportSession({
     ? String(malformedResourceLineCount) +
       " resource " +
       (malformedResourceLineCount === 1 ? "line needs" : "lines need") +
-      " http:// or https://. Relay will ignore malformed links until corrected."
+      " http:// or https://. ClassLoop will ignore malformed links until corrected."
     : "";
 
   useEffect(() => {
@@ -4843,7 +5008,7 @@ function ImportSession({
         stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
         const hasAudio = stream.getAudioTracks().length > 0;
         startedMessage = hasAudio
-          ? "Online meeting capture is running. Share a tab or window with audio when your browser asks, and keep Relay open."
+          ? "Online meeting capture is running. Share a tab or window with audio when your browser asks, and keep ClassLoop open."
           : "Online meeting capture is running, but no meeting audio track was shared. Use platform captions/transcript if live text does not appear.";
       } else {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -4851,8 +5016,8 @@ function ImportSession({
         });
         startedMessage =
           mode === "online_meeting"
-            ? "This browser cannot capture meeting tab audio directly, so Relay is using the microphone as best-effort notes."
-            : "In-person class capture is running. Place the device where discussion is clear and keep Relay open.";
+            ? "This browser cannot capture meeting tab audio directly, so ClassLoop is using the microphone as best-effort notes."
+            : "In-person class capture is running. Place the device where discussion is clear and keep ClassLoop open.";
       }
 
       if (recordedAudioUrl) {
@@ -4997,6 +5162,7 @@ function ImportSession({
       classGroupId: selectedGroup?.id,
       classGroupName: selectedGroup?.name,
     });
+    onDraftCreated(session);
     navigate("processing", { session: session.id });
   };
 
@@ -5043,7 +5209,7 @@ function ImportSession({
           <div className="section-heading">
             <span className="eyebrow">New class record</span>
             <h2>Import a transcript, notes, or both.</h2>
-            <p>Relay will draft your review page, then wait for your approval before students see anything.</p>
+            <p>ClassLoop will draft your review page, then wait for your approval before students see anything.</p>
           </div>
 
           <div className="form-grid">
@@ -5239,7 +5405,7 @@ function ImportSession({
                   <div>
                     <strong>No voiceprints are created.</strong>
                     <small>
-                      Relay labels live speech as unknown voice segments. After the draft is created, link each segment to a roster student,
+                      ClassLoop labels live speech as unknown voice segments. After the draft is created, link each segment to a roster student,
                       add a new student, or leave it unassigned.
                     </small>
                   </div>
@@ -5386,7 +5552,7 @@ function Processing({ draft }: { draft: Session | null }) {
         </span>
         <span className="eyebrow">Draft in progress</span>
         <h2>{draft?.title ?? "Preparing draft"}</h2>
-        <p>Relay is turning the messy record into a teacher-editable follow-up loop.</p>
+        <p>ClassLoop is turning the messy record into a teacher-editable follow-up loop.</p>
         <div className="processing-steps">
           {steps.map((item, index) => (
             <div key={item} className={index <= step ? "processing-step active" : "processing-step"}>
@@ -5454,6 +5620,10 @@ function ReviewDraft({
     update({ attendance: { ...draft.attendance, [studentId]: status } });
   };
 
+  const reviewImportWarning = (warningId: string) => {
+    setDraft(markImportWarningReviewed(draft, warningId));
+  };
+
   const resolveUnmatchedParticipant = (participant: UnmatchedParticipant, mode: "add" | "link", studentId?: string) => {
     setDraft(resolveParticipant(draft, participant, mode, studentId));
   };
@@ -5518,6 +5688,8 @@ function ReviewDraft({
           </button>
         </div>
       </Panel>
+
+      <ImportQualityPanel warnings={draft.importWarnings ?? []} onReview={reviewImportWarning} />
 
       {activeReviewTab === "roster" && (
         <section className="content-grid align-start">
@@ -5683,7 +5855,11 @@ function ReviewDraft({
                       {studentById(event.studentId, draft.students).name} · {participationLabel(event.type)}
                     </strong>
                     <input value={event.text} onChange={(inputEvent) => updateParticipation(event.id, { text: inputEvent.target.value })} />
-                    <small>{Math.round(event.confidence * 100)}% confidence</small>
+                    <small>
+                      {Math.round(event.confidence * 100)}% confidence
+                      {event.reviewRequired ? " · review required" : ""}
+                    </small>
+                    {event.sourceLine && <small>Source: {event.sourceLine}</small>}
                   </div>
                 </div>
               ))}
@@ -5728,9 +5904,9 @@ function RosterManager({
   const sendInvite = (student: Student) => {
     const email = normalizeEmail(student.email);
     if (!email) return;
-    const subject = encodeURIComponent(`Relay follow-up for ${sessionTitle}`);
+    const subject = encodeURIComponent(`ClassLoop follow-up for ${sessionTitle}`);
     const body = encodeURIComponent(
-      `Hi ${student.name},\n\nYour teacher prepared a Relay follow-up for ${sessionTitle}.\n\nYou can create or sign in to your Relay student account with this email address to see your recap, resources, and tasks.\n\nThanks!`,
+      `Hi ${student.name},\n\nYour teacher prepared a ClassLoop follow-up for ${sessionTitle}.\n\nYou can create or sign in to your ClassLoop student account with this email address to see your recap, resources, and tasks.\n\nThanks!`,
     );
     window.open(`mailto:${email}?subject=${subject}&body=${body}`);
     updateStudent(student.id, { inviteSentAt: new Date().toISOString() });
@@ -5760,7 +5936,7 @@ function RosterManager({
           <button
             className="ghost-button"
             type="button"
-            onClick={() => downloadTextFile(`${slugify(sessionTitle, "relay-roster")}.csv`, rosterToCsv(students), "text/csv")}
+            onClick={() => downloadTextFile(`${slugify(sessionTitle, "classloop-roster")}.csv`, rosterToCsv(students), "text/csv")}
           >
             <ArrowUpRight size={17} />
             Export CSV
@@ -6019,7 +6195,7 @@ function ClassGroupsPage({
                 className="ghost-button"
                 type="button"
                 onClick={() =>
-                  downloadTextFile(`${slugify(activeGroup.name, "relay-class")}.csv`, rosterToCsv(activeGroup.students), "text/csv")
+                  downloadTextFile(`${slugify(activeGroup.name, "classloop-class")}.csv`, rosterToCsv(activeGroup.students), "text/csv")
                 }
               >
                 <ArrowUpRight size={17} />
@@ -6116,7 +6292,7 @@ function RosterTemplatesPage({
           <div>
             <span className="eyebrow">Roster manager</span>
             <h2>Save rosters once, reuse them later.</h2>
-            <p>After you publish a session, Relay can save that class roster for future sessions with the same template.</p>
+            <p>After you publish a session, ClassLoop can save that class roster for future sessions with the same template.</p>
           </div>
           <button className="primary-button" type="button" onClick={createTemplate}>
             <UserPlus size={17} />
@@ -6140,7 +6316,7 @@ function RosterTemplatesPage({
         <div>
           <span className="eyebrow">Roster manager</span>
           <h2>Saved class rosters.</h2>
-          <p>Pick a roster here, then Relay will offer it automatically when you create a matching session type.</p>
+          <p>Pick a roster here, then ClassLoop will offer it automatically when you create a matching session type.</p>
         </div>
         <button className="primary-button" type="button" onClick={createTemplate}>
           <UserPlus size={17} />
@@ -6209,7 +6385,7 @@ function RosterTemplatesPage({
                 type="button"
                 onClick={() =>
                   downloadTextFile(
-                    `${slugify(activeTemplate.name, "relay-roster")}.csv`,
+                    `${slugify(activeTemplate.name, "classloop-roster")}.csv`,
                     rosterToCsv(activeTemplate.students),
                     "text/csv",
                   )
@@ -6369,7 +6545,7 @@ function ParticipantResolutionPanel({
           </span>
           <div>
             <strong>All transcript speakers match the roster</strong>
-            <p>When a Zoom display name does not match a student, Relay will pause here before using it.</p>
+            <p>When a Zoom display name does not match a student, ClassLoop will pause here before using it.</p>
           </div>
         </div>
       </Panel>
@@ -6429,6 +6605,63 @@ function ParticipantResolutionPanel({
   );
 }
 
+function unresolvedBlockingImportWarnings(session: Session) {
+  return (session.importWarnings ?? []).filter((warning) => warning.severity === "blocking" && !warning.reviewed);
+}
+
+function markImportWarningReviewed(session: Session, warningId: string) {
+  return {
+    ...session,
+    importWarnings: (session.importWarnings ?? []).map((warning) =>
+      warning.id === warningId ? { ...warning, reviewed: true } : warning,
+    ),
+  };
+}
+
+function ImportQualityPanel({
+  warnings,
+  onReview,
+}: {
+  warnings: ImportQualityWarning[];
+  onReview?: (warningId: string) => void;
+}) {
+  if (!warnings.length) return null;
+  const blockingCount = warnings.filter((warning) => warning.severity === "blocking" && !warning.reviewed).length;
+  return (
+    <Panel title="Import quality review" icon={AlertTriangle}>
+      <div className="import-warning-list">
+        {blockingCount > 0 && (
+          <div className="inline-empty compact-empty import-warning-summary">
+            <span>
+              <CircleAlert size={20} />
+            </span>
+            <div>
+              <strong>Publish is paused until these warnings are reviewed</strong>
+              <p>Use source lines, roster matching, and participation toggles before making student dashboards visible.</p>
+            </div>
+          </div>
+        )}
+        {warnings.map((warning) => (
+          <article key={warning.id} className={`import-warning-card ${warning.severity}`}>
+            <div>
+              <span className="eyebrow">{warning.severity === "blocking" ? "Review required" : warning.severity}</span>
+              <strong>{warning.title}</strong>
+              <p>{warning.message}</p>
+              <small>{warning.source}</small>
+            </div>
+            {onReview && warning.severity === "blocking" && (
+              <button className={warning.reviewed ? "ghost-button" : "primary-button"} type="button" onClick={() => onReview(warning.id)}>
+                <CheckCircle2 size={17} />
+                {warning.reviewed ? "Reviewed" : "Mark reviewed"}
+              </button>
+            )}
+          </article>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
 function PublishPreview({
   draft,
   selectedStudentId,
@@ -6483,6 +6716,7 @@ function PublishPreview({
   const isPublished = draft.status === "published";
   const recipientCount = studentEmailRecipients(draft).length;
   const currentPublishAudit = draft.publishAudit ?? makePublishAudit(draft);
+  const blockingImportWarnings = unresolvedBlockingImportWarnings(draft);
   const updatePreviewSession = (sessionId: string, updater: (session: Session) => Session) => {
     if (sessionId === draft.id) setDraft(updater(draft));
   };
@@ -6524,12 +6758,14 @@ function PublishPreview({
             <ChevronRight size={17} />
             Back to edit
           </button>
-          <button className="primary-button" onClick={() => publishDraft()}>
+          <button className="primary-button" onClick={() => publishDraft()} disabled={blockingImportWarnings.length > 0}>
             <Send size={17} />
-            Publish to students
+            {blockingImportWarnings.length ? "Review warnings first" : "Publish to students"}
           </button>
         </div>
       </section>
+
+      <ImportQualityPanel warnings={draft.importWarnings ?? []} onReview={(warningId) => updateDraft((current) => markImportWarningReviewed(current, warningId))} />
 
       <section className="content-grid two-columns align-start">
         <Panel title="One-click student delivery" icon={Mail}>
@@ -6772,7 +7008,7 @@ function SessionReport({
                   onClick={() => {
                     setExportMenuOpen(false);
                     downloadTextFile(
-                      `${slugify(session.title, "relay-session")}.json`,
+                      `${slugify(session.title, "classloop-session")}.json`,
                       JSON.stringify(session, null, 2),
                       "application/json",
                     );
@@ -6787,7 +7023,7 @@ function SessionReport({
                   onClick={() => {
                     setExportMenuOpen(false);
                     downloadTextFile(
-                      `${slugify(session.title, "relay-follow-through")}.csv`,
+                      `${slugify(session.title, "classloop-follow-through")}.csv`,
                       sessionFollowThroughCsv(session),
                       "text/csv",
                     );
@@ -6973,20 +7209,23 @@ function ProductFeedbackPrompt({
   };
 
   const prompt = (
-    <section className="student-feedback-toast" role="region" aria-label="Relay product feedback">
+    <section className="student-feedback-toast" role="region" aria-label="ClassLoop product feedback">
       {submitted ? (
         <div className="feedback-thanks" role="status" aria-live="polite">
           <CheckCircle2 size={18} />
-          <span>Thanks. Your feedback helps improve Relay.</span>
+          <span>Thanks. Your feedback helps improve ClassLoop.</span>
         </div>
       ) : (
         <>
           <div className="feedback-toast-header">
             <span>
-              <strong>Help improve Relay?</strong>
-              <small>Rate this follow-up. Your teacher will not see this product feedback.</small>
+              <strong>Help improve ClassLoop?</strong>
+              <small>
+                Rate this follow-up. Your teacher will not see it; ClassLoop sends your feedback and the related transcript
+                context to the creator.
+              </small>
             </span>
-            <button className="icon-button" type="button" aria-label="Dismiss Relay product feedback" onClick={() => setDismissed(true)}>
+            <button className="icon-button" type="button" aria-label="Dismiss ClassLoop product feedback" onClick={() => setDismissed(true)}>
               <X size={16} />
             </button>
           </div>
@@ -7021,7 +7260,7 @@ function ProductFeedbackPrompt({
               }}
             >
               <label className="field compact">
-                <span>What would make Relay better?</span>
+                <span>What would make ClassLoop better?</span>
                 <textarea
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
@@ -7075,7 +7314,7 @@ function StudentDashboard({
         title="No student dashboard yet"
         detail={
           auth.role === "teacher"
-            ? "Publish a session first, then Relay will create personalized student recaps and check-ins."
+            ? "Publish a session first, then ClassLoop will create personalized student recaps and check-ins."
             : "Your teacher has not published any sessions for this account yet."
         }
         action={auth.role === "teacher" ? "Create a session" : undefined}
@@ -7727,7 +7966,7 @@ function PrivacyControlsPage({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `relay-export-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `classloop-export-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(url);
     appendAudit("export_data", "Exported teacher workspace data.");
@@ -7745,7 +7984,7 @@ function PrivacyControlsPage({
         <div>
           <span className="eyebrow">Privacy controls</span>
           <h2>Manage retention, recording consent, exports, and audit history.</h2>
-          <p>Use these controls before running Relay with real student data or school accounts.</p>
+          <p>Use these controls before running ClassLoop with real student data or school accounts.</p>
         </div>
       </section>
 
@@ -8122,7 +8361,7 @@ function DesignSystemPage({
       <section className="appearance-hero">
         <div>
           <span className="eyebrow">Experience settings</span>
-          <h2>Customize Relay around your classroom.</h2>
+          <h2>Customize ClassLoop around your classroom.</h2>
           <p>
             Choose a calmer workspace, tune the accent color, or use an image backdrop so the product feels comfortable
             for your teaching style while staying easy to scan during a busy school day.

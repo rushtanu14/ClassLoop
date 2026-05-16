@@ -1,14 +1,14 @@
-# Relay Agent Instructions
+# ClassLoop Agent Instructions
 
 ## Project Overview
 
-Relay is a desktop and mobile-web classroom follow-up platform (Electron + React + hosted PWA shell) that transforms messy class inputs—transcripts, notes, rosters, and resource links—into structured teacher review workflows and student-facing follow-up dashboards.
+ClassLoop is a desktop and mobile-web classroom follow-up platform (Electron + React + hosted PWA shell) that transforms messy class inputs—transcripts, notes, rosters, and resource links—into structured teacher review workflows and student-facing follow-up dashboards.
 
-**Naming**: Relay is the current product name. ClassLoop is the former name and should only appear as historical context or legacy `classloop-*` skill names.
+**Naming**: ClassLoop is the current product name and should appear consistently across product, app, website, billing, release, and support surfaces.
 
-**Core value**: Teachers import a Zoom transcript + class roster → Relay auto-extracts participation events, identifies students who need catch-up, generates action items, and publishes personalized student follow-ups with tasks, resources, and due dates.
+**Core value**: Teachers import a Zoom transcript + class roster → ClassLoop auto-extracts participation events, identifies students who need catch-up, generates action items, and publishes personalized student follow-ups with tasks, resources, and due dates.
 
-**Product ambition**: Relay should feel as effortlessly useful as Granola-style meeting memory, but broader and more helpful for education: not just notes, but a classroom continuity layer that saves teachers time and gives every student clear next steps.
+**Product ambition**: ClassLoop should feel as effortlessly useful as Granola-style meeting memory, but broader and more helpful for education: not just notes, but a classroom continuity layer that saves teachers time and gives every student clear next steps.
 
 **Tech Stack**: Electron (desktop), React 18, TypeScript, Vite (build), Vitest (tests).
 
@@ -30,19 +30,19 @@ Relay is a desktop and mobile-web classroom follow-up platform (Electron + React
 | **Lint/type check** | `tsc` |
 
 **Demo Accounts**:
-- Teacher: `teacher@relay.demo` / `relay-teacher`
-- Student: `maya@relay.demo` / `relay-student`
+- Teacher: `teacher@classloop.demo` / `classloop-teacher`
+- Student: `maya@classloop.demo` / `classloop-student`
 - Hosted Vercel demo should use sample accounts only. Do not enable custom account creation in the hosted demo; users create durable accounts in the downloaded desktop app.
 - Sample/demo account changes must be ephemeral and clearly bannered as unsaved demo data.
 - Public landing pages are routed at `#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download`; do not collapse them back into one scroll-through page.
-- Public landing downloads support macOS, Windows, and Linux through `VITE_RELAY_MAC_DOWNLOAD_URL`, `VITE_RELAY_WINDOWS_DOWNLOAD_URL`, and `VITE_RELAY_LINUX_DOWNLOAD_URL`. If a URL is missing, the UI should say that installer is still being packaged rather than pretending the download works. Packaging scripts target both x64 and arm64 where Electron Builder supports it.
-- Public donation support uses `VITE_RELAY_DONATE_URL`. If it is missing, the Donate page should say the donation link is not connected rather than pretending payment works.
+- Public landing downloads support macOS, Windows, and Linux through `VITE_CLASSLOOP_MAC_DOWNLOAD_URL`, `VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL`, and `VITE_CLASSLOOP_LINUX_DOWNLOAD_URL`. If a URL is missing, the UI should say that installer is still being packaged rather than pretending the download works. Packaging scripts target both x64 and arm64 where Electron Builder supports it.
+- Public donation support uses `VITE_CLASSLOOP_DONATE_URL`. If it is missing, the Donate page should say the donation link is not connected rather than pretending payment works.
 - Hosted mobile access is through the Vercel PWA shell: keep `public/manifest.webmanifest`, `public/sw.js`, mobile meta tags, and the landing/download-page "Add to phone" flow working.
 
 ## Architecture
 
 ```
-Relay
+ClassLoop
 ├── src/
 │   ├── App.tsx              # Main UI: teacher dashboard, import flow, session review
 │   ├── data.ts              # Core parsing: transcript → structured session data
@@ -57,7 +57,7 @@ Relay
 ├── tests/
 │   └── import-flow.test.ts  # End-to-end parsing tests
 ├── tests/browser/
-│   └── relay.spec.ts    # Playwright workflow/access tests
+│   └── classloop.spec.ts    # Playwright workflow/access tests
 ├── playwright.config.ts     # Local browser test config; starts Vite on 127.0.0.1:5177
 ├── playwright.web.config.ts # Hosted web smoke test config for Vercel/demo URL
 ├── vite.config.ts           # Build config (fingerprinting for prod)
@@ -143,7 +143,7 @@ Core domain models:
 
 Keep external services free-first and narrow:
 
-- Email should work with a Gmail account the user owns, including a no-reply-like account such as `relay.noreply@gmail.com`. Do not imply Relay can generate Gmail accounts or send from unauthenticated domains.
+- Email should work with a Gmail account the user owns, including a no-reply-like account such as `classloop.noreply@gmail.com`. Do not imply ClassLoop can generate Gmail accounts or send from unauthenticated domains.
 - Do not add paid API-key features to the working app.
 - Do not show Google Classroom OAuth posting, LMS posting, OpenAI transcription, or custom transcription-service hooks unless the user explicitly asks to reintroduce external integrations.
 - Audio capture should use free browser capabilities only: in-person microphone capture and browser tab/window capture for online meetings when available. Transcript paste/upload must remain the reliable free path, and live capture should create reviewable unknown speaker segments instead of claiming biometric voice identification.
@@ -151,7 +151,7 @@ Keep external services free-first and narrow:
 ## Hosted Backend / Freemium Notes
 
 - Hosted multi-device sync is scaffolded with Supabase Auth, `api/cloud-state.js`, and `supabase/schema.sql`.
-- Paid access is scaffolded with Stripe Checkout plus `api/billing/webhook.js`; the webhook updates `relay_profiles` so entitlements are server-owned.
+- Paid access is scaffolded with Stripe Checkout plus `api/billing/webhook.js`; the webhook updates `classloop_profiles` so entitlements are server-owned.
 - The local desktop app must remain useful without Supabase or Stripe credentials.
 - Free tier target: 1 generated session per day, transcript import, CSV import/export, student portal preview, and local desktop storage.
 - Pro target: `$9/month` for unlimited sessions, live in-person/online capture modes, multi-device cloud login/sync, delivery logs, privacy exports, and advanced reports.
@@ -273,7 +273,7 @@ Essential Questions:
 ## Hosted Backend / Freemium Notes
 
 - Hosted multi-device sync is scaffolded with Supabase Auth, `api/cloud-state.js`, and `supabase/schema.sql`.
-- Paid access is scaffolded with Stripe Checkout plus `api/billing/webhook.js`; the webhook updates `relay_profiles` so entitlements are server-owned.
+- Paid access is scaffolded with Stripe Checkout plus `api/billing/webhook.js`; the webhook updates `classloop_profiles` so entitlements are server-owned.
 - The local desktop app must remain useful without Supabase or Stripe credentials.
 - Free tier target: 1 generated session per day, transcript import, CSV import/export, student portal preview, and local desktop storage.
 - Pro target: `$9/month` for unlimited sessions, live in-person/online capture modes, multi-device cloud login/sync, delivery logs, privacy exports, and advanced reports.
@@ -305,7 +305,7 @@ Tests validate:
 5. **Error handling**: Parser is defensive (unmatched names flagged but don't break import). UI shows warnings clearly.
 6. **Accessibility**: Icons from lucide-react (semantic naming). Enough contrast for education-friendly green theme.
 7. **Browser QA**: Keep Playwright installed. `npm install` runs `playwright install chromium`; run `npm run test:browser` for login/import/publish/student/analytics/access/responsive/class manager/CSV/report export coverage. Run `npm run test:web` for the hosted landing/demo/PWA smoke test across desktop and phone-sized viewports.
-8. **Local storage security**: Desktop state is encrypted with Relay's prompt-free local AES-GCM key file (`.relay-storage-key`) instead of Electron `safeStorage`, so saving should not trigger macOS Keychain or OS password prompts. Browser fallback uses encrypted `relay:secure:*` localStorage keys. Hosted multi-device access uses Supabase Auth and workspace sync when credentials are configured.
+8. **Local storage security**: Desktop state is encrypted with ClassLoop's prompt-free local AES-GCM key file (`.classloop-storage-key`) instead of Electron `safeStorage`, so saving should not trigger macOS Keychain or OS password prompts. Browser fallback uses encrypted `classloop:secure:*` localStorage keys. Hosted multi-device access uses Supabase Auth and workspace sync when credentials are configured.
 9. **Testing prompt upkeep**: When adding user-facing features, update the feature QA prompt in `codexsecondbrain-sync-2026-04-30.md` and Playwright coverage so future agents test the new workflow plus layout/readability issues.
 
 ## High-Value Next Work
@@ -313,7 +313,7 @@ Tests validate:
 1. **Version history**: Track what changed between draft, publish, and later teacher edits.
 2. **Student inbox**: Add unread updates and reviewed-submission feedback in the student portal.
 3. **Accessibility settings**: Add font size, reduced motion, and stronger contrast presets.
-4. **Local backup/restore**: Let teachers move encrypted Relay data between devices without a hosted backend.
+4. **Local backup/restore**: Let teachers move encrypted ClassLoop data between devices without a hosted backend.
 5. **External sync later**: Consider Google Classroom, Canvas, or Schoology only if the user accepts external integration setup.
 6. **Class analytics by roster**: Add class-group-level trends once multiple sessions exist for the same saved class.
 

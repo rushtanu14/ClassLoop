@@ -46,18 +46,18 @@ const signedIn = cloudAuthStateFromSession(
   {
     access_token: "token-live",
     expires_at: futureExpiry,
-    user: { email: "teacher@relay.test" },
+    user: { email: "teacher@classloop.test" },
   },
   nowMs,
 );
 assertEqual(signedIn.status, "signed_in", "valid Supabase session should be signed in");
-assert(signedIn.status === "signed_in" && signedIn.email === "teacher@relay.test", "signed-in state should preserve account email");
+assert(signedIn.status === "signed_in" && signedIn.email === "teacher@classloop.test", "signed-in state should preserve account email");
 
 const expired = cloudAuthStateFromSession(
   {
     access_token: "token-expired",
     expires_at: pastExpiry,
-    user: { email: "teacher@relay.test" },
+    user: { email: "teacher@classloop.test" },
   },
   nowMs,
 );
@@ -68,7 +68,7 @@ const loggedIn = transitionCloudAuthState({ status: "signed_out" }, {
   session: {
     access_token: "token-live",
     expires_at: futureExpiry,
-    user: { email: "teacher@relay.test" },
+    user: { email: "teacher@classloop.test" },
   },
 });
 assertEqual(loggedIn.status, "signed_in", "login transition should enter signed-in state");
@@ -146,12 +146,12 @@ assertEqual(backendStatus.webReady, false, "absent Supabase credentials should k
 assertEqual(await getCloudSession(), null, "desktop/local app should not require a Supabase session");
 assertEqual((await getCloudAuthState()).status, "signed_out", "absent Supabase credentials should be signed out, not crashed");
 assertEqual(
-  (await signIntoCloud("teacher@relay.test", "password")).ok,
+  (await signIntoCloud("teacher@classloop.test", "password")).ok,
   false,
   "cloud login should fail gracefully when Supabase credentials are absent",
 );
 assertEqual(
-  (await createCloudAccount("teacher@relay.test", "password")).ok,
+  (await createCloudAccount("teacher@classloop.test", "password")).ok,
   false,
   "cloud signup should fail gracefully when Supabase credentials are absent",
 );

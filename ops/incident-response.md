@@ -26,7 +26,7 @@ Immediate actions:
 - Check `/api/billing/checkout`, `/api/billing/portal`, and `/api/billing/webhook` logs.
 - Do not unlock Pro from client state. Treat webhook/Supabase profile state as authoritative.
 - If checkout is broken, pause upgrade CTAs or add maintenance copy; existing local desktop use should still work.
-- Reconcile Stripe Dashboard subscriptions against `relay_profiles` after recovery.
+- Reconcile Stripe Dashboard subscriptions against `classloop_profiles` after recovery.
 
 Verification:
 - `npm run test:entitlements`

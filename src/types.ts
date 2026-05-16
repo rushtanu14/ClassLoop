@@ -95,6 +95,17 @@ export type ParticipationEvent = {
   text: string;
   confidence: number;
   approved: boolean;
+  sourceLine?: string;
+  reviewRequired?: boolean;
+};
+
+export type ImportQualityWarning = {
+  id: string;
+  severity: "info" | "warning" | "blocking";
+  title: string;
+  message: string;
+  source: string;
+  reviewed?: boolean;
 };
 
 export type StudentFollowUp = {
@@ -163,6 +174,7 @@ export type Session = {
   participationEvents: ParticipationEvent[];
   followUps: StudentFollowUp[];
   unmatchedParticipants?: UnmatchedParticipant[];
+  importWarnings?: ImportQualityWarning[];
   transcriptAliases?: Record<string, string>;
   emailDelivery?: SessionEmailDelivery;
   deliveryLogs?: DeliveryLog[];

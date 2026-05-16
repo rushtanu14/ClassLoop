@@ -1,14 +1,14 @@
-import Stripe from "stripe";
-import { json, originUrl, requireUser, requiredEnv } from "../_shared.js";
+import { json, originUrl, requireUser } from "../_shared.js";
+import { createStripeClient } from "./stripe-client.js";
 
 export default async function handler(request, response) {
   if (request.method !== "POST") return json(response, 405, { error: "Method not allowed." });
 
   try {
     const { supabase, user } = await requireUser(request);
-    const stripe = new Stripe(requiredEnv("STRIPE_SECRET_KEY"));
+    const stripe = createStripeClient();
     const { data: profile, error } = await supabase
-      .from("relay_profiles")
+      .from("classloop_profiles")
       .select("stripe_customer_id")
       .eq("id", user.id)
       .maybeSingle();
@@ -17,7 +17,7 @@ export default async function handler(request, response) {
       return json(response, 400, { error: "Complete Stripe Checkout before opening the billing portal." });
     }
 
-    const baseUrl = process.env.RELAY_PUBLIC_URL || originUrl(request);
+    const baseUrl = process.env.CLASSLOOP_PUBLIC_URL || originUrl(request);
     const portal = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
       return_url: `${baseUrl}/#/billing`,

@@ -1,4 +1,4 @@
-# Relay Alpha Support Triage
+# ClassLoop Alpha Support Triage
 
 Use this during teacher alpha sessions to classify support burden.
 

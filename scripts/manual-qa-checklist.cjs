@@ -13,6 +13,7 @@ const automatedGate = [
   "npm run test:web",
   "npm run test:desktop:state",
   "npm run test:desktop:first-run",
+  "npm run test:release:distribution",
   "npm run drill:rollback",
   "npm run drill:incidents",
   "git diff --check",
@@ -85,7 +86,7 @@ const sections = [
     "Computer Use on clean macOS/Windows/Linux hosts",
     [
       "Build or install macOS x64/arm64, Windows x64/arm64 where supported, and Linux x64/arm64 artifacts on matching clean machines.",
-      "Launch first-run, create account, confirm `.relay-data.json` and `.relay-storage-key` live in user data, relaunch, and sign back in.",
+      "Launch first-run, create account, confirm `.classloop-data.json` and `.classloop-storage-key` live in user data, relaunch, and sign back in.",
       "Inspect signing/notarization/Gatekeeper/SmartScreen/AppImage/deb warnings and whether they block a normal teacher.",
       "Do not publish desktop installers until signed/notarized macOS first-run passes and Windows/Linux first-run is verified on matching clean machines.",
     ],
@@ -105,7 +106,7 @@ const sections = [
 
 function markdown() {
   const lines = [
-    "# Relay Full Manual QA Checklist",
+    "# ClassLoop Full Manual QA Checklist",
     "",
     `Generated: ${new Date().toISOString()}`,
     "",
@@ -154,7 +155,7 @@ function main() {
   if (process.argv.includes("--write")) {
     const outDir = path.join(rootDir, "test-results");
     fs.mkdirSync(outDir, { recursive: true });
-    const outPath = path.join(outDir, "relay-manual-qa-checklist.md");
+    const outPath = path.join(outDir, "classloop-manual-qa-checklist.md");
     fs.writeFileSync(outPath, output);
     console.log(`Wrote ${path.relative(rootDir, outPath)}`);
     return;

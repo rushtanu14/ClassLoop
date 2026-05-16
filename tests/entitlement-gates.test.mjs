@@ -5,6 +5,8 @@ import {
   planTierForSubscriptionStatus,
   subscriptionProfilePayload,
 } from "../api/billing/entitlements.js";
+import { stripeApiVersion } from "../api/billing/stripe-client.js";
+import { subscriptionIdFromInvoice } from "../api/billing/webhook.js";
 import { billingProfileFromRow, profilePatchColumns } from "../api/profile.js";
 import { isPaidPlan } from "../.test-build/src/cloud.js";
 
@@ -48,6 +50,13 @@ assert.equal(
   "Stripe subscription period seconds should be stored as ISO time",
 );
 assert.equal(currentPeriodEnd({}), null, "missing Stripe subscription period should stay null");
+assert.equal(stripeApiVersion, "2026-04-22.dahlia", "Stripe SDK should use the current pinned API version");
+assert.equal(subscriptionIdFromInvoice({ subscription: "sub_legacy" }), "sub_legacy", "legacy invoice subscription ids should be supported");
+assert.equal(
+  subscriptionIdFromInvoice({ parent: { subscription_details: { subscription: "sub_parent" } } }),
+  "sub_parent",
+  "latest invoice parent subscription ids should be supported",
+);
 
 const activePayload = subscriptionProfilePayload({
   customerId: "cus_active",
@@ -87,7 +96,7 @@ await applySubscriptionProfileUpdate(userTargetSupabase, {
   currentPeriodEndIso: "2026-06-12T00:00:00.000Z",
   updatedAt: "2026-05-12T12:00:00.000Z",
 });
-assert.equal(userTargetSupabase.calls[0].table, "relay_profiles");
+assert.equal(userTargetSupabase.calls[0].table, "classloop_profiles");
 assert.equal(userTargetSupabase.calls[0].column, "id", "checkout webhook should update entitlement by Supabase user id when metadata exists");
 assert.equal(userTargetSupabase.calls[0].value, "supabase-user-1");
 assert.equal(userTargetSupabase.calls[0].payload.plan_tier, "pro");

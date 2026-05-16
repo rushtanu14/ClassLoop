@@ -2,10 +2,10 @@ import { expect, test, type Download, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import type { Session, SessionType } from "../../src/types";
 
-const teacherEmail = "teacher@relay.demo";
-const teacherPassword = "relay-teacher";
-const studentEmail = "maya@relay.demo";
-const studentPassword = "relay-student";
+const teacherEmail = "teacher@classloop.demo";
+const teacherPassword = "classloop-teacher";
+const studentEmail = "maya@classloop.demo";
+const studentPassword = "classloop-student";
 
 async function resetBrowser(page: Page) {
   await page.goto("/");
@@ -19,7 +19,7 @@ async function resetBrowser(page: Page) {
 }
 
 async function skipAutoWalkthrough(page: Page) {
-  const dialog = page.getByRole("dialog", { name: /relay guided walkthrough/i });
+  const dialog = page.getByRole("dialog", { name: /classloop guided walkthrough/i });
   await dialog.waitFor({ state: "visible", timeout: 5_000 }).catch(() => undefined);
   if (await dialog.isVisible().catch(() => false)) {
     await dialog.getByRole("button", { name: /skip/i }).click();
@@ -102,12 +102,12 @@ async function upgradeTeacherToPro(page: Page) {
   await page.getByRole("button", { name: /upgrade to pro/i }).click();
   await expect(page.getByRole("button", { name: /downgrade to free/i })).toBeVisible();
   await page.getByLabel(/go to dashboard/i).click();
-  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 }
 
 async function waitForPersistedSessions(page: Page) {
   await expect
-    .poll(async () => page.evaluate(() => localStorage.getItem("relay:secure:sessions:v3") !== null))
+    .poll(async () => page.evaluate(() => localStorage.getItem("classloop:secure:sessions:v3") !== null))
     .toBe(true);
 }
 
@@ -182,19 +182,19 @@ async function completeScenarioAsStudent(page: Page, scenario: EndToEndScenario,
   for (const otherTitle of allTitles.filter((title) => title !== scenario.title)) {
     await expect(page.locator(".student-page").getByText(otherTitle)).toHaveCount(0);
   }
-  await expect(page.getByRole("region", { name: /relay product feedback/i })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: /classloop product feedback/i })).toHaveCount(0);
   await page.getByRole("button", { name: /mark complete/i }).click();
   await expect(page.locator(".today-card").getByText(/submitted/i)).toBeVisible();
-  await expect(page.getByRole("region", { name: /relay product feedback/i })).toBeVisible();
+  await expect(page.getByRole("region", { name: /classloop product feedback/i })).toBeVisible();
   if (scenario.template === "Math review") {
     await page.getByRole("button", { name: /rate 2 out of 5/i }).click();
-    await expect(page.getByLabel(/what would make relay better/i)).toBeVisible();
-    await page.getByLabel(/what would make relay better/i).fill("Show one worked example before the task list.");
+    await expect(page.getByLabel(/what would make classloop better/i)).toBeVisible();
+    await page.getByLabel(/what would make classloop better/i).fill("Show one worked example before the task list.");
     await page.getByRole("button", { name: /send feedback/i }).click();
   } else {
     await page.getByRole("button", { name: /rate 5 out of 5/i }).click();
   }
-  await expect(page.getByText(/thanks. your feedback helps improve relay/i)).toBeVisible();
+  await expect(page.getByText(/thanks. your feedback helps improve classloop/i)).toBeVisible();
   await waitForPersistedSessions(page);
   await signOut(page);
 }
@@ -221,34 +221,40 @@ test("public root shows landing page and can enter the app demo", async ({ page 
   await expect(page.getByText(/Transcript intelligence/i)).toBeVisible();
 
   await page.goto("/#/screenshots");
-  await expect(page.getByRole("heading", { name: /screenshots: how relay works/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /screenshots: how classloop works/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /student dashboard/i })).toBeVisible();
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /^Relay$/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^ClassLoop$/i })).toBeVisible();
   const heroCopy = page.locator(".landing-hero-copy");
-  await expect(heroCopy.getByRole("button")).toHaveCount(2);
+  await expect(heroCopy.getByRole("button")).toHaveCount(3);
   await expect(heroCopy.getByRole("button", { name: /open web demo/i })).toBeVisible();
+  await expect(heroCopy.getByRole("button", { name: /add to phone/i })).toBeVisible();
   await expect(heroCopy.getByRole("button", { name: /view screenshots/i })).toBeVisible();
-  await expect(heroCopy.getByRole("button", { name: /download|macos|add to phone|support relay/i })).toHaveCount(0);
+  await expect(heroCopy.getByRole("button", { name: /download|macos|support classloop/i })).toHaveCount(0);
   await expect(page.locator(".landing-hero .landing-platform-list")).toHaveCount(0);
   await page.goto("/#/download");
-  await expect(page.getByRole("heading", { name: /download relay/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /download classloop/i })).toBeVisible();
+  const revealInstallers = page.getByRole("button", { name: /not your system|view desktop installers/i }).first();
+  if (await revealInstallers.isVisible().catch(() => false)) {
+    await revealInstallers.click();
+  }
   const platformDownloads = page.locator(".landing-platform-list");
+  await expect(platformDownloads).toBeVisible();
   const readyDownloads = await platformDownloads.getByText(/download ready/i).count();
   if (!readyDownloads) {
     await expect(platformDownloads.getByRole("button", { name: /macos.*packaging pending/i })).toBeVisible();
     await expect(platformDownloads.getByRole("button", { name: /windows.*packaging pending/i })).toBeVisible();
     await expect(platformDownloads.getByRole("button", { name: /linux.*packaging pending/i })).toBeVisible();
   }
-  await expect(page.getByRole("button", { name: /add .*to phone/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /use relay from a browser or add it to your home screen/i })).toBeVisible();
+  await expect(page.locator(".landing-mobile-band").getByRole("button", { name: /add .*to phone/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /use classloop from a browser or add it to your home screen/i })).toBeVisible();
   const manifest = await page.request.get("/manifest.webmanifest");
   expect(manifest.ok()).toBeTruthy();
   const manifestJson = await manifest.json();
   expect(manifestJson.display).toBe("standalone");
   expect(manifestJson.start_url).toContain("source=pwa");
-  expect(manifestJson.icons?.map((icon: { src: string }) => icon.src)).toContain("/relay-app-icon-512.png");
+  expect(manifestJson.icons?.map((icon: { src: string }) => icon.src)).toContain("/classloop-app-icon-512.png");
   await page.getByRole("button", { name: /open web demo/i }).click();
   await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
 });
@@ -261,24 +267,24 @@ test("hosted demo mode uses sample accounts only and does not persist demo works
   });
   await page.goto("/?demoOnly=1#/dashboard");
 
-  await expect(page.getByRole("heading", { name: /try relay as a teacher or student/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /try classloop as a teacher or student/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /demo teacher side/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /demo student side/i })).toBeVisible();
   await expect(page.getByPlaceholder("name@example.com")).toHaveCount(0);
   await expect(page.getByPlaceholder("Enter password")).toHaveCount(0);
 
   await page.getByRole("button", { name: /demo teacher side/i }).click();
-  await expect(page.getByRole("dialog", { name: /relay guided walkthrough/i })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /start on the dashboard/i })).toBeVisible();
   await page.getByRole("button", { name: /skip/i }).click();
   await expect(page.getByText(/You are on a demo account/i)).toBeVisible();
   await expect(page.getByText(/Please download the app to create your own account/i)).toBeVisible();
   await page.waitForTimeout(500);
-  const persistedSessions = await page.evaluate(() => localStorage.getItem("relay:secure:sessions:v3"));
+  const persistedSessions = await page.evaluate(() => localStorage.getItem("classloop:secure:sessions:v3"));
   expect(persistedSessions).toBeNull();
 
   await page.getByRole("button", { name: /sign out/i }).click();
-  await expect(page.getByRole("heading", { name: /try relay as a teacher or student/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /try classloop as a teacher or student/i })).toBeVisible();
 });
 
 async function publishGeometrySample(page: Page) {
@@ -298,12 +304,12 @@ async function publishGeometrySample(page: Page) {
   await page.locator('input[accept=".csv,text/csv"]').setInputFiles({
     name: "main-roster.csv",
     mimeType: "text/csv",
-    buffer: Buffer.from("Name,Email,Aliases\nMaya Chen,maya@relay.demo,Maya iPad\nAarav Patel,aarav@relay.demo,\n"),
+    buffer: Buffer.from("Name,Email,Aliases\nMaya Chen,maya@classloop.demo,Maya iPad\nAarav Patel,aarav@classloop.demo,\n"),
   });
   await expect(page.locator('input[value="Maya iPad"]')).toBeVisible();
   await page.locator(".roster-attendance-field select").first().selectOption("late");
   await page.getByRole("button", { name: /^link$/i }).first().click();
-  await expect(page.getByText(/linked to maya@relay.demo/i)).toBeVisible();
+  await expect(page.getByText(/linked to maya@classloop.demo/i)).toBeVisible();
 
   await page.getByRole("tab", { name: /class recap/i }).click();
   await page.getByLabel(/approved recap/i).fill("Edited recap: similar triangles, proportional reasoning, and student support checks.");
@@ -345,12 +351,12 @@ test("teacher and student end-to-end flows work across three realistic session t
   const runId = Date.now().toString(36);
   const teacherA = {
     name: "E2E Teacher Rivera",
-    email: `teacher-a-${runId}@relay.test`,
+    email: `teacher-a-${runId}@classloop.test`,
     password: `teacher-pass-${runId}`,
   };
   const teacherB = {
     name: "E2E Teacher Patel",
-    email: `teacher-b-${runId}@relay.test`,
+    email: `teacher-b-${runId}@classloop.test`,
     password: `teacher-pass-b-${runId}`,
   };
   const savedRosterName = `E2E Math Period ${runId}`;
@@ -360,12 +366,12 @@ test("teacher and student end-to-end flows work across three realistic session t
       template: "Math review",
       student: {
         name: "Maya Vale",
-        email: `maya-${runId}@relay.test`,
+        email: `maya-${runId}@classloop.test`,
         password: `student-pass-maya-${runId}`,
       },
       rosterSaveName: savedRosterName,
-      roster: `Maya Vale, maya-${runId}@relay.test
-Jordan Kim, jordan-math-${runId}@relay.test`,
+      roster: `Maya Vale, maya-${runId}@classloop.test
+Jordan Kim, jordan-math-${runId}@classloop.test`,
       transcript: `[00:00:05] Ms. Lin: Today we are reviewing linear equation mistakes and showing corrected steps.
 [00:00:22] Maya Vale: I think we distribute first because the parentheses affect every term.
 [00:00:51] Jordan Kim: Why did the negative sign change when we moved the term?
@@ -384,11 +390,11 @@ Jordan Kim, jordan-math-${runId}@relay.test`,
       template: "CS workshop",
       student: {
         name: "Alex Rivera",
-        email: `alex-${runId}@relay.test`,
+        email: `alex-${runId}@classloop.test`,
         password: `student-pass-alex-${runId}`,
       },
-      roster: `Alex Rivera, alex-${runId}@relay.test
-Samir Desai, samir-cs-${runId}@relay.test`,
+      roster: `Alex Rivera, alex-${runId}@classloop.test
+Samir Desai, samir-cs-${runId}@classloop.test`,
       transcript: `[00:00:03] Mr. Chen: Today each pair is debugging the App Lab click counter.
 [00:00:31] Alex Rivera: My event listener works after I moved the state update inside the callback.
 [00:01:08] Samir Desai: Is the array index supposed to start at zero here?
@@ -408,11 +414,11 @@ https://example.com/debugging-checklist`,
       template: "Club meeting",
       student: {
         name: "Priya Shah",
-        email: `priya-${runId}@relay.test`,
+        email: `priya-${runId}@classloop.test`,
         password: `student-pass-priya-${runId}`,
       },
-      roster: `Priya Shah, priya-${runId}@relay.test
-Leo Martinez, leo-club-${runId}@relay.test`,
+      roster: `Priya Shah, priya-${runId}@classloop.test
+Leo Martinez, leo-club-${runId}@classloop.test`,
       transcript: `[00:00:04] Ms. Kim: Today we need owners for the elementary robotics outreach booth.
 [00:00:32] Priya Shah: I can own the demo script and make sure each station has a one-minute explanation.
 [00:01:18] Leo Martinez: I can email the elementary school coordinator about the room setup.
@@ -441,7 +447,7 @@ Leo Martinez, leo-club-${runId}@relay.test`,
   });
 
   await createAccount(page, "teacher", teacherA.name, teacherA.email, teacherA.password);
-  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
   await upgradeTeacherToPro(page);
 
   for (const scenario of scenarios) {
@@ -462,11 +468,12 @@ Leo Martinez, leo-club-${runId}@relay.test`,
     note: "Show one worked example before the task list.",
   });
   const feedbackJson = JSON.stringify(productFeedbackPayloads);
-  expect(feedbackJson).not.toContain("Maya Vale");
-  expect(feedbackJson).not.toContain(`maya-${runId}@relay.test`);
+  expect(feedbackJson).toContain("Maya Vale");
+  expect(feedbackJson).toContain("complete the error-analysis worksheet");
+  expect(feedbackJson).not.toContain(`maya-${runId}@classloop.test`);
 
   await signInAccount(page, "teacher", teacherA.email, teacherA.password);
-  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
   for (const title of allTitles) {
     await expect(page.locator(".session-row").filter({ hasText: title })).toBeVisible();
   }
@@ -514,7 +521,7 @@ Leo Martinez, leo-club-${runId}@relay.test`,
   await signOut(page);
 
   await createAccount(page, "teacher", teacherB.name, teacherB.email, teacherB.password);
-  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
   await expect(page.getByText(/no sessions yet/i)).toBeVisible();
   for (const title of allTitles) {
     await expect(page.getByText(title)).toHaveCount(0);
@@ -529,9 +536,9 @@ Leo Martinez, leo-club-${runId}@relay.test`,
 
 test("account creation, settings, and password reset work", async ({ page }) => {
   await resetBrowser(page);
-  const uniqueEmail = `teacher-${Date.now()}@relay.test`;
-  const originalPassword = "relay-new-teacher";
-  const resetPassword = "relay-reset-teacher";
+  const uniqueEmail = `teacher-${Date.now()}@classloop.test`;
+  const originalPassword = "classloop-new-teacher";
+  const resetPassword = "classloop-reset-teacher";
 
   await page.getByRole("button", { name: /create account/i }).click();
   await page.getByLabel(/^name$/i).fill("Test Teacher");
@@ -539,9 +546,9 @@ test("account creation, settings, and password reset work", async ({ page }) => 
   await page.locator('input[placeholder="Enter password"]').fill(originalPassword);
   await page.locator('input[placeholder="Re-enter password"]').fill(originalPassword);
   await page.locator("form.login-form button[type='submit']").click();
-  await expect(page.getByRole("dialog", { name: /relay guided walkthrough/i })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
   await page.getByRole("button", { name: /skip/i }).click();
-  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 
   await page.getByRole("button", { name: /test teacher/i }).click();
   await page.locator(".profile-menu").getByLabel(/^name$/i).fill("Test Teacher Updated");
@@ -563,16 +570,16 @@ test("account creation, settings, and password reset work", async ({ page }) => 
   await expect(page.getByText(/password reset/i)).toBeVisible();
   await page.getByPlaceholder("Enter password").fill(resetPassword);
   await page.locator("form.login-form button[type='submit']").click();
-  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 });
 
 test("teacher can log in, import a sample, preview publishing, publish, open student view, and access analytics", async ({ page }) => {
   await signIn(page, "teacher");
-  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
   await page.waitForTimeout(500);
   const storageState = await page.evaluate(() => ({
-    legacyAccounts: localStorage.getItem("relay:accounts:v1"),
-    secureAccounts: localStorage.getItem("relay:secure:accounts:v1"),
+    legacyAccounts: localStorage.getItem("classloop:accounts:v1"),
+    secureAccounts: localStorage.getItem("classloop:secure:accounts:v1"),
   }));
   expect(storageState.legacyAccounts).toBeNull();
   expect(storageState.secureAccounts).toBeNull();
@@ -602,7 +609,7 @@ test("teacher can log in, import a sample, preview publishing, publish, open stu
   await page.locator('input[accept=".csv,text/csv"]').last().setInputFiles({
     name: "period-4.csv",
     mimeType: "text/csv",
-    buffer: Buffer.from("Name,Email,Aliases\nMaya Chen,maya@relay.demo,Maya iPad\nAarav Patel,aarav@relay.demo,\n"),
+    buffer: Buffer.from("Name,Email,Aliases\nMaya Chen,maya@classloop.demo,Maya iPad\nAarav Patel,aarav@classloop.demo,\n"),
   });
   await expect(page.locator('input[value="Maya iPad"]')).toBeVisible();
 
@@ -647,7 +654,7 @@ test("teacher can log in, import a sample, preview publishing, publish, open stu
   await page.getByRole("button", { name: /session report/i }).click();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: /delete session/i }).click();
-  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 });
 
 test("privacy, sync billing, appearance, and tutorial controls are usable", async ({ page }) => {
@@ -665,7 +672,7 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
 
   await expect(page.locator(".topbar-actions").getByRole("button", { name: /student preview/i })).toHaveCount(0);
   await page.getByRole("button", { name: /open interactive walkthrough/i }).click();
-  await expect(page.getByRole("dialog", { name: /relay guided walkthrough/i })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /start on the dashboard/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /return home/i })).toHaveCount(0);
   await page.getByRole("button", { name: /go to this area/i }).click();
@@ -691,7 +698,7 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
     await expect.poll(async () => (await page.locator(".tour-highlight").boundingBox())?.height ?? 999).toBeLessThan(90);
   }
   await page.getByRole("button", { name: /skip/i }).click();
-  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 
   await page.getByRole("button", { name: /^plan options$/i }).click();
   await expect(page.getByRole("heading", { name: /save time on every class follow-up/i })).toBeVisible();
@@ -716,7 +723,7 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   await page.getByLabel(/no training on student data/i).check();
   const workspaceDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: /export workspace data/i }).click();
-  await expectDownloaded(workspaceDownload, /relay-export-.*\.json/i);
+  await expectDownloaded(workspaceDownload, /classloop-export-.*\.json/i);
   await expect(page.getByText(/You are on a demo account/i)).toBeVisible();
 });
 
@@ -779,20 +786,20 @@ test("students cannot access analytics but can save appearance while logged in, 
   await page.getByRole("button", { name: /appearance/i }).click();
   await page.getByRole("button", { name: /Graphite focus/i }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "graphite");
-  await page.getByLabel(/image backdrop url/i).fill("https://example.com/relay-backdrop.png");
-  await expect(page.locator(".live-theme-preview")).toHaveAttribute("style", /relay-backdrop\.png/);
+  await page.getByLabel(/image backdrop url/i).fill("https://example.com/classloop-backdrop.png");
+  await expect(page.locator(".live-theme-preview")).toHaveAttribute("style", /classloop-backdrop\.png/);
   const customBackdrop = await page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue("--custom-backdrop"),
   );
-  expect(customBackdrop).toContain("https://example.com/relay-backdrop.png");
+  expect(customBackdrop).toContain("https://example.com/classloop-backdrop.png");
 
   await page.getByRole("button", { name: /sign out/i }).click();
-  await expect(page.getByText(/Sign in to Relay/i)).toBeVisible();
+  await expect(page.getByText(/Sign in to ClassLoop/i)).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "classroom");
 
   await page.getByRole("tab", { name: /student/i }).click();
-  await page.getByPlaceholder("name@example.com").fill("maya@relay.demo");
-  await page.getByPlaceholder("Enter password").fill("relay-student");
+  await page.getByPlaceholder("name@example.com").fill("maya@classloop.demo");
+  await page.getByPlaceholder("Enter password").fill("classloop-student");
   await page.locator("form.login-form button[type='submit']").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "classroom");
   await expect(page.getByText(/You are on a demo account/i)).toBeVisible();
@@ -824,8 +831,8 @@ test("accessibility and error-recovery smoke covers keyboard focus, labels, and 
   await expect(page.getByText(/email or password is incorrect/i)).toBeVisible();
 
   const runId = Date.now().toString(36);
-  await createAccount(page, "teacher", "Accessibility Teacher", `accessibility-${runId}@relay.test`, `access-pass-${runId}`);
-  await expect(page.getByText("Today in Relay")).toBeVisible();
+  await createAccount(page, "teacher", "Accessibility Teacher", `accessibility-${runId}@classloop.test`, `access-pass-${runId}`);
+  await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 
   await page.getByRole("button", { name: /new session/i }).first().click();
   await expect(page.getByRole("button", { name: /Transcript\s*Upload or paste/i })).toBeVisible();
@@ -839,7 +846,7 @@ test("accessibility and error-recovery smoke covers keyboard focus, labels, and 
     .getByLabel(/paste transcript text/i)
     .fill("This transcript lost speaker labels. The group reviewed ratios and the teacher assigned a reflection due Friday.");
   const summary = page.locator(".summary-input-card");
-  await summary.getByLabel(/^Roster$/i).fill("Maya Chen, maya@relay.demo\nJordan Lee, jordan@relay.demo");
+  await summary.getByLabel(/^Roster$/i).fill("Maya Chen, maya@classloop.demo\nJordan Lee, jordan@classloop.demo");
   await summary.getByLabel(/^Resources$/i).fill("not a url\nhttps://example.com/ratio-review).");
   await page.getByRole("button", { name: /generate draft/i }).click();
   await expect(page.getByText(/edit the draft before publishing/i)).toBeVisible();

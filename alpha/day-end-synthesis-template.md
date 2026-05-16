@@ -1,4 +1,4 @@
-# Relay Alpha Day-End Synthesis
+# ClassLoop Alpha Day-End Synthesis
 
 Date:
 Alpha day: Day 1 / Day 2

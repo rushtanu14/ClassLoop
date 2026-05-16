@@ -62,7 +62,7 @@ function verifyNoHighConfidenceSecrets(files) {
     {
       name: "non-empty server secret env assignment",
       pattern:
-        /^(?:SUPABASE_SERVICE_ROLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|RELAY_GMAIL_APP_PASSWORD|RELAY_SMTP_PASS)[^\S\r\n]*=[^\S\r\n]*(?!(?:replace-me|your-16-character-app-password)?[^\S\r\n]*$)[^\r\n]+/im,
+        /^(?:SUPABASE_SERVICE_ROLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|CLASSLOOP_GMAIL_APP_PASSWORD|CLASSLOOP_SMTP_PASS)[^\S\r\n]*=[^\S\r\n]*(?!(?:replace-me|your-16-character-app-password)?[^\S\r\n]*$)[^\r\n]+/im,
     },
   ];
 
@@ -87,7 +87,7 @@ function verifyLocalStorageSecurity() {
   if (!secureBlock) fail("secureLocalKeys block was not found.");
   const insecureSecureKeys = Array.from(secureBlock[1].matchAll(/"([^"]+)"/g))
     .map((match) => match[1])
-    .filter((key) => !key.startsWith("relay:secure:"));
+    .filter((key) => !key.startsWith("classloop:secure:"));
   if (insecureSecureKeys.length) {
     fail(`secureLocalKeys contains non-secure keys: ${insecureSecureKeys.join(", ")}`);
   }
@@ -96,10 +96,10 @@ function verifyLocalStorageSecurity() {
     ["AES-GCM browser fallback encryption", /crypto\.subtle\.encrypt\(\{ name: "AES-GCM"/],
     ["legacy plaintext migration removal", /localStorage\.removeItem\(legacyKey\)/],
     ["demo sessions filtered from persistence", /sessions: state\.sessions\.filter\(\(session\) => !isDemoOwnedSession\(session\)\)/],
-    ["offline queue is Relay-namespaced", /const offlineQueueKey = "relay:cloud-offline-queue:v1"/],
+    ["offline queue is ClassLoop-namespaced", /const offlineQueueKey = "classloop:cloud-offline-queue:v1"/],
   ];
   requiredStorageControls.forEach(([label, pattern]) => {
-    if (!pattern.test(label === "offline queue is Relay-namespaced" ? cloudSource : appSource)) {
+    if (!pattern.test(label === "offline queue is ClassLoop-namespaced" ? cloudSource : appSource)) {
       fail(`Missing storage control: ${label}`);
     }
   });
@@ -114,8 +114,8 @@ function verifyDesktopAndHostedSecurity() {
   const schema = readText("supabase/schema.sql");
 
   const checks = [
-    ["desktop uses current Relay data filename", desktop, /const dataFileName = "\.relay-data\.json"/],
-    ["desktop uses prompt-free Relay storage key", desktop, /const dataKeyFileName = "\.relay-storage-key"/],
+    ["desktop uses current ClassLoop data filename", desktop, /const dataFileName = "\.classloop-data\.json"/],
+    ["desktop uses prompt-free ClassLoop storage key", desktop, /const dataKeyFileName = "\.classloop-storage-key"/],
     ["desktop encrypts state with AES-GCM", desktop, /crypto\.createCipheriv\("aes-256-gcm"/],
     ["desktop writes restrictive data-file permissions", desktop, /mode: 0o600/],
     ["desktop blocks untrusted mutating local API origins", desktop, /Blocked untrusted local API origin/],
@@ -124,11 +124,18 @@ function verifyDesktopAndHostedSecurity() {
     ["hosted APIs require bearer Supabase auth", shared, /Sign in with Supabase before using hosted sync/],
     ["server-only Supabase key stays server-side", shared, /SUPABASE_SERVICE_ROLE_KEY/],
     ["profile patch ignores paid entitlement fields", profile, /profilePatchColumns/],
+    ["Stripe client pins current SDK API version", readText("api/billing/stripe-client.js"), /apiVersion: stripeApiVersion/],
     ["anonymous feedback has rate limiting", feedback, /assertFeedbackRateLimit\(request\)/],
     ["anonymous feedback has body limits", feedback, /assertFeedbackBodyLimit\(request\.body\)/],
+    ["feedback fails closed without hosted credentials", feedback, /Missing Supabase hosted feedback configuration/],
+    ["feedback stores transcript context", feedback, /transcript: sanitizeFeedbackTranscript|const transcript = sanitizeFeedbackTranscript/],
     ["feedback metadata is sanitized", feedback, /sanitizeFeedbackMetadata\(request\.body\?\.metadata\)/],
     ["Stripe webhook verifies raw signed body", webhook, /constructEvent\(rawBody, signature, requiredEnv\("STRIPE_WEBHOOK_SECRET"\)\)/],
-    ["workspace RLS enabled", schema, /alter table public\.relay_workspace_state enable row level security/i],
+    ["Stripe webhook caps raw body size", webhook, /maxWebhookBodyBytes/],
+    ["Stripe webhook preserves explicit error statuses", webhook, /json\(response, error\.statusCode \|\| 400/],
+    ["Stripe webhook handles invoice renewals", webhook, /event\.type === "invoice\.paid"/],
+    ["Stripe webhook handles invoice payment failures", webhook, /event\.type === "invoice\.payment_failed"/],
+    ["workspace RLS enabled", schema, /alter table public\.classloop_workspace_state enable row level security/i],
     ["workspace own-record policy exists", schema, /workspace_state_select_own/i],
   ];
 
@@ -150,10 +157,10 @@ function verifyRuntimeLogging() {
   }
 
   const desktop = readText("desktop/main.cjs");
-  if (!/Relay desktop startup failed:/.test(desktop)) {
+  if (!/ClassLoop desktop startup failed:/.test(desktop)) {
     fail("Desktop startup logging is missing a stable support prefix.");
   }
-  const riskyErrorLog = /console\.error\((?!"Relay desktop startup failed:").*(accounts|sessions|transcript|password|payload|student)/is;
+  const riskyErrorLog = /console\.error\((?!"ClassLoop desktop startup failed:").*(accounts|sessions|transcript|password|payload|student)/is;
   if (riskyErrorLog.test(desktop)) {
     fail("Desktop error logging may include raw classroom state or secrets.");
   }
@@ -168,13 +175,13 @@ function verifyLegalBaseline() {
     ["not legal advice disclaimer", /not legal advice/i],
     ["public signup status", /Public Signup Status/i],
     ["reviewed docs required before signup", /reviewed public Terms of Use, Privacy Policy, and desktop EULA pages/i],
-    ["hosted signup stays sample-only", /Hosted Relay should stay sample-only until these documents are reviewed and published/i],
+    ["hosted signup stays sample-only", /Hosted ClassLoop should stay sample-only until these documents are reviewed and published/i],
     ["sample-only hosted demo boundary", /sample accounts/i],
     ["Terms", /Terms/i],
     ["Privacy", /Privacy/i],
     ["EULA", /EULA/i],
     ["Support", /Support/i],
-    ["support contact", /relay\.donotreply@gmail\.com/i],
+    ["support contact", /classloop\.donotreply@gmail\.com/i],
     ["privacy-safe support requests", /support requests should avoid raw student transcripts/i],
     ["Data retention", /Data Retention/i],
     ["hosted retention SLA before public accounts", /retention and deletion SLAs must be published before durable public hosted accounts are enabled/i],
@@ -204,7 +211,7 @@ function verifyLegalBaseline() {
 
 function main() {
   const files = trackedFiles();
-  verifyIgnoredLocalFiles([".env.local", ".env.test.local", ".relay-data.json", ".relay-storage-key", ".classloop-data.json"]);
+  verifyIgnoredLocalFiles([".env.local", ".env.test.local", ".classloop-data.json", ".classloop-storage-key", ".classloop-data.json"]);
   verifyNoHighConfidenceSecrets(trackedTextFiles(files));
   verifyLocalStorageSecurity();
   verifyDesktopAndHostedSecurity();

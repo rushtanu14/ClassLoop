@@ -11,14 +11,14 @@ function fail(message) {
 }
 
 function assertPrivacySafe(output, label) {
-  const risky = /@relay\.test|relay-teacher|relay-student|passwordHash|transcript|payload|student follow-up|class recap/i;
+  const risky = /@classloop\.test|classloop-teacher|classloop-student|passwordHash|transcript|payload|student follow-up|class recap/i;
   if (risky.test(output)) {
     fail(label + " leaked account, transcript, payload, or classroom terms in package-init logs.");
   }
 }
 
 function main() {
-  const missingExecutable = path.join(os.tmpdir(), "relay-missing-package-init", "Relay");
+  const missingExecutable = path.join(os.tmpdir(), "classloop-missing-package-init", "ClassLoop");
   const result = spawnSync(process.execPath, [packagedSmoke, missingExecutable], {
     cwd: rootDir,
     encoding: "utf8",
@@ -37,8 +37,8 @@ function main() {
   if (!/Missing dist\/index\.html/.test(desktopSource)) {
     fail("Desktop startup does not explain how to recover from a missing app build.");
   }
-  if (!/Relay desktop startup failed:/.test(desktopSource)) {
-    fail("Desktop startup failures should be logged with a stable Relay prefix for support triage.");
+  if (!/ClassLoop desktop startup failed:/.test(desktopSource)) {
+    fail("Desktop startup failures should be logged with a stable ClassLoop prefix for support triage.");
   }
 
   console.log("Package init failure smoke passed: missing executable/build failures are actionable and privacy-safe.");

@@ -1,16 +1,16 @@
 {
-  "name": "relay",
+  "name": "classloop",
   "version": "0.1.0",
   "private": true,
-  "description": "Relay desktop and mobile-web classroom follow-up platform",
-  "author": "Relay <relay.donotreply@gmail.com>",
+  "description": "ClassLoop desktop and mobile-web classroom follow-up platform",
+  "author": "ClassLoop <classloop.donotreply@gmail.com>",
   "type": "module",
   "main": "desktop/main.cjs",
   "scripts": {
     "postinstall": "playwright install chromium",
     "dev": "vite --host 127.0.0.1",
     "start": "electron .",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node scripts/strip-dist-trailing-whitespace.cjs",
     "test:import": "tsc -p tsconfig.test.json && node --experimental-specifier-resolution=node .test-build/tests/import-flow.test.js",
     "test:cloud": "tsc -p tsconfig.test.json && node --experimental-specifier-resolution=node .test-build/tests/cloud-sync.test.js",
     "test:entitlements": "tsc -p tsconfig.test.json && node tests/entitlement-gates.test.mjs",
@@ -20,6 +20,7 @@
     "test:web": "playwright test -c playwright.web.config.ts",
     "test:desktop:state": "node scripts/smoke-desktop-state.cjs",
     "test:desktop:first-run": "node scripts/smoke-packaged-first-run.cjs",
+    "test:release:distribution": "node scripts/verify-release-distribution.cjs",
     "test:manual": "node scripts/manual-qa-checklist.cjs",
     "test:manual:write": "node scripts/manual-qa-checklist.cjs --write",
     "test:all": "npm run test:security && npm run test:package:init && npm run test:import && npm run test:cloud && npm run test:entitlements && npm run test:browser && npm run test:web",
@@ -29,7 +30,8 @@
     "package": "npm run build && electron-builder",
     "package:mac": "npm run build && electron-builder --mac dmg zip --x64 --arm64",
     "package:win": "npm run build && electron-builder --win nsis zip --x64 --arm64",
-    "package:linux": "npm run build && electron-builder --linux AppImage deb --x64 --arm64"
+    "package:linux": "npm run build && electron-builder --linux AppImage deb --x64 --arm64",
+    "release:checksums": "node scripts/generate-release-checksums.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
@@ -50,8 +52,8 @@
     "vite": "^6.0.7"
   },
   "build": {
-    "appId": "com.relay.app",
-    "productName": "Relay",
+    "appId": "com.classloop.app",
+    "productName": "ClassLoop",
     "directories": {
       "output": "release"
     },
@@ -63,8 +65,13 @@
     "extraMetadata": {
       "main": "desktop/main.cjs"
     },
+    "afterSign": "scripts/notarize-mac.cjs",
     "mac": {
       "category": "public.app-category.education",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "target": [
         "dmg",
         "zip"

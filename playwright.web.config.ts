@@ -1,10 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.RELAY_WEB_TEST_URL || "https://relay-class.vercel.app";
+const baseURL = process.env.CLASSLOOP_WEB_TEST_URL || "https://classloop-followup.vercel.app/";
 
 export default defineConfig({
   testDir: "./tests/browser",
-  testMatch: ["**/relay-web.spec.ts"],
+  testMatch: ["**/classloop-web.spec.ts"],
   timeout: 60_000,
   expect: {
     timeout: 10_000,

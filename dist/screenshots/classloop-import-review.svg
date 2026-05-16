@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960" role="img" aria-labelledby="title desc">
-  <title id="title">Relay teacher import and review screenshot</title>
-  <desc id="desc">A Relay desktop dashboard showing an imported transcript, roster matching, review tasks, and student follow-up previews.</desc>
+  <title id="title">ClassLoop teacher import and review screenshot</title>
+  <desc id="desc">A ClassLoop desktop dashboard showing an imported transcript, roster matching, review tasks, and student follow-up previews.</desc>
   <defs>
     <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#ecfdf5"/><stop offset="1" stop-color="#eff6ff"/></linearGradient>
     <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#0f172a" flood-opacity=".18"/></filter>
@@ -8,7 +8,7 @@
   <rect width="1440" height="960" rx="42" fill="url(#bg)"/>
   <rect x="70" y="72" width="1300" height="816" rx="34" fill="#fff" filter="url(#shadow)"/>
   <rect x="70" y="72" width="250" height="816" rx="34" fill="#073b3a"/>
-  <circle cx="120" cy="126" r="22" fill="#10b981"/><text x="154" y="136" font-family="Inter,Arial" font-size="30" font-weight="800" fill="#fff">Relay</text>
+  <circle cx="120" cy="126" r="22" fill="#10b981"/><text x="154" y="136" font-family="Inter,Arial" font-size="30" font-weight="800" fill="#fff">ClassLoop</text>
   <text x="106" y="210" font-family="Inter,Arial" font-size="16" font-weight="700" fill="#9ce7d4">TEACHER WORKSPACE</text>
   <rect x="98" y="242" width="194" height="48" rx="14" fill="#10b981"/><text x="128" y="273" font-family="Inter,Arial" font-size="17" font-weight="800" fill="#fff">Import class</text>
   <text x="126" y="338" font-family="Inter,Arial" font-size="18" fill="#d1fae5">Sessions</text>

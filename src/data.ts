@@ -1,5 +1,6 @@
 import type {
   ActionItem,
+  ImportQualityWarning,
   ParticipationEvent,
   Resource,
   Session,
@@ -35,12 +36,12 @@ Need to reinforce:
 - Homework problems 7-12 due Friday
 - Ethan absent, Priya quiet, Jordan needs cross-multiplication reminder`;
 
-export const sampleRoster = `Maya Chen, maya@relay.demo
-Aarav Patel, aarav@relay.demo
-Jordan Lee, jordan@relay.demo
-Sofia Ramirez, sofia@relay.demo
-Ethan Brooks, ethan@relay.demo
-Priya Shah, priya@relay.demo`;
+export const sampleRoster = `Maya Chen, maya@classloop.demo
+Aarav Patel, aarav@classloop.demo
+Jordan Lee, jordan@classloop.demo
+Sofia Ramirez, sofia@classloop.demo
+Ethan Brooks, ethan@classloop.demo
+Priya Shah, priya@classloop.demo`;
 
 export type ImportDraftInput = {
   title: string;
@@ -96,6 +97,8 @@ function compactSpeakerName(value: string) {
 const genericSpeakerLabelPattern = /^(student|learner|participant|attendee|speaker|user|guest)\b/i;
 const complianceMetadataLabelPattern =
   /^(privacy|support|data retention|terms|eula|child appropriate safety|recording consent|consent|legal|security)\b.*\b(note|reminder|contact|notice|policy|guidance)\b/i;
+const staffOrBotSpeakerPattern =
+  /\b(ai|bot|notetaker|note taker|recorder|transcriber|host|cohost|co-host|moderator|admin|organizer|staff|faculty|admissions|panelist|presenter|teacher|instructor|professor)\b/i;
 
 function stripGenericSpeakerLabel(value: string) {
   return value
@@ -110,6 +113,45 @@ function cleanSpeakerLabel(value: string) {
     .replace(/\s+/g, " ")
     .replace(/^\[(?:chat|private chat|direct message)\]\s*/i, "")
     .trim();
+}
+
+function isPrivateMessageLine(line: string) {
+  return /^\s*(?:\[[^\]]+\]\s*)?\[(?:private chat|direct message|dm)\]/i.test(line);
+}
+
+function isStaffOrBotSpeaker(speaker: string) {
+  return staffOrBotSpeakerPattern.test(speaker);
+}
+
+function isAmbiguousGenericSpeaker(speaker: string) {
+  const cleaned = cleanSpeakerLabel(speaker).trim();
+  const stripped = stripGenericSpeakerLabel(cleaned);
+  return Boolean(
+    genericSpeakerLabelPattern.test(cleaned) &&
+      (!stripped || /^\d+$/.test(stripped) || /^(one|two|three|four|five|six|seven|eight|nine|ten)$/i.test(stripped)),
+  );
+}
+
+function isChatLine(line: string) {
+  return /^\s*(?:\[[^\]]+\]\s*)?\[(?:chat|private chat|direct message|dm)\]/i.test(line);
+}
+
+function isNonInstructionalChatText(text: string, sourceLine = "") {
+  const normalized = text
+    .replace(/https?:\/\/\S+/gi, "")
+    .replace(/[^\p{L}\p{N}\s?]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+  if (isPrivateMessageLine(sourceLine)) return true;
+  if (!normalized) return true;
+  if (/^(hi|hello|hey|thanks|thank you|yes|yeah|yep|no|nope|ok|okay|cool|great|same|agreed|bye)$/i.test(normalized)) {
+    return true;
+  }
+  if (/\b(wifi|wi fi|internet|audio|microphone|mic|camera|hear me|can't hear|cannot hear|screen share|screenshare|zoom link|logged out|connection)\b/i.test(normalized)) {
+    return true;
+  }
+  return false;
 }
 
 function isPlausibleTranscriptSpeakerLabel(value: string) {
@@ -140,7 +182,7 @@ function isTranscriptMetadataSpeaker(speaker: string) {
   return (
     !normalized ||
     complianceMetadataLabelPattern.test(normalized) ||
-    /^(teacher|instructor|professor|facilitator|host|relay|meeting title|meeting date|meeting id|meeting passcode|passcode|date|duration|participants?|transcript|transcription|recording|audio|chat|question|questions|answer|answers|summary|agenda|topic|topics|resources?|links?|name|email|attendance|zoom names?|student access|speaker|speakers|speaker matching|transcript speaker matching|start time|end time|timezone|language|notes|practice problems?|skills? to reinforce|common mistakes?|project or repo|debug targets?|workshop deliverable|decisions? made|owners?|next checkpoint|peer questions?|practice goals?)$/i.test(
+    /^(teacher|instructor|professor|facilitator|host|classloop|meeting title|meeting date|meeting id|meeting passcode|passcode|date|duration|participants?|transcript|transcription|recording|audio|chat|question|questions|answer|answers|summary|agenda|topic|topics|resources?|links?|name|email|attendance|zoom names?|student access|speaker|speakers|speaker matching|transcript speaker matching|start time|end time|timezone|language|notes|practice problems?|skills? to reinforce|common mistakes?|project or repo|debug targets?|workshop deliverable|decisions? made|owners?|next checkpoint|peer questions?|practice goals?)$/i.test(
       normalized,
     ) ||
     /^\d+$/.test(normalized) ||
@@ -162,6 +204,7 @@ type SpeakerLine = {
 
 function parseSpeakerLine(line: string): SpeakerLine | null {
   const trimmed = line.trim();
+  if (isPrivateMessageLine(trimmed)) return null;
   const vttVoice = trimmed.match(/^(?:<v\s+([^>]+)>|<v\.([^>]+)>)(.*?)$/i);
   if (vttVoice) {
     const speaker = cleanSpeakerLabel(vttVoice[1] || vttVoice[2] || "");
@@ -171,6 +214,7 @@ function parseSpeakerLine(line: string): SpeakerLine | null {
       text &&
       !isTranscriptMetadataSpeaker(speaker) &&
       !isTeacherLikeSpeaker(speaker) &&
+      !isStaffOrBotSpeaker(speaker) &&
       isPlausibleTranscriptSpeakerLabel(speaker)
     ) {
       return { speaker, text, line: trimmed };
@@ -189,6 +233,7 @@ function parseSpeakerLine(line: string): SpeakerLine | null {
     !/[a-z]/i.test(speaker) ||
     isTranscriptMetadataSpeaker(speaker) ||
     isTeacherLikeSpeaker(speaker) ||
+    isStaffOrBotSpeaker(speaker) ||
     !isPlausibleTranscriptSpeakerLabel(speaker)
   ) {
     return null;
@@ -238,6 +283,110 @@ export function extractTranscriptSpeakers(text: string) {
   });
 
   return parsedLines.filter((line) => !isTranscriptMetadataSpeaker(line.speaker));
+}
+
+function transcriptLineStats(text: string) {
+  const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const parsed = extractTranscriptSpeakers(text);
+  const rawSpeakerLines = lines.filter((line) => /:\s*\S+/.test(line));
+  const chatLines = lines.filter(isChatLine);
+  const rawGenericSpeakerLines = rawSpeakerLines.filter((line) => {
+    const speaker = line.match(/^(?:\[[^\]]+\]\s*)?([^:\n]{2,80}):\s*(.+)$/i)?.[1] ?? "";
+    return speaker && isAmbiguousGenericSpeaker(speaker);
+  });
+  const genericSpeakerLines = [...parsed.filter((line) => isAmbiguousGenericSpeaker(line.speaker)), ...rawGenericSpeakerLines];
+  const staffOrBotLines = lines.filter((line) => {
+    const speaker = line.match(/^(?:\[[^\]]+\]\s*)?([^:\n]{2,80}):\s*(.+)$/i)?.[1] ?? "";
+    return speaker && isStaffOrBotSpeaker(speaker);
+  });
+  const privateLines = lines.filter(isPrivateMessageLine);
+  return { lines, parsed, rawSpeakerLines, chatLines, genericSpeakerLines, staffOrBotLines, privateLines };
+}
+
+function isLikelyNoisyAsr(text: string) {
+  const words = text.toLowerCase().match(/[a-z']+/g) ?? [];
+  if (words.length < 35) return false;
+  const fillerWords = words.filter((word) => /^(um|uh|erm|hmm|yeah|okay|ok|like|so)$/.test(word)).length;
+  const unclearMarkers = (text.match(/\b(inaudible|unintelligible|garbled|audio unclear|transcript unclear|unknown speaker)\b/gi) ?? [])
+    .length;
+  const shortWords = words.filter((word) => word.length <= 2).length;
+  const punctuationCount = (text.match(/[.?!]/g) ?? []).length;
+  return unclearMarkers > 0 || fillerWords / words.length > 0.16 || (shortWords / words.length > 0.38 && punctuationCount < 3);
+}
+
+function importQualityWarnings(sessionText: string, hasExplicitRoster: boolean): ImportQualityWarning[] {
+  const stats = transcriptLineStats(sessionText);
+  const warnings: ImportQualityWarning[] = [];
+  const parsedCount = stats.parsed.length;
+  const chatOnly = parsedCount > 0 && stats.chatLines.length / Math.max(1, parsedCount) >= 0.75;
+
+  if (stats.genericSpeakerLines.length > 0 && hasExplicitRoster) {
+    warnings.push({
+      id: "generic-speaker-labels",
+      severity: "blocking",
+      title: "Generic speaker labels need review",
+      message:
+        "This transcript uses labels like Student or Speaker without a reliable name. Link those lines to the roster or keep them class-level before publishing student dashboards.",
+      source: `${stats.genericSpeakerLines.length} generic speaker line${stats.genericSpeakerLines.length === 1 ? "" : "s"} detected`,
+    });
+  }
+
+  if (isLikelyNoisyAsr(sessionText)) {
+    warnings.push({
+      id: "noisy-asr",
+      severity: "blocking",
+      title: "Transcript looks noisy",
+      message:
+        "The transcript appears to contain garbled or filler-heavy automatic speech recognition. Add teacher notes or clean the key section before publishing.",
+      source: "Noisy ASR heuristic",
+    });
+  }
+
+  if (chatOnly) {
+    warnings.push({
+      id: "chat-only",
+      severity: "warning",
+      title: "Chat-only import",
+      message:
+        "Most detected lines came from chat. ClassLoop will keep participation signals unapproved until you confirm they represent meaningful student participation.",
+      source: `${stats.chatLines.length} chat line${stats.chatLines.length === 1 ? "" : "s"} detected`,
+    });
+  }
+
+  if (stats.privateLines.length > 0) {
+    warnings.push({
+      id: "private-chat-artifacts",
+      severity: "warning",
+      title: "Private chat artifacts ignored",
+      message:
+        "Direct-message or private-chat fragments were ignored for speaker matching and participation to avoid exposing private context.",
+      source: `${stats.privateLines.length} private line${stats.privateLines.length === 1 ? "" : "s"} detected`,
+    });
+  }
+
+  if (stats.staffOrBotLines.length > 0) {
+    warnings.push({
+      id: "staff-or-bot-speakers",
+      severity: "info",
+      title: "Staff or bot speakers filtered",
+      message:
+        "Host, staff, faculty, or notetaker lines were kept out of student participation. Review resources separately if those lines included links.",
+      source: `${stats.staffOrBotLines.length} staff/bot line${stats.staffOrBotLines.length === 1 ? "" : "s"} detected`,
+    });
+  }
+
+  if (!parsedCount && stats.rawSpeakerLines.length > 0) {
+    warnings.push({
+      id: "unusable-speaker-lines",
+      severity: "warning",
+      title: "Speaker labels were not usable",
+      message:
+        "The import had speaker-like lines, but they looked like metadata, staff, bots, private messages, or unsupported labels. Review the draft as a class-level summary.",
+      source: `${stats.rawSpeakerLines.length} speaker-like line${stats.rawSpeakerLines.length === 1 ? "" : "s"} skipped`,
+    });
+  }
+
+  return warnings;
 }
 
 function toDateInput(date: Date) {
@@ -376,7 +525,7 @@ function studentFromRosterEntry(entry: RosterEntry, index: number, seenIds: Set<
   return {
     id: uniqueStudentId(cleanName, index, seenIds),
     name: cleanName,
-    email: cleanEmail || `${slugify(cleanName, `student-${index + 1}`)}@relay.local`,
+    email: cleanEmail || `${slugify(cleanName, `student-${index + 1}`)}@classloop.local`,
     avatarColor: avatarColors[index % avatarColors.length],
     aliases: aliases.length ? unique(aliases) : undefined,
   };
@@ -481,7 +630,7 @@ function parseRoster(roster: string, transcript: string): Student[] {
     })
     .map((name, index) => ({
       name,
-      email: `${slugify(name, `student-${index + 1}`)}@relay.local`,
+      email: `${slugify(name, `student-${index + 1}`)}@classloop.local`,
     }));
 
   return studentsFromRosterEntries(estimatedEntries);
@@ -636,6 +785,21 @@ function eventTypeFromText(text: string) {
   return "chat" as const;
 }
 
+function shouldIgnoreParticipationLine(line: string) {
+  const parsed = parseSpeakerLine(line);
+  if (!parsed) return false;
+  return isNonInstructionalChatText(parsed.text, parsed.line);
+}
+
+function participationConfidence(line: string, hasChatOnlyWarning: boolean, hasBlockingWarning: boolean) {
+  const parsed = parseSpeakerLine(line);
+  if (!parsed) return hasBlockingWarning ? 0.58 : 0.74;
+  if (isAmbiguousGenericSpeaker(parsed.speaker)) return 0.42;
+  if (hasBlockingWarning) return 0.54;
+  if (hasChatOnlyWarning || isChatLine(parsed.line)) return 0.62;
+  return 0.86;
+}
+
 function detectsMisconception(text: string) {
   return /(wrong|mistake|confus|hard|stuck|error|bug|doesn't|does not|not sure|missed|forgot|failed|incorrect)/i.test(text);
 }
@@ -758,6 +922,9 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
   const roster = parseRoster(input.roster, input.transcript);
   const hasExplicitRoster = Boolean(input.roster.trim());
   const unmatchedParticipants = findUnmatchedParticipants(sessionText, roster, hasExplicitRoster);
+  const importWarnings = importQualityWarnings(sessionText, hasExplicitRoster);
+  const hasBlockingImportWarning = importWarnings.some((warning) => warning.severity === "blocking");
+  const hasChatOnlyWarning = importWarnings.some((warning) => warning.id === "chat-only");
   const topics = extractTopics(sessionTitle, sessionText, input.template);
   const assignment = hasSubstantiveSessionText ? extractAssignment(sessionText) : "Confirm the student follow-up task before publishing.";
   const dueDate = nextFriday();
@@ -789,10 +956,11 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     const parsedSpoken = speakerLines
       .filter((line) => speakerMatchesStudent(line.speaker, student))
       .map((line) => line.line);
-    const spoken = unique([...parsedSpoken, ...lineForStudent(lines, student)]);
+    const spoken = unique([...parsedSpoken, ...lineForStudent(lines, student)]).filter((line) => !shouldIgnoreParticipationLine(line));
     const events: ParticipationEvent[] = spoken.slice(0, 2).map((line, index) => {
       const clean = cleanLine(line);
       const type = eventTypeFromText(clean);
+      const confidence = participationConfidence(line, hasChatOnlyWarning, hasBlockingImportWarning);
       return {
         id: `p-${student.id}-${index}-${suffix}`,
         studentId: student.id,
@@ -803,8 +971,10 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
             : type === "answered_question"
               ? `Contributed: ${clean}`
               : `Shared: ${clean}`,
-        confidence: 0.86,
-        approved: true,
+        confidence,
+        approved: confidence >= 0.75 && !hasChatOnlyWarning && !hasBlockingImportWarning,
+        reviewRequired: confidence < 0.75 || hasChatOnlyWarning || hasBlockingImportWarning,
+        sourceLine: line,
       };
     });
 
@@ -816,6 +986,7 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
         text: "Marked absent and needs catch-up materials.",
         confidence: 0.94,
         approved: true,
+        sourceLine: `${first} is absent`,
       });
     }
 
@@ -827,6 +998,7 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
         text: "Present but flagged for a private confidence check-in.",
         confidence: 0.82,
         approved: true,
+        sourceLine: `${first} is quiet`,
       });
     }
 
@@ -834,7 +1006,7 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
   });
 
   const followUps: StudentFollowUp[] = roster.map((student) => {
-    const events = participationEvents.filter((event) => event.studentId === student.id);
+    const events = participationEvents.filter((event) => event.studentId === student.id && event.approved);
     const isAbsent = attendance[student.id] === "absent";
     const isQuiet = events.some((event) => event.type === "quiet");
     const askedQuestion = events.find((event) => event.type === "asked_question");
@@ -939,6 +1111,7 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
     followUps,
     submissions,
     unmatchedParticipants,
+    importWarnings,
     transcriptAliases: {},
     emailDelivery: {
       status: "not_sent",

@@ -1,11 +1,14 @@
-const CACHE_NAME = "relay-mobile-shell-v2";
+const CACHE_NAME = "classloop-mobile-shell-v4";
 const SHELL_ASSETS = [
   "/",
   "/manifest.webmanifest",
-  "/relay-app-icon.svg",
-  "/relay-app-icon-192.png",
-  "/relay-app-icon-512.png",
+  "/classloop-app-icon.svg",
+  "/classloop-app-icon-192.png",
+  "/classloop-app-icon-512.png",
   "/classroom-background.svg",
+  "/screenshots/classloop-import-review.svg",
+  "/screenshots/classloop-student-dashboard.svg",
+  "/screenshots/classloop-analytics.svg",
   "/abyssal-hero.png",
   "/abyssal-landscape.png"
 ];

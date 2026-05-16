@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const teacherEmail = "teacher@relay.demo";
-const teacherPassword = "relay-teacher";
+const teacherEmail = "teacher@classloop.demo";
+const teacherPassword = "classloop-teacher";
 
 async function resetBrowser(page: Page) {
   await page.goto("/");
@@ -14,7 +14,7 @@ async function resetBrowser(page: Page) {
 }
 
 async function skipAutoWalkthrough(page: Page) {
-  const dialog = page.getByRole("dialog", { name: /relay guided walkthrough/i });
+  const dialog = page.getByRole("dialog", { name: /classloop guided walkthrough/i });
   await dialog.waitFor({ state: "visible", timeout: 5_000 }).catch(() => undefined);
   if (await dialog.isVisible().catch(() => false)) {
     await dialog.getByRole("button", { name: /skip/i }).click();
@@ -30,7 +30,7 @@ async function signInTeacher(page: Page) {
 }
 
 function privateLogPattern() {
-  return /maya@relay\.test|jordan@relay\.test|teacher@relay\.demo|proportional reasoning|short reflection|not-a-url|study-guide/i;
+  return /maya@classloop\.test|jordan@classloop\.test|teacher@classloop\.demo|proportional reasoning|short reflection|not-a-url|study-guide/i;
 }
 
 test.describe("user-visible error states and recovery", () => {
@@ -52,7 +52,7 @@ test.describe("user-visible error states and recovery", () => {
         "Malformed links should not break parsing: not-a-url, www.example without protocol, https://example.com/reflection-guide.",
     );
     const summary = page.locator(".summary-input-card");
-    await summary.getByLabel(/^Roster$/i).fill("Maya Chen, maya@relay.test\nJordan Lee, jordan@relay.test");
+    await summary.getByLabel(/^Roster$/i).fill("Maya Chen, maya@classloop.test\nJordan Lee, jordan@classloop.test");
     await summary.getByLabel(/^Meeting notes$/i).fill("Maya needs a check-in; Jordan should redo one proportion.");
     await summary.getByLabel(/^Resources$/i).fill(
       "not a url\n" + "www.example without protocol\n" + "https://example.com/study-guide).",
@@ -70,6 +70,34 @@ test.describe("user-visible error states and recovery", () => {
     await expect(page.getByText("not a url")).toHaveCount(0);
 
     expect(runtimeMessages.join("\n")).not.toMatch(privateLogPattern());
+  });
+
+  test("public-transcript proxy risks block publish until reviewed", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "Runs once on desktop; mobile coverage focuses on layout and PWA checks.");
+
+    await signInTeacher(page);
+    await page.getByRole("button", { name: /new session/i }).first().click();
+    await page.getByLabel(/session title/i).fill("Public proxy generic-speaker import");
+    await page.getByLabel(/paste transcript text/i).fill(
+      "STUDENT: I think we can divide both sides by the same number.\n" +
+        "STUDENT: I am not sure whose equation that is.\n" +
+        "TEACHER: Keep this as a class-level discussion until speakers are linked.",
+    );
+    const summary = page.locator(".summary-input-card");
+    await summary.getByLabel(/^Roster$/i).fill("Maya Chen, maya@classloop.test\nJordan Lee, jordan@classloop.test");
+
+    await page.getByRole("button", { name: /generate draft/i }).click();
+    await expect(page.getByText(/edit the draft before publishing/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/generic speaker labels need review/i)).toBeVisible();
+
+    await page.getByRole("button", { name: /preview and publish/i }).click();
+    await expect(page.getByRole("button", { name: /review warnings first/i })).toBeDisabled();
+    await expect(page.getByText(/publish is paused until these warnings are reviewed/i)).toBeVisible();
+
+    await page.getByRole("button", { name: /back to edit/i }).click();
+    await page.getByRole("button", { name: /mark reviewed/i }).first().click();
+    await page.getByRole("button", { name: /preview and publish/i }).click();
+    await expect(page.getByRole("button", { name: /publish to students/i })).toBeEnabled();
   });
 
   test("shared sync API outage falls back to usable local browser state with visible recovery copy", async ({ page }, testInfo) => {
@@ -92,7 +120,7 @@ test.describe("user-visible error states and recovery", () => {
     await page.getByPlaceholder("Enter password").fill(teacherPassword);
     await page.locator("form.login-form button[type='submit']").click();
     await skipAutoWalkthrough(page);
-    await expect(page.getByText("Today in Relay")).toBeVisible();
+    await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 
     await page.getByRole("button", { name: /ms\. rivera/i }).click();
     await expect(page.locator(".profile-menu")).toContainText(/Saved in this browser/i);

@@ -11,7 +11,7 @@ OPEN_BROWSER="${OPEN_BROWSER:-1}"
 required_bins=(npm node)
 for bin in "${required_bins[@]}"; do
   if ! command -v "$bin" >/dev/null 2>&1; then
-    echo "Relay needs '$bin' on PATH before it can install or run dependencies." >&2
+    echo "ClassLoop needs '$bin' on PATH before it can install or run dependencies." >&2
     exit 1
   fi
 done
@@ -32,7 +32,7 @@ ensure_dependencies() {
   done
 
   if [ ! -d "node_modules" ] || [ "$missing" -eq 1 ]; then
-    echo "Installing Relay dependencies..."
+    echo "Installing ClassLoop dependencies..."
     if [ -f "package-lock.json" ]; then
       npm ci
     else
@@ -44,7 +44,7 @@ ensure_dependencies() {
 ensure_dependencies
 
 if [ "${1:-}" = "--dev" ]; then
-  echo "Starting Relay dev server at http://$HOST:$FRONTEND_PORT"
+  echo "Starting ClassLoop dev server at http://$HOST:$FRONTEND_PORT"
   ./node_modules/.bin/vite --host "$HOST" --port "$FRONTEND_PORT" --strictPort &
   dev_pid=$!
 
@@ -72,7 +72,7 @@ if [ "${1:-}" = "--dev" ]; then
       echo "Open http://$HOST:$FRONTEND_PORT in your browser."
     fi
   else
-    echo "Relay dev server is ready at http://$HOST:$FRONTEND_PORT"
+    echo "ClassLoop dev server is ready at http://$HOST:$FRONTEND_PORT"
   fi
 
   wait "$dev_pid"
