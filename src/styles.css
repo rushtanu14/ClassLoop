@@ -336,6 +336,27 @@ select:focus-visible,
   min-height: 44px;
 }
 
+.landing-proof-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 620px;
+}
+
+.landing-proof-row span,
+.landing-card-kicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 999px;
+  color: #0f5d55;
+  background: rgba(223, 248, 242, 0.82);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
 .landing-primary,
 .landing-secondary {
   display: inline-flex;
@@ -415,6 +436,8 @@ select:focus-visible,
   display: block;
   width: 100%;
   height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: contain;
   border: 1px solid rgba(124, 139, 154, 0.2);
   border-radius: 10px;
   background: #ffffff;
@@ -422,7 +445,7 @@ select:focus-visible,
 
 .landing-home-paths {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-top: 18px;
 }

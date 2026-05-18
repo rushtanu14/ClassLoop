@@ -15,7 +15,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: `npm run dev -- --port ${testPort} --strictPort`,
+    command: `env -u FORCE_COLOR -u NO_COLOR npm run dev -- --port ${testPort} --strictPort`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 60_000,

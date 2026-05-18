@@ -2718,6 +2718,11 @@ function LandingPage({
                   Turn transcripts, rosters, notes, and links into reviewed student follow-ups without making teachers
                   rebuild the same classroom context by hand.
                 </p>
+                <div className="landing-proof-row" aria-label="ClassLoop product highlights">
+                  <span>Teacher-approved drafts</span>
+                  <span>Student-specific next steps</span>
+                  <span>Private support signals</span>
+                </div>
                 <div className="landing-actions landing-actions-hero">
                   <button className="landing-primary" type="button" onClick={onOpenApp}>
                     <PlayCircle size={20} />
@@ -2752,6 +2757,11 @@ function LandingPage({
                 <strong>Understand the product</strong>
                 <p>Use separate pages for features, docs, privacy, donations, and downloads instead of one crowded page.</p>
                 <button className="landing-secondary" type="button" onClick={() => goToPage("features")}>Explore features</button>
+              </article>
+              <article>
+                <strong>Trust the boundary</strong>
+                <p>See how sample demos, local desktop storage, and teacher review keep the public site honest.</p>
+                <button className="landing-secondary" type="button" onClick={() => goToPage("privacy")}>Review privacy</button>
               </article>
             </section>
           </>
@@ -2814,18 +2824,21 @@ function LandingPage({
               {[
                 {
                   title: "Teacher import and review",
+                  meta: "Teacher workflow",
                   body: "ClassLoop turns a transcript, roster, notes, and links into a reviewable draft. The teacher edits the recap, confirms tasks, and publishes only when it is ready.",
                   src: "/screenshots/classloop-import-review.svg",
                   alt: "ClassLoop teacher import and review screen with transcript inputs, roster matching, and follow-up cards",
                 },
                 {
                   title: "Student follow-up dashboard",
+                  meta: "Student workspace",
                   body: "Students see the recap, tasks, resources, due dates, and completion check-ins that apply to them—without the full teacher workspace.",
                   src: "/screenshots/classloop-student-dashboard.svg",
                   alt: "ClassLoop student dashboard with recap, assigned next steps, resources, and check-in progress",
                 },
                 {
                   title: "Private teacher analytics",
+                  meta: "Support signals",
                   body: "Teachers can review participation, quiet students, overdue work, and resource engagement as support signals, not public rankings.",
                   src: "/screenshots/classloop-analytics.svg",
                   alt: "ClassLoop teacher analytics screen showing participation, quiet students, overdue tasks, and resource signals",
@@ -2834,6 +2847,7 @@ function LandingPage({
                 <article key={shot.title} className="landing-screenshot-card">
                   <img src={shot.src} alt={shot.alt} />
                   <div>
+                    <span className="landing-card-kicker">{shot.meta}</span>
                     <h2>{shot.title}</h2>
                     <p>{shot.body}</p>
                   </div>

@@ -7,6 +7,8 @@ const landingContrastSelectors = [
   ".landing-primary",
   ".landing-secondary",
   ".landing-message",
+  ".landing-proof-row span",
+  ".landing-card-kicker",
   ".landing-feature-band h2",
   ".landing-feature-band p",
 ];
@@ -40,6 +42,9 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
     await expect(page.getByRole("button", { name: /^download$/i })).toBeVisible();
   }
   await expect(page.getByRole("button", { name: /open web demo/i })).toBeVisible();
+  await expect(page.getByText("Teacher-approved drafts")).toBeVisible();
+  await expect(page.getByText("Student-specific next steps")).toBeVisible();
+  await expect(page.getByText("Private support signals")).toBeVisible();
   await expectNoUnnamedInteractive(page, ".landing-page");
   await expectContrast(page, landingContrastSelectors);
   if ((page.viewportSize()?.width ?? 0) <= 500 && (await page.locator(".landing-route-frame").count())) {
@@ -52,6 +57,9 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
     await expect(page.getByRole("img", { name: /teacher import and review screen/i })).toBeVisible();
     await expect(page.getByRole("img", { name: /student dashboard/i })).toBeVisible();
     await expect(page.getByRole("img", { name: /teacher analytics screen/i })).toBeVisible();
+    await expect(page.locator(".landing-card-kicker").filter({ hasText: /^Teacher workflow$/ })).toBeVisible();
+    await expect(page.locator(".landing-card-kicker").filter({ hasText: /^Student workspace$/ })).toBeVisible();
+    await expect(page.locator(".landing-card-kicker").filter({ hasText: /^Support signals$/ })).toBeVisible();
   }
 
   if (await docsButton.isVisible().catch(() => false)) {
@@ -147,6 +155,18 @@ test("hosted public screenshots and privacy routes expose compliance boundaries"
   await expect(page.getByRole("img", { name: /teacher import and review screen/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /student dashboard/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /teacher analytics screen/i })).toBeVisible();
+  const screenshotImageStates = await page.locator(".landing-screenshot-card img").evaluateAll((images) =>
+    images.map((image) => {
+      const screenshot = image as HTMLImageElement;
+      return {
+        complete: screenshot.complete,
+        naturalHeight: screenshot.naturalHeight,
+        naturalWidth: screenshot.naturalWidth,
+      };
+    }),
+  );
+  expect(screenshotImageStates).toHaveLength(3);
+  expect(screenshotImageStates.every((image) => image.complete && image.naturalWidth > 100 && image.naturalHeight > 100)).toBeTruthy();
   for (const screenshotPath of [
     "/screenshots/classloop-import-review.svg",
     "/screenshots/classloop-student-dashboard.svg",
