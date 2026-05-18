@@ -639,7 +639,12 @@ function parseRoster(roster: string, transcript: string): Student[] {
 function cleanLine(line: string) {
   const parsed = parseSpeakerLine(line);
   if (parsed) return parsed.text.replace(/^[-*]\s*/, "").trim();
-  return line.replace(/^[-*]\s*/, "").replace(/^[^:]{2,40}:\s*/, "").trim();
+  return line
+    .replace(/^[-*]\s*/, "")
+    .replace(/^\[[^\]]+\]\s*/, "")
+    .replace(/^(?:(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?\s+)/, "")
+    .replace(/^[^:\n]{2,80}:\s*/, "")
+    .trim();
 }
 
 function shortText(value: string, maxLength = 96) {
@@ -680,10 +685,44 @@ function extractAssignment(text: string) {
     .split(/\n+/)
     .map(cleanLine)
     .filter(Boolean);
-  const explicitAssignment = lines.find((item) => /(homework|assignment|problems?|due)/i.test(item));
-  const genericAssignment = lines.find((item) => /(finish|complete|submit)/i.test(item));
-  const line = explicitAssignment ?? genericAssignment;
-  return line || "Review the session recap and complete the assigned follow-up check.";
+  const candidates = lines
+    .map((item, index) => {
+      let score = index / 1000;
+      if (/\b(homework|assignment)\b/i.test(item)) score += 12;
+      if (/\b(due|by|for)\s+(monday|tuesday|wednesday|thursday|friday|tomorrow|next|today|\d{1,2}\/\d{1,2})\b/i.test(item)) {
+        score += 9;
+      }
+      if (/\b(finish|complete|submit|problems?)\b/i.test(item)) score += 6;
+      if (/\b(worksheet|reflection|practice|flowchart|design|quiz|exit ticket|checkpoint)\b/i.test(item)) score += 4;
+      if (/\b(did everyone|quick check|can everyone|hear me|see the slides|before we dive in)\b/i.test(item)) score -= 12;
+      if (/\b(last thursday|last class|already submitted)\b/i.test(item)) score -= 5;
+      return { item, score };
+    })
+    .filter(({ score }) => score > 5)
+    .sort((a, b) => b.score - a.score);
+  return cleanAssignmentText(candidates[0]?.item || "Review the session recap and complete the assigned follow-up check.");
+}
+
+function cleanAssignmentText(value: string) {
+  const forwardLooking = value.match(/\b(?:homework|assignment)\b[\s\S]*$/i);
+  return (forwardLooking?.[0] ?? value).replace(/\s+/g, " ").trim();
+}
+
+function actionTitleFromAssignment(assignment: string) {
+  if (/review the session recap and complete the assigned follow-up check/i.test(assignment)) {
+    return "Review session recap and complete follow-up";
+  }
+  const withoutPrefix = assignment
+    .replace(/^homework\s*(?:for\s+\w+)?:\s*/i, "")
+    .replace(/^homework\s+is\s+/i, "")
+    .replace(/^assignment\s*:?\s*/i, "")
+    .split(/\bAlso\b/i)[0]
+    .trim();
+  const completeMatch = withoutPrefix.match(/\b(complete|finish|submit)\s+(?:the\s+)?(.+?)(?:\s+on\s+|[.!?]|$)/i);
+  const title = completeMatch
+    ? `${completeMatch[1][0].toUpperCase()}${completeMatch[1].slice(1).toLowerCase()} ${completeMatch[2]}`
+    : withoutPrefix;
+  return shortText(title || assignment, 72);
 }
 
 function stripCaptureMetadata(text: string) {
@@ -741,7 +780,7 @@ function extractRecapSummary(text: string, template: SessionType, topics: string
   }
 
   if (assignment && !/review the session recap/i.test(assignment)) {
-    recapLines.push(`Homework: ${assignment}`);
+    recapLines.push(/^homework\b/i.test(assignment) ? assignment : `Homework: ${assignment}`);
   }
 
   if (resourcesCount) {
@@ -1059,7 +1098,7 @@ export function createGeneratedSession(input: ImportDraftInput): Session {
   const actionItems: ActionItem[] = [
     {
       id: `task-class-${suffix}`,
-      title: assignment.length > 72 ? "Complete assigned follow-up work" : assignment,
+      title: actionTitleFromAssignment(assignment),
       description: hasSubstantiveSessionText
         ? `Class-level follow-up generated from the imported ${input.template.toLowerCase()} record. Assignment: ${assignment}`
         : "No reliable transcript text was available, so confirm the actual student task before publishing.",

@@ -307,6 +307,45 @@ assert(
   "resources should include the decomposition YouTube URL",
 );
 
+assert(/peanut butter and jelly sandwich/i.test(session.recap), "teacher recap should preserve the concrete class activity");
+assert(/precision problem/i.test(session.recap), "teacher recap should name the key teacher takeaway");
+assert(/problem decomposition|smaller steps/i.test(session.recap), "teacher recap should explain the next concept");
+assert(/Homework.*algorithm design worksheet/i.test(session.recap), "teacher recap should include the real homework");
+assert(
+  session.essentialQuestions.some((question) => /precise enough/i.test(question)) &&
+    session.essentialQuestions.some((question) => /break a complex task/i.test(question)) &&
+    session.essentialQuestions.some((question) => /algorithm.*map/i.test(question)),
+  "essential questions should help teachers guide the next lesson instead of staying generic",
+);
+assert(
+  session.actionItems.some((item) => /algorithm design worksheet|Everyday Algorithms/i.test(`${item.title} ${item.description}`)),
+  "teacher action items should preserve the specific assignment students need",
+);
+assert(
+  session.actionItems.some((item) => /complete algorithm design worksheet/i.test(item.title)),
+  "teacher action item title should be scannable and specific",
+);
+const marcus = session.students.find((student) => student.name === "Marcus Williams");
+const marcusFollowUp = session.followUps.find((followUp) => followUp.studentId === marcus?.id);
+if (!marcusFollowUp) throw new Error("student-specific follow-up should exist for Marcus");
+assert(
+  marcusFollowUp.tasks.some((task) => /algorithm design worksheet|Everyday Algorithms/i.test(task)),
+  "student follow-up should include the shared class assignment",
+);
+assert(
+  marcusFollowUp.tasks.some((task) => /Review the answer to your question|Redo the step connected/i.test(task)),
+  "student follow-up should include a personalized next step from participation signals",
+);
+assert(
+  session.followUps.every(
+    (followUp) =>
+      followUp.reminder.length > 24 &&
+      followUp.catchUp.length > 32 &&
+      followUp.tasks.every((task) => !/Confirm the student follow-up task|No reliable transcript/i.test(task)),
+  ),
+  "generated student outputs should be concrete enough to be useful before teacher editing",
+);
+
 const unmatchedNames = (session.unmatchedParticipants ?? []).map((participant) => participant.name);
 assert(!unmatchedNames.includes("Ms. Rivera"), "teacher speaker should not be reported as unmatched");
 assert(!unmatchedNames.includes("Mr. Agrawal"), "roster teacher metadata should not be reported as unmatched");

@@ -23,7 +23,7 @@
     "test:release:distribution": "node scripts/verify-release-distribution.cjs",
     "test:manual": "node scripts/manual-qa-checklist.cjs",
     "test:manual:write": "node scripts/manual-qa-checklist.cjs --write",
-    "test:all": "npm run test:security && npm run test:package:init && npm run test:import && npm run test:cloud && npm run test:entitlements && npm run test:browser && npm run test:web",
+    "test:all": "npm run build && npm run test:security && npm run test:package:init && npm run test:import && npm run test:cloud && npm run test:entitlements && npm run test:browser && npm run test:web && npm run test:desktop:state && npm run test:desktop:first-run && npm run test:release:distribution && npm run drill:rollback && npm run drill:incidents && npm run test:manual:write && git diff --check",
     "drill:rollback": "node scripts/drill-release-rollback.cjs",
     "drill:incidents": "node scripts/drill-incident-response.cjs",
     "drill:ops": "npm run drill:rollback && npm run drill:incidents",
