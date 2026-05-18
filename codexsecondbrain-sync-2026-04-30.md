@@ -477,3 +477,18 @@ All three validate with `quick_validate.py`.
 - Public landing navigation is now page-based rather than one long scroll: Home, Features, Screenshots, Docs, Privacy, Donate, and Download live at `#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download`.
 - The Donate path is visible and supports `VITE_CLASSLOOP_DONATE_URL`; when unset, the UI explicitly says the donation link is not connected instead of pretending payment works.
 - QA coverage should include prompt-free desktop encrypted state, routed landing pages, donation fallback messaging, platform download fallbacks, and PWA add-to-phone behavior on the Download page.
+
+## 2026-05-18 Launch Stability Classwork Plan
+
+- Local/current-code ClassLoop QA is green through the broad `npm run test:all` gate.
+- Public hosted Vercel still needs an explicitly approved deploy of the current project and a fresh `npm run test:web` hosted smoke afterward.
+- Rushil asked for daily email and Notion/classwork reminders to get ClassLoop fully live and low-babysitting. Gmail and Notion connectors were not available in this Codex session, so the payload was captured locally for later connector sync.
+- Added launch planning artifacts:
+  - [docs/classloop-launch-classwork.md](docs/classloop-launch-classwork.md)
+  - [docs/classloop-launch-classwork.csv](docs/classloop-launch-classwork.csv)
+- Daily plan runs from 2026-05-18 through 2026-06-01 and covers deploy/hosted smoke, legal/signup readiness, package distribution, backend config, support/privacy-safe logging, realistic alpha rehearsal, PWA/mobile, entitlements, state resilience, accessibility, rollback/incident ops, public beta material, and ship/hold review.
+- Skill boundary decision: keep this as project CSB/classwork rather than embedding it inside `a03-superpowers`, `a07-product-shipping`, or `a13-comms-schedule`; those skills should stay reusable and point to project artifacts when needed.
+- Rushil directly approved the public Vercel deployment. Final production deploy `dpl_DfbzrJq54MMsf7anhc2xLFwpBvKp` completed and is aliased to `https://classloop-followup.vercel.app`.
+- Public root now serves fingerprinted assets `/assets/index-CkXZY_H5.js` and `/assets/index-BgBlv9cx.css`; the old fixed `/assets/index-CLI9tec8.js` path returns 404.
+- Hosted smoke passed after deploy: `npm run test:web` (4/4), and local web/PWA smoke also passed: `npm run test:web:local` (4/4).
+- Fixed the hosted screenshot route smoke race by waiting for screenshot images to finish loading and expose intrinsic dimensions before asserting them.

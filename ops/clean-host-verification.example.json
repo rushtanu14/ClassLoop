@@ -2,6 +2,15 @@
   "version": "0.1.0",
   "checks": [
     {
+      "target": "macos-x64",
+      "status": "pass",
+      "verifiedAt": "2026-05-15T00:00:00.000Z",
+      "host": "Fresh macOS x64 user or VM description",
+      "artifact": "release/ClassLoop-0.1.0.dmg",
+      "command": "npm run test:desktop:first-run -- release/mac/ClassLoop.app/Contents/MacOS/ClassLoop",
+      "notes": "Record Gatekeeper result, notarization/stapling result, and any first-run prompts here."
+    },
+    {
       "target": "macos-arm64",
       "status": "pass",
       "verifiedAt": "2026-05-15T00:00:00.000Z",
@@ -20,12 +29,30 @@
       "notes": "Record SmartScreen/signing warnings and first-run persistence behavior here."
     },
     {
+      "target": "windows-arm64",
+      "status": "pass",
+      "verifiedAt": "2026-05-15T00:00:00.000Z",
+      "host": "Fresh Windows arm64 device or VM description",
+      "artifact": "release/ClassLoop-0.1.0-arm64-win.zip",
+      "command": "npm run test:desktop:first-run -- release/win-arm64-unpacked/ClassLoop.exe",
+      "notes": "Record SmartScreen/signing warnings and first-run persistence behavior here."
+    },
+    {
       "target": "linux-x64",
       "status": "pass",
       "verifiedAt": "2026-05-15T00:00:00.000Z",
       "host": "Fresh Linux x64 VM description",
       "artifact": "release/ClassLoop-0.1.0.AppImage",
       "command": "npm run test:desktop:first-run -- release/linux-unpacked/classloop",
+      "notes": "Record AppImage/deb launch behavior and first-run persistence behavior here."
+    },
+    {
+      "target": "linux-arm64",
+      "status": "pass",
+      "verifiedAt": "2026-05-15T00:00:00.000Z",
+      "host": "Fresh Linux arm64 device or VM description",
+      "artifact": "release/ClassLoop-0.1.0-arm64.AppImage",
+      "command": "npm run test:desktop:first-run -- release/linux-arm64-unpacked/classloop",
       "notes": "Record AppImage/deb launch behavior and first-run persistence behavior here."
     }
   ]

@@ -12,6 +12,7 @@
 - `npm run test:package:init`
 - `npm run test:browser`
 - `npm run test:web`
+- `npm run test:web:local`
 - `npm run test:desktop:state`
 - `npm run test:manual`
 - `npm run test:manual:write`
@@ -160,6 +161,8 @@ Playwright is installed in the repo through `@playwright/test`.
 **Run package init failure smoke**: `npm run test:package:init`
 **Run browser tests**: `npm run test:browser`
 **Run hosted web smoke**: `npm run test:web`
+**Run current-code web/PWA smoke locally**: `npm run test:web:local`
+**Verify live asset hashes after deploy**: `npm run verify:deploy:assets` (optional `CLASSLOOP_DEPLOY_URL=https://...`)
 **Run desktop state smoke**: `npm run build && npm run test:desktop:state`
 **Run packaged first-run smoke**: `npm run test:desktop:first-run`
 **Run release distribution verifier**: `npm run test:release:distribution`
@@ -169,7 +172,7 @@ Playwright is installed in the repo through `@playwright/test`.
 **Run incident drill**: `npm run drill:incidents`
 
 Playwright starts the Vite dev server on `127.0.0.1:5177` and runs Chromium checks across desktop and mobile-sized projects, including WCAG-targeted keyboard, focus, labels, contrast, status-announcement, and mobile PWA readability checks.
-Hosted web tests use `playwright.web.config.ts` and default to `https://classloop-followup.vercel.app/`; they include the same landing/PWA accessibility smoke on desktop and phone-sized viewports. Override with:
+Hosted web tests use `playwright.web.config.ts` and default to `https://classloop-followup.vercel.app/`; they include the same landing/PWA accessibility smoke on desktop and phone-sized viewports. `npm run test:web:local` runs the same web/PWA smoke against a temporary local Vite server so `npm run test:all` verifies the current code without mutating the public deployment. Override the hosted target with:
 
 ```bash
 CLASSLOOP_WEB_TEST_URL=https://your-domain.com npm run test:web

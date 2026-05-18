@@ -220,6 +220,18 @@ select:focus-visible,
   font-weight: 900;
 }
 
+.landing-brand-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.landing-build-marker {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: rgba(16, 32, 45, 0.52);
+}
+
 .landing-links {
   display: flex;
   align-items: center;
@@ -1232,6 +1244,13 @@ select:focus-visible,
 .login-brand small {
   margin-top: 2px;
   color: var(--muted);
+}
+
+.login-build-marker {
+  margin-top: 0;
+  font-size: 0.85rem;
+  color: rgba(10, 19, 33, 0.62);
+  letter-spacing: 0.01em;
 }
 
 .login-copy h1 {

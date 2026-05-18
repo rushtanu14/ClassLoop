@@ -2,8 +2,6 @@ node_modules
 .test-build
 .env.local
 .env.*.local
-dist/assets/index-*.js
-dist/assets/index-*.css
 .classloop-data.json
 .classloop-storage-key
 .classloop-integrations.json
@@ -13,3 +11,4 @@ test-results
 playwright-report
 release
 .vercel
+.env*.local

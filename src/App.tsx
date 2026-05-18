@@ -276,6 +276,21 @@ function detectDesktopInstallerFromBrowser(): DesktopInstallerId | null {
   return null;
 }
 
+function classLoopBuildMarker() {
+  const version = __CLASSLOOP_VERSION__ ? `v${__CLASSLOOP_VERSION__}` : "";
+  const sha = __CLASSLOOP_BUILD_SHA__ ? __CLASSLOOP_BUILD_SHA__.slice(0, 7) : "";
+  const env = __CLASSLOOP_BUILD_ENV__ && __CLASSLOOP_BUILD_ENV__ !== "production" ? __CLASSLOOP_BUILD_ENV__ : "";
+  return [version, sha, env].filter(Boolean).join(" · ");
+}
+
+function classLoopBuildDetails() {
+  const parts: string[] = [];
+  if (__CLASSLOOP_BUILD_ENV__) parts.push(`env: ${__CLASSLOOP_BUILD_ENV__}`);
+  if (__CLASSLOOP_BUILD_TIME__) parts.push(`built: ${__CLASSLOOP_BUILD_TIME__}`);
+  if (__CLASSLOOP_BUILD_SHA__) parts.push(`sha: ${__CLASSLOOP_BUILD_SHA__}`);
+  return parts.join(" • ");
+}
+
 const navItems: NavItem[] = [
   { route: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { route: "new-session", label: "New session", icon: PlusCircle },
@@ -2559,33 +2574,109 @@ function LandingPage({
   const [isStandaloneMobile, setIsStandaloneMobile] = useState(false);
   const [showDesktopInstallerChoices, setShowDesktopInstallerChoices] = useState(false);
   const [detectedInstallerId] = useState<DesktopInstallerId | null>(() => detectDesktopInstallerFromBrowser());
-  const donationUrl = (import.meta.env.VITE_CLASSLOOP_DONATE_URL as string | undefined)?.trim();
-  const checksumUrl = (import.meta.env.VITE_CLASSLOOP_CHECKSUMS_URL as string | undefined)?.trim();
-  const downloadOptions: Array<{
+  const cleanUrl = (value: string | undefined) => {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : undefined;
+  };
+
+  const donationUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_DONATE_URL as string | undefined);
+  const checksumUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_CHECKSUMS_URL as string | undefined);
+
+  type DesktopDownloadOption = {
     id: DesktopInstallerId;
     label: string;
     helper: string;
     url?: string;
-  }> = [
-    {
+  };
+
+  const macArm64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL_ARM64 as string | undefined);
+  const macX64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL_X64 as string | undefined);
+  const macUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL as string | undefined);
+  const macOptions: DesktopDownloadOption[] = [];
+  if (macArm64Url) {
+    macOptions.push({
+      id: "macos",
+      label: "macOS (Apple silicon)",
+      helper: "M-series Macs (arm64)",
+      url: macArm64Url,
+    });
+  }
+  if (macX64Url) {
+    macOptions.push({
+      id: "macos",
+      label: "macOS (Intel)",
+      helper: "Intel Macs (x64)",
+      url: macX64Url,
+    });
+  }
+  if (!macOptions.length) {
+    macOptions.push({
       id: "macos",
       label: "macOS",
       helper: "Apple silicon and Intel Macs",
-      url: (import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL as string | undefined)?.trim(),
-    },
-    {
+      url: macUrl,
+    });
+  }
+
+  const windowsX64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL_X64 as string | undefined);
+  const windowsArm64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL_ARM64 as string | undefined);
+  const windowsUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL as string | undefined);
+  const windowsOptions: DesktopDownloadOption[] = [];
+  if (windowsX64Url) {
+    windowsOptions.push({
+      id: "windows",
+      label: "Windows (x64)",
+      helper: "Windows 10+ on Intel/AMD",
+      url: windowsX64Url,
+    });
+  }
+  if (windowsArm64Url) {
+    windowsOptions.push({
+      id: "windows",
+      label: "Windows (arm64)",
+      helper: "Windows on ARM devices",
+      url: windowsArm64Url,
+    });
+  }
+  if (!windowsOptions.length) {
+    windowsOptions.push({
       id: "windows",
       label: "Windows",
       helper: "Windows 10 or newer",
-      url: (import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL as string | undefined)?.trim(),
-    },
-    {
+      url: windowsUrl,
+    });
+  }
+
+  const linuxX64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL_X64 as string | undefined);
+  const linuxArm64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL_ARM64 as string | undefined);
+  const linuxUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL as string | undefined);
+  const linuxOptions: DesktopDownloadOption[] = [];
+  if (linuxX64Url) {
+    linuxOptions.push({
+      id: "linux",
+      label: "Linux (x64)",
+      helper: "AppImage for amd64/x86_64",
+      url: linuxX64Url,
+    });
+  }
+  if (linuxArm64Url) {
+    linuxOptions.push({
+      id: "linux",
+      label: "Linux (arm64)",
+      helper: "AppImage for arm64",
+      url: linuxArm64Url,
+    });
+  }
+  if (!linuxOptions.length) {
+    linuxOptions.push({
       id: "linux",
       label: "Linux",
       helper: "AppImage or Debian package",
-      url: (import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL as string | undefined)?.trim(),
-    },
-  ];
+      url: linuxUrl,
+    });
+  }
+
+  const downloadOptions: DesktopDownloadOption[] = [...macOptions, ...windowsOptions, ...linuxOptions];
   const availableDownloads = downloadOptions.filter((option) => option.url);
   const detectedDownload = downloadOptions.find((option) => option.id === detectedInstallerId) ?? null;
   const fallbackDownload = detectedDownload ?? downloadOptions[0];
@@ -2681,12 +2772,19 @@ function LandingPage({
   return (
     <main className={`landing-page landing-page-${page}`}>
       <nav className="landing-nav" aria-label="ClassLoop public navigation">
-        <button className="landing-brand" type="button" onClick={() => goToPage("home")}>
-          <span className="brand-mark">
-            <BrainCircuit size={24} />
-          </span>
-          <span>ClassLoop</span>
-        </button>
+        <div className="landing-brand-block">
+          <button className="landing-brand" type="button" onClick={() => goToPage("home")}>
+            <span className="brand-mark">
+              <BrainCircuit size={24} />
+            </span>
+            <span>ClassLoop</span>
+          </button>
+          {classLoopBuildMarker() && (
+            <span className="landing-build-marker" title={classLoopBuildDetails()}>
+              {classLoopBuildMarker()}
+            </span>
+          )}
+        </div>
         <div className="landing-links">
           {publicNav.slice(1).map((item) => (
             <button
@@ -3407,6 +3505,11 @@ function LoginPage({
           <div>
             <strong>ClassLoop</strong>
             <small>Secure classroom workspace</small>
+            {classLoopBuildMarker() && (
+              <small className="login-build-marker" title={classLoopBuildDetails()}>
+                {classLoopBuildMarker()}
+              </small>
+            )}
           </div>
         </div>
         <div className="login-copy">

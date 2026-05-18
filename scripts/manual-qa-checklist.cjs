@@ -31,6 +31,19 @@ const operatorModes = [
 
 const sections = [
   [
+    "Launch Confidence Mini Checklist (Screenshots)",
+    "Browser/Chrome plugin + Computer Use on clean devices",
+    [
+      "From a clean desktop browser profile, open `/` and capture a screenshot that includes the build marker.",
+      "Open `#/download` and capture a screenshot confirming installers and `Download checksums` are wired (no stale `Packaging pending`).",
+      "Open `/?demoOnly=1` and capture screenshots of the demo chooser + teacher dashboard (demo banner visible).",
+      "On a clean phone (Safari/Chrome), open the hosted URL and capture screenshots of the Add to phone flow and standalone mode if installed.",
+      "Run one redacted real-class solo simulation (or single-teacher pilot) through import -> review -> publish and capture notes/screenshots of any confusing steps.",
+      "On matching clean hosts (macOS x64/arm64, Windows x64/arm64, Linux x64/arm64), capture screenshots of the OS trust prompt and the first-run dashboard after launching the installer.",
+      "Download `SHA256SUMS.txt` and record checksum verification output for at least one installer per OS family (macOS/Windows/Linux).",
+    ],
+  ],
+  [
     "Public Landing, Hosted Demo, And PWA",
     "Browser or Chrome plugin",
     [

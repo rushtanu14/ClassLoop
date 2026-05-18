@@ -99,8 +99,6 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   }
   const platformDownloads = page.locator(".landing-platform-list");
   await expect(platformDownloads).toBeVisible();
-  await expect(platformDownloads.getByRole("button", { name: /windows.*packaging pending/i })).toBeVisible();
-  await expect(platformDownloads.getByRole("button", { name: /linux.*packaging pending/i })).toBeVisible();
   await expectContrast(page, [
     ".landing-mobile-card h2",
     ".landing-mobile-card p",
@@ -114,6 +112,8 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
     await expect(platformDownloads.getByRole("button", { name: /macos.*packaging pending/i })).toBeVisible();
     await expect(platformDownloads.getByRole("button", { name: /windows.*packaging pending/i })).toBeVisible();
     await expect(platformDownloads.getByRole("button", { name: /linux.*packaging pending/i })).toBeVisible();
+  } else {
+    await expect(platformDownloads.getByText(/download ready/i).first()).toBeVisible();
   }
 
   const manifest = await page.request.get("/manifest.webmanifest");
@@ -127,15 +127,21 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   expect(serviceWorker.ok()).toBeTruthy();
   await expect(serviceWorker.text()).resolves.toContain("classloop-mobile-shell");
 
-  const downloadPromise = page.waitForEvent("download", { timeout: 5_000 }).catch(() => null);
-  await page.locator(".landing-platform-list").getByRole("button", { name: /macos.*packaging pending/i }).click();
-  const download = await downloadPromise;
-  if (download) {
-    await download.cancel().catch(() => undefined);
+  if (readyDownloads) {
+    const firstReadyDownload = platformDownloads.getByRole("button").filter({ hasText: /download ready/i }).first();
+    await expect(firstReadyDownload).toBeVisible();
   } else {
-    await expect(page.getByRole("status").filter({ hasText: /macos packaging pending/i })).toBeVisible();
+    const downloadPromise = page.waitForEvent("download", { timeout: 5_000 }).catch(() => null);
+    await platformDownloads.getByRole("button", { name: /macos.*packaging pending/i }).click();
+    const download = await downloadPromise;
+    if (download) {
+      await download.cancel().catch(() => undefined);
+    } else {
+      await expect(page.getByRole("status").filter({ hasText: /macos packaging pending/i })).toBeVisible();
+    }
   }
 
+  await page.goto("/?demoOnly=1");
   await page.getByRole("button", { name: /open web demo|open demo/i }).first().click();
   await expect(page.getByRole("heading", { name: /try classloop as a teacher or student/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /demo teacher side/i })).toBeVisible();
@@ -155,6 +161,13 @@ test("hosted public screenshots and privacy routes expose compliance boundaries"
   await expect(page.getByRole("img", { name: /teacher import and review screen/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /student dashboard/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /teacher analytics screen/i })).toBeVisible();
+  await page.waitForFunction(() => {
+    const images = Array.from(document.querySelectorAll<HTMLImageElement>(".landing-screenshot-card img"));
+    return (
+      images.length === 3 &&
+      images.every((image) => image.complete && image.naturalWidth > 100 && image.naturalHeight > 100)
+    );
+  });
   const screenshotImageStates = await page.locator(".landing-screenshot-card img").evaluateAll((images) =>
     images.map((image) => {
       const screenshot = image as HTMLImageElement;

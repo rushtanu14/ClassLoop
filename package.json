@@ -18,12 +18,16 @@
     "test:package:init": "node scripts/package-init-failure-smoke.cjs",
     "test:browser": "env -u FORCE_COLOR -u NO_COLOR playwright test",
     "test:web": "env -u FORCE_COLOR -u NO_COLOR playwright test -c playwright.web.config.ts",
+    "test:web:local": "env -u FORCE_COLOR -u NO_COLOR CLASSLOOP_WEB_TEST_URL=http://127.0.0.1:5177 playwright test -c playwright.web.config.ts",
+    "verify:deploy:assets": "node scripts/verify-live-asset-hashes.cjs",
+    "deploy:prod": "vercel deploy --prod --yes",
+    "deploy:prod:verify": "npm run deploy:prod && npm run verify:deploy:assets && npm run test:web",
     "test:desktop:state": "node scripts/smoke-desktop-state.cjs",
     "test:desktop:first-run": "node scripts/smoke-packaged-first-run.cjs",
     "test:release:distribution": "node scripts/verify-release-distribution.cjs",
     "test:manual": "node scripts/manual-qa-checklist.cjs",
     "test:manual:write": "node scripts/manual-qa-checklist.cjs --write",
-    "test:all": "npm run build && npm run test:security && npm run test:package:init && npm run test:import && npm run test:cloud && npm run test:entitlements && npm run test:browser && npm run test:web && npm run test:desktop:state && npm run test:desktop:first-run && npm run test:release:distribution && npm run drill:rollback && npm run drill:incidents && npm run test:manual:write && git diff --check",
+    "test:all": "npm run build && npm run test:security && npm run test:package:init && npm run test:import && npm run test:cloud && npm run test:entitlements && npm run test:browser && npm run test:web:local && npm run test:desktop:state && npm run test:desktop:first-run && npm run test:release:distribution && npm run drill:rollback && npm run drill:incidents && npm run test:manual:write && git diff --check",
     "drill:rollback": "node scripts/drill-release-rollback.cjs",
     "drill:incidents": "node scripts/drill-incident-response.cjs",
     "drill:ops": "npm run drill:rollback && npm run drill:incidents",
@@ -68,6 +72,7 @@
     "afterSign": "scripts/notarize-mac.cjs",
     "mac": {
       "category": "public.app-category.education",
+      "icon": "build/icon.icns",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
@@ -78,6 +83,7 @@
       ]
     },
     "win": {
+      "icon": "build/icon.png",
       "target": [
         "nsis",
         "zip"
@@ -85,6 +91,7 @@
     },
     "linux": {
       "category": "Education",
+      "icon": "build/icon.png",
       "target": [
         "AppImage",
         "deb"

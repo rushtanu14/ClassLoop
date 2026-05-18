@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.CLASSLOOP_WEB_TEST_URL || "https://classloop-followup.vercel.app/";
+const localWebPort = 5177;
+const usesLocalServer = new URL(baseURL).hostname === "127.0.0.1" || new URL(baseURL).hostname === "localhost";
 
 export default defineConfig({
   testDir: "./tests/browser",
@@ -13,6 +15,14 @@ export default defineConfig({
     baseURL,
     trace: "on-first-retry",
   },
+  webServer: usesLocalServer
+    ? {
+        command: `env -u FORCE_COLOR -u NO_COLOR npm run dev -- --port ${localWebPort} --strictPort`,
+        url: baseURL,
+        reuseExistingServer: false,
+        timeout: 60_000,
+      }
+    : undefined,
   projects: [
     {
       name: "web-chromium",
