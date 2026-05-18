@@ -2578,9 +2578,21 @@ function LandingPage({
     const trimmed = value?.trim();
     return trimmed ? trimmed : undefined;
   };
+  const isVercelBlobUrl = (value: string | undefined) => {
+    if (!value) return false;
+    try {
+      return new URL(value).hostname.endsWith(".blob.vercel-storage.com");
+    } catch {
+      return false;
+    }
+  };
+  const cleanExternalReleaseUrl = (value: string | undefined) => {
+    const url = cleanUrl(value);
+    return isVercelBlobUrl(url) ? undefined : url;
+  };
 
   const donationUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_DONATE_URL as string | undefined);
-  const checksumUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_CHECKSUMS_URL as string | undefined);
+  const checksumUrl = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_CHECKSUMS_URL as string | undefined);
 
   type DesktopDownloadOption = {
     id: DesktopInstallerId;
@@ -2589,9 +2601,9 @@ function LandingPage({
     url?: string;
   };
 
-  const macArm64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL_ARM64 as string | undefined);
-  const macX64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL_X64 as string | undefined);
-  const macUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL as string | undefined);
+  const macArm64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL_ARM64 as string | undefined);
+  const macX64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL_X64 as string | undefined);
+  const macUrl = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL as string | undefined);
   const macOptions: DesktopDownloadOption[] = [];
   if (macArm64Url) {
     macOptions.push({
@@ -2618,9 +2630,9 @@ function LandingPage({
     });
   }
 
-  const windowsX64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL_X64 as string | undefined);
-  const windowsArm64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL_ARM64 as string | undefined);
-  const windowsUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL as string | undefined);
+  const windowsX64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL_X64 as string | undefined);
+  const windowsArm64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL_ARM64 as string | undefined);
+  const windowsUrl = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL as string | undefined);
   const windowsOptions: DesktopDownloadOption[] = [];
   if (windowsX64Url) {
     windowsOptions.push({
@@ -2647,9 +2659,9 @@ function LandingPage({
     });
   }
 
-  const linuxX64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL_X64 as string | undefined);
-  const linuxArm64Url = cleanUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL_ARM64 as string | undefined);
-  const linuxUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL as string | undefined);
+  const linuxX64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL_X64 as string | undefined);
+  const linuxArm64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL_ARM64 as string | undefined);
+  const linuxUrl = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL as string | undefined);
   const linuxOptions: DesktopDownloadOption[] = [];
   if (linuxX64Url) {
     linuxOptions.push({

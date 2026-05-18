@@ -110,7 +110,7 @@ Hosted route behavior:
 - The hosted web demo uses sample teacher/student accounts only. Account creation and durable personal workspaces belong in the downloaded desktop app.
 - Sample account changes are ephemeral and should not be treated as saved data.
 - `https://your-domain.com/api/config` returns safe booleans that confirm whether server-only Supabase and Stripe env vars were picked up by Vercel.
-- Set desktop installer URLs when release assets are ready: `VITE_CLASSLOOP_MAC_DOWNLOAD_URL`, `VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL`, and `VITE_CLASSLOOP_LINUX_DOWNLOAD_URL`. Set `VITE_CLASSLOOP_CHECKSUMS_URL` when `release/SHA256SUMS.txt` is uploaded next to the installers. Until then, the landing page clearly says installers are still being packaged and directs visitors to the web demo.
+- Set desktop installer URLs when release assets are ready: `VITE_CLASSLOOP_MAC_DOWNLOAD_URL`, `VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL`, and `VITE_CLASSLOOP_LINUX_DOWNLOAD_URL`. Set `VITE_CLASSLOOP_CHECKSUMS_URL` when `release/SHA256SUMS.txt` is uploaded next to the installers. Use GitHub Releases, Cloudflare R2, S3, or another large-file download host for these binaries; do not use Vercel Blob for installer artifacts because it quickly fills the Vercel storage quota. Until external installer URLs are ready, the landing page clearly says installers are still being packaged and directs visitors to the web demo.
 - Set `VITE_CLASSLOOP_DONATE_URL` to a public donation page when donations are ready. Until then, the Donate page explains that the donation link has not been connected.
 - Student follow-up usefulness ratings are transcript-attached product feedback for the ClassLoop creator. Hosted builds post the rating, optional note, app context, and relevant transcript to `/api/feedback`; set `CLASSLOOP_FEEDBACK_NOTIFY_EMAIL` plus SMTP/Gmail env vars for creator notifications. Desktop builds can set `VITE_CLASSLOOP_PRODUCT_FEEDBACK_URL` to the hosted feedback endpoint.
 - Phone and tablet access runs through the hosted web app. Visitors can open the Vercel URL in Safari/Chrome and use Add to Home Screen or Install app for app-like access.
@@ -203,7 +203,7 @@ npm run package:mac
 
 ClassLoop's macOS build config enables hardened runtime entitlements and runs the notarization hook after signing. In free mode, missing Apple credentials are allowed. In Developer ID mode, missing credentials fail packaging instead of silently producing an ad-hoc app.
 
-For public distribution, upload signed/notarized release files to GitHub Releases, Vercel Blob, S3, or another trusted download host, then set:
+For public distribution, upload signed/notarized release files to GitHub Releases, Cloudflare R2, S3, or another trusted large-file download host, then set:
 
 ```bash
 VITE_CLASSLOOP_MAC_DOWNLOAD_URL=
@@ -216,6 +216,8 @@ CLASSLOOP_FEEDBACK_NOTIFY_EMAIL=
 ```
 
 Free macOS builds are allowed, but they must be labeled as unsigned/ad-hoc and include the checksum file. Developer ID signing/notarization is a paid optional upgrade to reduce Gatekeeper friction. Windows builds can remain unsigned for the free path, but may show SmartScreen friction until a paid code-signing certificate is used. If one of the installer URLs is missing, the landing page must visibly show "Packaging pending" for that platform and route visitors to the hosted demo instead of implying a download succeeded. If the donation URL is missing, the donation path must be visible but clearly marked as not connected.
+
+Keep Vercel storage light: Vercel should serve the web/PWA shell and API routes, not the desktop installer binaries. The landing page intentionally ignores `*.blob.vercel-storage.com` installer/checksum URLs and falls back to `Packaging pending`, so stale Vercel Blob environment variables cannot keep sending users to storage-heavy release files. If you previously uploaded release files to Vercel Blob, remove them with `vercel blob del <pathname>` or `vercel blob empty-store` before uploading replacement installers to the external download host.
 
 Before publishing installers, run the distribution verifier:
 

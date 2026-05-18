@@ -18,7 +18,7 @@ Pass criteria:
 
 ## Real Rollback Steps
 
-1. Freeze the bad release: stop uploads, remove the bad GitHub/Vercel/S3/Blob release assets from public download links, and keep the files locally for diagnosis.
+1. Freeze the bad release: stop uploads, remove the bad GitHub/S3/R2 release assets from public download links, and keep the files locally for diagnosis. Do not use Vercel Blob for installer rollback storage; ClassLoop keeps Vercel storage reserved for the web/PWA shell and APIs.
 2. Restore the previous hosted deployment in Vercel, or redeploy `main` at the last known-good commit.
 3. Set `VITE_CLASSLOOP_MAC_DOWNLOAD_URL`, `VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL`, and `VITE_CLASSLOOP_LINUX_DOWNLOAD_URL` to known-good installers. Leave any uncertain platform blank so the UI shows `Packaging pending`.
 4. Run `npm run test:web` against the restored hosted URL.
