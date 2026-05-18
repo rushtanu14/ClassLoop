@@ -192,6 +192,36 @@ type SharedState = {
 
 type SyncStatus = "connecting" | "shared" | "local";
 
+type NoticeSeverity = "info" | "warning" | "error";
+
+type WorkspaceNotice = {
+  severity: NoticeSeverity;
+  title: string;
+  message: string;
+};
+
+type BootPhase = "sync" | "local" | "ready";
+
+type BootStepStatus = "pending" | "active" | "complete" | "warning" | "error";
+
+type BootStep = {
+  label: string;
+  detail: string;
+  status: BootStepStatus;
+};
+
+type LocalReadResult<T> = {
+  value: T;
+  failed: boolean;
+};
+
+type LocalStateReadResult = {
+  state: SharedState;
+  failedKeys: string[];
+};
+
+type ReleaseManifestStatus = "loading" | "ready" | "unavailable" | "invalid" | "blocked";
+
 type PrivacySettings = {
   retentionDays: number;
   recordingConsentRequired: boolean;
@@ -299,6 +329,30 @@ function normalizeReleaseDownloadManifest(value: unknown): ReleaseDownloadManife
     windows: normalizeReleasePlatformManifest(value.windows),
     linux: normalizeReleasePlatformManifest(value.linux),
   };
+}
+
+function releaseUrlIsVercelBlob(value: string | undefined) {
+  if (!value) return false;
+  try {
+    return new URL(value).hostname.endsWith(".blob.vercel-storage.com");
+  } catch {
+    return false;
+  }
+}
+
+function releaseManifestHasBlockedUrls(manifest: ReleaseDownloadManifest) {
+  return [
+    manifest.checksumsUrl,
+    manifest.macos?.url,
+    manifest.macos?.x64Url,
+    manifest.macos?.arm64Url,
+    manifest.windows?.url,
+    manifest.windows?.x64Url,
+    manifest.windows?.arm64Url,
+    manifest.linux?.url,
+    manifest.linux?.x64Url,
+    manifest.linux?.arm64Url,
+  ].some(releaseUrlIsVercelBlob);
 }
 
 function detectDesktopInstallerFromBrowser(): DesktopInstallerId | null {
@@ -433,6 +487,81 @@ const loadingTips = [
   "Tip: platform transcripts are still the most reliable source after online meetings.",
   "Tip: use aliases when a Zoom display name is different from a roster name.",
 ];
+
+const sharedSyncFallbackNotice: WorkspaceNotice = {
+  severity: "warning",
+  title: "Shared sync is unavailable",
+  message: "ClassLoop opened from encrypted browser storage. You can keep working here, and shared sync can reconnect later.",
+};
+
+const sharedSaveFallbackNotice: WorkspaceNotice = {
+  severity: "warning",
+  title: "Shared sync could not save",
+  message: "Recent changes are being kept in encrypted browser storage until shared sync is reachable again.",
+};
+
+const localReadFailureNotice: WorkspaceNotice = {
+  severity: "error",
+  title: "Some browser data could not be read",
+  message: "ClassLoop opened the recoverable workspace pieces. If something looks missing, use a backup or exported report before saving over it.",
+};
+
+const localWriteFailureNotice: WorkspaceNotice = {
+  severity: "error",
+  title: "Encrypted browser storage could not save changes",
+  message: "Your current workspace is still open in memory. Export important work before closing this tab, then check browser storage permissions or available disk space.",
+};
+
+function workspaceBootSteps(phase: BootPhase, notice: WorkspaceNotice | null): BootStep[] {
+  const sharedStatus: BootStepStatus =
+    phase === "sync" ? "active" : notice ? (notice.severity === "error" ? "error" : "warning") : "complete";
+  const localStatus: BootStepStatus =
+    phase === "local" ? "active" : phase === "ready" ? (notice ? "warning" : "complete") : "pending";
+  const readyStatus: BootStepStatus = phase === "ready" ? "complete" : "pending";
+
+  return [
+    {
+      label: "Workspace sync",
+      detail: "Checking shared-state API and the latest saved classroom records.",
+      status: sharedStatus,
+    },
+    {
+      label: "Encrypted browser fallback",
+      detail: "Ready to recover accounts, drafts, rosters, and settings if shared sync is offline.",
+      status: localStatus,
+    },
+    {
+      label: "Teacher and student accounts",
+      detail: "Preparing roles, sample accounts, and saved profile preferences.",
+      status: readyStatus,
+    },
+    {
+      label: "Sessions, rosters, follow-ups",
+      detail: "Laying out the dashboard data before the app opens.",
+      status: readyStatus,
+    },
+  ];
+}
+
+function authBootSteps(): BootStep[] {
+  return [
+    {
+      label: "Verify credentials",
+      detail: "Matching the selected teacher or student profile.",
+      status: "complete",
+    },
+    {
+      label: "Open workspace",
+      detail: "Loading the right dashboard, latest sessions, and follow-ups.",
+      status: "active",
+    },
+    {
+      label: "Apply preferences",
+      detail: "Restoring saved theme, role routes, and walkthrough state.",
+      status: "pending",
+    },
+  ];
+}
 
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -1149,22 +1278,28 @@ async function decryptLocalJson<T>(stored: string): Promise<T | null> {
   }
 }
 
-async function readSecureLocalJson<T>(secureKey: string, legacyKey: string, fallback: T) {
+async function readSecureLocalJson<T>(secureKey: string, legacyKey: string, fallback: T): Promise<LocalReadResult<T>> {
+  let failed = false;
   const secureValue = localStorage.getItem(secureKey);
   if (secureValue) {
     const decrypted = await decryptLocalJson<T>(secureValue);
-    if (decrypted !== null) return decrypted;
+    if (decrypted !== null) return { value: decrypted, failed };
+    failed = true;
   }
 
   const legacyValue = localStorage.getItem(legacyKey);
-  if (!legacyValue) return fallback;
+  if (!legacyValue) return { value: fallback, failed };
   try {
     const parsed = JSON.parse(legacyValue) as T;
-    localStorage.setItem(secureKey, await encryptLocalJson(parsed));
-    localStorage.removeItem(legacyKey);
-    return parsed;
+    try {
+      localStorage.setItem(secureKey, await encryptLocalJson(parsed));
+      localStorage.removeItem(legacyKey);
+    } catch {
+      failed = true;
+    }
+    return { value: parsed, failed };
   } catch {
-    return fallback;
+    return { value: fallback, failed: true };
   }
 }
 
@@ -1172,30 +1307,54 @@ async function writeSecureLocalJson(key: string, value: unknown) {
   localStorage.setItem(key, await encryptLocalJson(value));
 }
 
-async function readLocalStateFallback(): Promise<SharedState> {
-  return normalizeSharedState({
-    accounts: await readSecureLocalJson<Account[]>(secureLocalKeys.accounts, legacyLocalKeys.accounts, []),
-    sessions: await readSecureLocalJson<Session[]>(secureLocalKeys.sessions, legacyLocalKeys.sessions, []),
-    draft: await readSecureLocalJson<Session | null>(secureLocalKeys.draft, legacyLocalKeys.draft, null),
-    demoLoaded: await readSecureLocalJson<boolean>(secureLocalKeys.demoLoaded, legacyLocalKeys.demoLoaded, false),
-    classGroups: await readSecureLocalJson<ClassGroup[]>(secureLocalKeys.classGroups, legacyLocalKeys.classGroups, []),
-    rosterTemplates: await readSecureLocalJson<RosterTemplate[]>(
-      secureLocalKeys.rosterTemplates,
-      legacyLocalKeys.rosterTemplates,
-      [],
-    ),
-    privacySettings: await readSecureLocalJson<PrivacySettings>(
-      secureLocalKeys.privacySettings,
-      legacyLocalKeys.privacySettings,
-      defaultPrivacySettings,
-    ),
-    auditLog: await readSecureLocalJson<AuditLogEntry[]>(secureLocalKeys.auditLog, legacyLocalKeys.auditLog, []),
-    billingProfile: await readSecureLocalJson<BillingProfile>(
-      secureLocalKeys.billingProfile,
-      legacyLocalKeys.billingProfile,
-      defaultBillingProfile,
-    ),
-  });
+async function readLocalStateFallback(): Promise<LocalStateReadResult> {
+  const [
+    accounts,
+    sessions,
+    draft,
+    demoLoaded,
+    classGroups,
+    rosterTemplates,
+    privacySettings,
+    auditLog,
+    billingProfile,
+  ] = await Promise.all([
+    readSecureLocalJson<Account[]>(secureLocalKeys.accounts, legacyLocalKeys.accounts, []),
+    readSecureLocalJson<Session[]>(secureLocalKeys.sessions, legacyLocalKeys.sessions, []),
+    readSecureLocalJson<Session | null>(secureLocalKeys.draft, legacyLocalKeys.draft, null),
+    readSecureLocalJson<boolean>(secureLocalKeys.demoLoaded, legacyLocalKeys.demoLoaded, false),
+    readSecureLocalJson<ClassGroup[]>(secureLocalKeys.classGroups, legacyLocalKeys.classGroups, []),
+    readSecureLocalJson<RosterTemplate[]>(secureLocalKeys.rosterTemplates, legacyLocalKeys.rosterTemplates, []),
+    readSecureLocalJson<PrivacySettings>(secureLocalKeys.privacySettings, legacyLocalKeys.privacySettings, defaultPrivacySettings),
+    readSecureLocalJson<AuditLogEntry[]>(secureLocalKeys.auditLog, legacyLocalKeys.auditLog, []),
+    readSecureLocalJson<BillingProfile>(secureLocalKeys.billingProfile, legacyLocalKeys.billingProfile, defaultBillingProfile),
+  ]);
+  const results = [
+    ["accounts", accounts],
+    ["sessions", sessions],
+    ["draft", draft],
+    ["demoLoaded", demoLoaded],
+    ["classGroups", classGroups],
+    ["rosterTemplates", rosterTemplates],
+    ["privacySettings", privacySettings],
+    ["auditLog", auditLog],
+    ["billingProfile", billingProfile],
+  ] as const;
+
+  return {
+    state: normalizeSharedState({
+      accounts: accounts.value,
+      sessions: sessions.value,
+      draft: draft.value,
+      demoLoaded: demoLoaded.value,
+      classGroups: classGroups.value,
+      rosterTemplates: rosterTemplates.value,
+      privacySettings: privacySettings.value,
+      auditLog: auditLog.value,
+      billingProfile: billingProfile.value,
+    }),
+    failedKeys: results.filter(([, result]) => result.failed).map(([key]) => key),
+  };
 }
 
 function clearClassLoopLocalPersistence() {
@@ -1507,6 +1666,8 @@ function App() {
   const [landingPage, setLandingPage] = useState<LandingPageKey>(getLandingPage);
   const [publicDemoOnly] = useState(() => isPublicHostedDemo() || isDemoOnlyOverride());
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connecting");
+  const [bootPhase, setBootPhase] = useState<BootPhase>("sync");
+  const [workspaceNotice, setWorkspaceNotice] = useState<WorkspaceNotice | null>(null);
   const [passwordResetCodes, setPasswordResetCodes] = useState<Record<string, PasswordResetRecord>>({});
   const [celebrationMoment, setCelebrationMoment] = useState<CelebrationMoment | null>(null);
   const serverSyncRef = useRef(false);
@@ -1538,6 +1699,8 @@ function App() {
 
   useEffect(() => {
     let active = true;
+    setBootPhase("sync");
+    setWorkspaceNotice(null);
     if (publicDemoOnly) {
       clearClassLoopLocalPersistence();
       setAccounts(demoAccounts);
@@ -1563,6 +1726,7 @@ function App() {
       }));
       serverSyncRef.current = false;
       setSyncStatus("local");
+      setBootPhase("ready");
       setSharedReady(true);
       return () => {
         active = false;
@@ -1592,10 +1756,14 @@ function App() {
         lastServerUpdatedAtRef.current = state.updatedAt;
         serverSyncRef.current = true;
         setSyncStatus("shared");
+        setWorkspaceNotice(null);
+        setBootPhase("ready");
       })
       .catch(async () => {
         if (!active) return;
-        const localState = await readLocalStateFallback();
+        setBootPhase("local");
+        const localResult = await readLocalStateFallback();
+        const localState = localResult.state;
         setAccounts(localState.accounts);
         setSessions(localState.sessions);
         setDraft(localState.draft);
@@ -1608,6 +1776,8 @@ function App() {
         lastSharedJsonRef.current = sharedStateJson(localState);
         serverSyncRef.current = false;
         setSyncStatus("local");
+        setWorkspaceNotice(localResult.failedKeys.length ? localReadFailureNotice : sharedSyncFallbackNotice);
+        setBootPhase("ready");
       })
       .finally(() => {
         if (active) setSharedReady(true);
@@ -1638,7 +1808,9 @@ function App() {
       billingProfile,
     });
     if (!serverSyncRef.current) {
-      void writeLocalStateFallback(persistableState);
+      void writeLocalStateFallback(persistableState).catch(() => {
+        setWorkspaceNotice(localWriteFailureNotice);
+      });
       return;
     }
 
@@ -1659,8 +1831,15 @@ function App() {
           lastSharedJsonRef.current = sharedStateJson(state);
           lastServerUpdatedAtRef.current = state.updatedAt;
           setSyncStatus("shared");
+          setWorkspaceNotice(null);
         })
-        .catch(() => setSyncStatus("local"))
+        .catch(() => {
+          setSyncStatus("local");
+          setWorkspaceNotice(sharedSaveFallbackNotice);
+          void writeLocalStateFallback(persistableState).catch(() => {
+            setWorkspaceNotice(localWriteFailureNotice);
+          });
+        })
         .finally(() => {
           isSavingRef.current = false;
           writeTimerRef.current = null;
@@ -1694,8 +1873,12 @@ function App() {
           lastSharedJsonRef.current = nextJson;
           lastServerUpdatedAtRef.current = state.updatedAt;
           setSyncStatus("shared");
+          setWorkspaceNotice(null);
         })
-        .catch(() => setSyncStatus("local"));
+        .catch(() => {
+          setSyncStatus("local");
+          setWorkspaceNotice(sharedSyncFallbackNotice);
+        });
     }, 2500);
 
     return () => window.clearInterval(interval);
@@ -2335,7 +2518,13 @@ function App() {
   }
 
   if (!sharedReady || authLoading) {
-    return <AppLoader message={authLoading ? "Opening your workspace" : "Loading ClassLoop"} />;
+    return (
+      <AppLoader
+        message={authLoading ? "Opening your workspace" : "Loading ClassLoop"}
+        steps={authLoading ? authBootSteps() : workspaceBootSteps(bootPhase, workspaceNotice)}
+        notice={workspaceNotice}
+      />
+    );
   }
 
   if (!auth) {
@@ -2346,6 +2535,7 @@ function App() {
         onRequestPasswordReset={handleRequestPasswordReset}
         onCompletePasswordReset={handleCompletePasswordReset}
         demoOnly={publicDemoOnly}
+        workspaceNotice={workspaceNotice}
       />
     );
   }
@@ -2368,6 +2558,7 @@ function App() {
           onUpdateAccount={handleUpdateAccount}
           onStartWalkthrough={startWalkthrough}
         />
+        {workspaceNotice && <WorkspaceRecoveryNotice notice={workspaceNotice} />}
         {effectiveRoute === "dashboard" && <TeacherDashboard sessions={teacherSessions} draft={visibleDraft} billingProfile={billingProfile} />}
         {effectiveRoute === "classes" && auth.role === "teacher" && (
           <ClassGroupsPage
@@ -2612,21 +2803,14 @@ function LandingPage({
   const [showDesktopInstallerChoices, setShowDesktopInstallerChoices] = useState(false);
   const [detectedInstallerId] = useState<DesktopInstallerId | null>(() => detectDesktopInstallerFromBrowser());
   const [releaseDownloads, setReleaseDownloads] = useState<ReleaseDownloadManifest>({});
+  const [releaseManifestStatus, setReleaseManifestStatus] = useState<ReleaseManifestStatus>("loading");
   const cleanUrl = (value: string | undefined) => {
     const trimmed = value?.trim();
     return trimmed ? trimmed : undefined;
   };
-  const isVercelBlobUrl = (value: string | undefined) => {
-    if (!value) return false;
-    try {
-      return new URL(value).hostname.endsWith(".blob.vercel-storage.com");
-    } catch {
-      return false;
-    }
-  };
   const cleanExternalReleaseUrl = (value: string | undefined) => {
     const url = cleanUrl(value);
-    return isVercelBlobUrl(url) ? undefined : url;
+    return releaseUrlIsVercelBlob(url) ? undefined : url;
   };
 
   const donationUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_DONATE_URL as string | undefined);
@@ -2732,6 +2916,14 @@ function LandingPage({
   const fallbackDownload = detectedDownload ?? downloadOptions[0];
   const downloadButtonLabel = (option: (typeof downloadOptions)[number]) =>
     option.url ? `Download ${option.label}` : `${option.label} packaging pending`;
+  const releaseManifestMessage: string | null =
+    releaseManifestStatus === "unavailable"
+      ? "Desktop installer manifest is unavailable, so installers stay Packaging pending until the tiny download manifest can be fetched."
+      : releaseManifestStatus === "invalid"
+        ? "Desktop installer manifest could not be read, so installers stay Packaging pending instead of showing uncertain links."
+        : releaseManifestStatus === "blocked"
+          ? "Installer links pointing at Vercel Blob are ignored to keep project storage from filling up."
+          : null;
   const publicNav: Array<{ page: LandingPageKey; label: string }> = [
     { page: "home", label: "Home" },
     { page: "features", label: "Features" },
@@ -2792,16 +2984,30 @@ function LandingPage({
 
   useEffect(() => {
     let cancelled = false;
+    setReleaseManifestStatus("loading");
     fetch("/classloop-downloads.json", { cache: "no-cache" })
       .then(async (response) => {
-        if (!response.ok) return {};
-        return normalizeReleaseDownloadManifest(await response.json());
+        if (!response.ok) {
+          if (!cancelled) setReleaseManifestStatus("unavailable");
+          return {};
+        }
+        try {
+          const manifest = normalizeReleaseDownloadManifest(await response.json());
+          if (!cancelled) setReleaseManifestStatus(releaseManifestHasBlockedUrls(manifest) ? "blocked" : "ready");
+          return manifest;
+        } catch {
+          if (!cancelled) setReleaseManifestStatus("invalid");
+          return {};
+        }
       })
       .then((manifest) => {
         if (!cancelled) setReleaseDownloads(manifest);
       })
       .catch(() => {
-        if (!cancelled) setReleaseDownloads({});
+        if (!cancelled) {
+          setReleaseDownloads({});
+          setReleaseManifestStatus("unavailable");
+        }
       });
     return () => {
       cancelled = true;
@@ -3222,6 +3428,11 @@ function LandingPage({
                     ? `ClassLoop detected ${detectedDownload.label} from browser hints. Use the detected installer or reveal the full desktop list.`
                     : "This device looks best for the web/PWA path. You can still open desktop installers when downloading ClassLoop for another computer."}
                 </p>
+                {releaseManifestMessage && (
+                  <p className="landing-message warning" role="status" aria-live="polite">
+                    {releaseManifestMessage}
+                  </p>
+                )}
               </div>
               <div className="landing-detected-download">
                 {detectedDownload ? (
@@ -3334,6 +3545,7 @@ function LoginPage({
   onRequestPasswordReset,
   onCompletePasswordReset,
   demoOnly,
+  workspaceNotice,
 }: {
   onLogin: (role: AuthRole, email: string, password: string) => Promise<{ ok: boolean; message?: string }>;
   onCreateAccount: (
@@ -3353,6 +3565,7 @@ function LoginPage({
     newPassword: string,
   ) => Promise<{ ok: boolean; message?: string }>;
   demoOnly: boolean;
+  workspaceNotice?: WorkspaceNotice | null;
 }) {
   const [mode, setMode] = useState<"signin" | "create">("signin");
   const [role, setRole] = useState<AuthRole>("teacher");
@@ -3523,6 +3736,7 @@ function LoginPage({
               <small>Web demo workspace</small>
             </div>
           </div>
+          {workspaceNotice && <WorkspaceRecoveryNotice notice={workspaceNotice} />}
           <div className="login-copy demo-choice-copy">
             <span className="eyebrow">Choose a demo</span>
             <h1>Try ClassLoop as a teacher or student.</h1>
@@ -3580,6 +3794,7 @@ function LoginPage({
             )}
           </div>
         </div>
+        {workspaceNotice && <WorkspaceRecoveryNotice notice={workspaceNotice} />}
         <div className="login-copy">
           <span className="eyebrow">Welcome back</span>
           <h1>{demoOnly ? "Try ClassLoop with sample accounts." : "Sign in to ClassLoop."}</h1>
@@ -3808,8 +4023,51 @@ function LockIcon() {
   return <KeyRound size={22} />;
 }
 
-function AppLoader({ message }: { message: string }) {
+function WorkspaceRecoveryNotice({ notice }: { notice: WorkspaceNotice }) {
+  const Icon = notice.severity === "error" ? CircleAlert : notice.severity === "warning" ? AlertTriangle : CheckCircle2;
+  return (
+    <section
+      className={`workspace-recovery-notice ${notice.severity}`}
+      role={notice.severity === "error" ? "alert" : "status"}
+      aria-live="polite"
+    >
+      <Icon size={18} />
+      <div>
+        <strong>{notice.title}</strong>
+        <span>{notice.message}</span>
+      </div>
+    </section>
+  );
+}
+
+function bootStatusText(status: BootStepStatus) {
+  const labels: Record<BootStepStatus, string> = {
+    pending: "Pending",
+    active: "Loading",
+    complete: "Ready",
+    warning: "Fallback",
+    error: "Needs attention",
+  };
+  return labels[status];
+}
+
+function AppLoader({
+  message,
+  steps,
+  notice,
+}: {
+  message: string;
+  steps: BootStep[];
+  notice?: WorkspaceNotice | null;
+}) {
   const tip = loadingTips[Math.floor(Date.now() / 1000) % loadingTips.length];
+  const outline = [
+    ["Accounts", "Teacher and student profiles"],
+    ["Sessions", "Drafts, published recaps, attendance"],
+    ["Rosters", "Saved classes and reusable templates"],
+    ["Follow-ups", "Student tasks, resources, completion"],
+    ["Settings", "Privacy, theme, sync and plan state"],
+  ];
   return (
     <main className="app-loader" aria-live="polite">
       <div className="loader-card">
@@ -3819,6 +4077,29 @@ function AppLoader({ message }: { message: string }) {
         <span className="eyebrow">ClassLoop</span>
         <h1>{message}</h1>
         <p>{tip}</p>
+        {notice && <WorkspaceRecoveryNotice notice={notice} />}
+        <div className="loader-data-outline" aria-label="Workspace data outline">
+          {outline.map(([label, detail]) => (
+            <div className="loader-outline-row" key={label}>
+              <span>
+                <strong>{label}</strong>
+                <small>{detail}</small>
+              </span>
+              <i aria-hidden="true" />
+            </div>
+          ))}
+        </div>
+        <ol className="loader-steps" aria-label="Startup status">
+          {steps.map((step) => (
+            <li className={`loader-step ${step.status}`} key={step.label}>
+              <span>{bootStatusText(step.status)}</span>
+              <div>
+                <strong>{step.label}</strong>
+                <small>{step.detail}</small>
+              </div>
+            </li>
+          ))}
+        </ol>
         <div className="loader-track" aria-hidden="true">
           <i />
         </div>

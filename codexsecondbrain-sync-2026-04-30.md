@@ -314,7 +314,7 @@ Feature checks:
 17. Account/session/browser roster fallback storage uses secure classloop:secure:* localStorage keys; legacy plain classloop:accounts/session keys should migrate away.
 18. Responsive layout has no horizontal overflow at a phone-sized viewport.
 19. WCAG-targeted checks pass for keyboard navigation, focus order, visible focus indicators, accessible control names, live status announcements, contrast on key text/buttons, and mobile PWA/add-to-home-screen readability.
-20. Error-state recovery checks pass for bad transcript format, malformed URLs, sync API outage/local fallback, package init failures, desktop storage corruption, and privacy-safe actionable logging.
+20. Error-state recovery checks pass for boot loading/data-outline delay, bad transcript format, malformed URLs, sync API outage/local fallback, non-JSON sync responses, browser storage read/write failures, download-manifest outages/malformed/Vercel Blob URLs, package init failures, desktop storage corruption, and privacy-safe actionable logging.
 21. Public signup legal gate remains set: durable hosted signups stay sample-only until reviewed public Terms of Use, Privacy Policy, desktop EULA, hosted retention/deletion SLAs, support contact, and child-safety expectations are published.
 22. Frontend formatting pass: no unreadable low-contrast text, overlapping form labels, clipped buttons, blank teacher-only panels, or unnecessary implementation details exposed to users.
 

@@ -59,6 +59,7 @@
 ### Package Init / Startup Failure Tests
 - **Missing Packaged Executable**: `npm run test:package:init` runs the packaged first-run smoke against a missing executable and verifies the failure explains what artifact is absent without logging classroom/account data.
 - **Missing App Build Guard**: The same smoke verifies desktop startup has a stable support log prefix and clear `dist/index.html` recovery guidance for package/init failures.
+- **App Boot Loader / Data Outline**: Browser error-state tests delay `/api/state` and verify the loading screen names the workspace data that will appear next: accounts, sessions, rosters, follow-ups, settings, and startup status.
 
 ### Security / Secrets / Legal Baseline
 - **Local Data Tracking**: `npm run test:security` verifies `.env.local`, `.classloop-data.json`, `.classloop-storage-key`, and legacy local data files are ignored and not tracked.
@@ -71,6 +72,7 @@
 - **Login**: Teacher and student sample accounts can sign in.
 - **Import Flow**: Teacher can load the geometry sample and generate a draft.
 - **Import Error Recovery**: Bad transcript format and malformed resource URLs show visible, non-blocking warnings; teachers can still generate a reviewable draft and corrected URLs are preserved while malformed lines are ignored.
+- **Startup / Storage Recovery**: Browser tests verify shared-state outages, non-JSON API responses, corrupt encrypted browser state, and browser storage write failures all produce visible recovery copy while keeping the app usable where possible.
 - **Publish Preview**: Teacher can open the preview and publish student follow-ups.
 - **Per-Student Preview Diffs**: Publish preview explains why each student receives different follow-up content.
 - **Roster Manager**: Publishing prompts the teacher to save the roster; saved rosters appear in the Rosters tab and auto-load for matching session templates.
@@ -95,6 +97,7 @@
 - **Screenshots / Workflow**: `#/screenshots` shows ClassLoop teacher review, student dashboard, and analytics screenshots with readable explanations.
 - **Public Privacy Boundary**: `#/privacy` exposes local desktop storage, no-training, retention/export, and sample-only hosted-demo boundary copy without revealing sign-in form fields.
 - **Desktop Downloads**: macOS, Windows, and Linux download controls are visible; missing installer URLs show packaging/demo fallback copy.
+- **Download Manifest Recovery**: Browser tests verify missing, malformed, or Vercel Blob-backed `public/classloop-downloads.json` manifests keep installers marked `Packaging pending` with visible recovery copy.
 - **Donation Path**: Donate route exposes support amounts and clearly reports when `VITE_CLASSLOOP_DONATE_URL` has not been connected.
 - **Mobile/PWA Access**: Hosted root and Download route expose the "Add to phone" action, standalone web app manifest, app icon, and service worker shell.
 - **Sample-Only Demo**: Hosted demo exposes teacher/student demo choices instead of editable email/password fields.

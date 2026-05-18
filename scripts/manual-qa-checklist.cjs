@@ -49,6 +49,7 @@ const sections = [
     [
       "Open `/`, `#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` on desktop, tablet, and phone widths.",
       "Verify missing macOS, Windows, and Linux URLs say `Packaging pending` before and after click.",
+      "Temporarily fail, corrupt, and Vercel-Blob-point `public/classloop-downloads.json`; verify the Download route keeps installers pending with visible recovery copy.",
       "Confirm hosted demo uses sample teacher/student choices and never exposes account creation fields in demo-only mode.",
       "Verify Add to phone/PWA controls, manifest, service worker, icon, standalone start URL, and mobile readability.",
       "Check docs/privacy/donate/download copy for legal/support clarity and no misleading live-sync, billing, or installer claims.",
@@ -110,7 +111,7 @@ const sections = [
     [
       "Keyboard through login, dashboard, import, review, preview, report, student dashboard, privacy, billing, tutorial, and public routes.",
       "Verify visible focus, logical focus order, accessible names, live status announcements, contrast, mobile readability, and no horizontal overflow.",
-      "Trigger malformed transcript, malformed URL, sync API down, billing API down, storage corruption, and package init failure states.",
+      "Trigger loading-state delay, malformed transcript, malformed URL, sync API down, non-JSON sync response, billing API down, browser storage read/write failure, desktop storage corruption, and package init failure states.",
       "Confirm Terms, Privacy, EULA, support contact, data retention, child-appropriate safety, and demo-data ephemerality before public signup.",
       "Run rollback and incident drills; classify findings as correctness errors, feature issues, cohesion improvements, suggested features, and remaining gaps.",
     ],

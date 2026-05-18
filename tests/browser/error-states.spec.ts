@@ -34,6 +34,27 @@ function privateLogPattern() {
 }
 
 test.describe("user-visible error states and recovery", () => {
+  test("startup loader outlines workspace data while shared state is pending", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "Runs once because it intentionally delays shared-state startup.");
+    await page.route("**/api/state", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1_200));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({}),
+      });
+    });
+
+    await page.goto("/#/dashboard");
+    await expect(page.getByRole("heading", { name: /loading classloop/i })).toBeVisible();
+    await expect(page.getByLabel(/workspace data outline/i)).toContainText(/Accounts/);
+    await expect(page.getByLabel(/workspace data outline/i)).toContainText(/Sessions/);
+    await expect(page.getByLabel(/workspace data outline/i)).toContainText(/Rosters/);
+    await expect(page.getByLabel(/workspace data outline/i)).toContainText(/Follow-ups/);
+    await expect(page.getByLabel(/startup status/i)).toContainText(/Workspace sync/);
+    await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
+  });
+
   test("bad transcript format and malformed resource URLs show recoverable warnings without leaking private text to logs", async ({
     page,
   }, testInfo) => {
@@ -116,14 +137,138 @@ test.describe("user-visible error states and recovery", () => {
 
     await page.goto("/#/dashboard");
     await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: /shared sync is unavailable/i })).toBeVisible();
     await page.getByPlaceholder("name@example.com").fill(teacherEmail);
     await page.getByPlaceholder("Enter password").fill(teacherPassword);
     await page.locator("form.login-form button[type='submit']").click();
     await skipAutoWalkthrough(page);
     await expect(page.getByText("Today in ClassLoop")).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: /shared sync is unavailable/i })).toBeVisible();
 
     await page.getByRole("button", { name: /ms\. rivera/i }).click();
     await expect(page.locator(".profile-menu")).toContainText(/Saved in this browser/i);
     expect(runtimeMessages.join("\n")).not.toMatch(privateLogPattern());
+  });
+
+  test("non-json shared sync response opens local mode with recovery copy", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "Runs once because it intentionally intercepts shared-state API calls.");
+    await page.route("**/api/state", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "<h1>temporary gateway page</h1>",
+      });
+    });
+
+    await page.goto("/#/dashboard");
+    await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: /shared sync is unavailable/i })).toBeVisible();
+  });
+
+  test("corrupt encrypted browser state is reported before sign in", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "Runs once because it intentionally corrupts browser storage.");
+    await page.addInitScript(() => {
+      window.localStorage.setItem("classloop:secure:accounts:v1", "not-json");
+    });
+    await page.route("**/api/state", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Shared sync API unavailable for storage recovery drill." }),
+      });
+    });
+
+    await page.goto("/#/dashboard");
+    await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: /some browser data could not be read/i })).toBeVisible();
+  });
+
+  test("browser storage write failures stay visible after account creation", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "Runs once because it intentionally forces local storage writes to fail.");
+    await page.addInitScript(() => {
+      const originalSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function setItem(key: string, value: string) {
+        if (String(key).startsWith("classloop:secure:")) {
+          throw new DOMException("Synthetic ClassLoop quota failure", "QuotaExceededError");
+        }
+        return originalSetItem.call(this, key, value);
+      };
+    });
+    await page.route("**/api/state", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Shared sync API unavailable for storage write drill." }),
+      });
+    });
+
+    await page.goto("/#/dashboard");
+    await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
+    await page.locator(".auth-switch").getByRole("button", { name: /^create account$/i }).click();
+    await page.getByPlaceholder("Your name").fill("Storage Drill Teacher");
+    await page.getByPlaceholder("name@example.com").fill("storage-drill-teacher@classloop.test");
+    await page.getByPlaceholder("Enter password", { exact: true }).fill("storage-drill-password");
+    await page.getByPlaceholder("Re-enter password").fill("storage-drill-password");
+    await page.locator("form.login-form button[type='submit']").click();
+    await skipAutoWalkthrough(page);
+    await expect(page.getByText("Today in ClassLoop")).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: /encrypted browser storage could not save changes/i })).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
+  test("download manifest outage keeps desktop installers pending", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "Runs once because it intentionally intercepts the download manifest.");
+    await page.route("**/classloop-downloads.json", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "release manifest unavailable" }),
+      });
+    });
+
+    await page.goto("/#/download");
+    await expect(page.getByRole("heading", { name: /download classloop/i })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: /desktop installer manifest is unavailable/i })).toBeVisible();
+    await page.getByRole("button", { name: /not your system|view desktop installers/i }).first().click();
+    await expect(page.getByLabel(/desktop download options/i).getByText(/packaging pending/i).first()).toBeVisible();
+  });
+
+  test("malformed download manifest is ignored with visible recovery copy", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "Runs once because it intentionally intercepts the download manifest.");
+    await page.route("**/classloop-downloads.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "{",
+      });
+    });
+
+    await page.goto("/#/download");
+    await expect(page.getByRole("status").filter({ hasText: /desktop installer manifest could not be read/i })).toBeVisible();
+    await page.getByRole("button", { name: /not your system|view desktop installers/i }).first().click();
+    await expect(page.getByLabel(/desktop download options/i).getByText(/download ready/i)).toHaveCount(0);
+  });
+
+  test("Vercel Blob download URLs are blocked instead of shown as ready installers", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "Runs once because it intentionally supplies blocked release URLs.");
+    await page.route("**/classloop-downloads.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          checksumsUrl: "https://classloop-checksums.public.blob.vercel-storage.com/SHA256SUMS.txt",
+          macos: { url: "https://classloop-mac.public.blob.vercel-storage.com/ClassLoop.dmg" },
+          windows: { url: "https://classloop-win.public.blob.vercel-storage.com/ClassLoop.exe" },
+          linux: { url: "https://classloop-linux.public.blob.vercel-storage.com/ClassLoop.AppImage" },
+        }),
+      });
+    });
+
+    await page.goto("/#/download");
+    await expect(page.getByRole("status").filter({ hasText: /Vercel Blob/i })).toBeVisible();
+    await page.getByRole("button", { name: /not your system|view desktop installers/i }).first().click();
+    await expect(page.getByLabel(/desktop download options/i).getByText(/download ready/i)).toHaveCount(0);
+    await expect(page.getByLabel(/desktop download options/i).getByText(/packaging pending/i).first()).toBeVisible();
   });
 });
