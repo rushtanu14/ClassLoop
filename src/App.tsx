@@ -140,6 +140,19 @@ type BeforeInstallPromptEvent = Event & {
 type LandingPageKey = "home" | "features" | "screenshots" | "docs" | "privacy" | "donate" | "download";
 type DesktopInstallerId = "macos" | "windows" | "linux";
 
+type ReleasePlatformManifest = {
+  url?: string;
+  x64Url?: string;
+  arm64Url?: string;
+};
+
+type ReleaseDownloadManifest = {
+  checksumsUrl?: string;
+  macos?: ReleasePlatformManifest;
+  windows?: ReleasePlatformManifest;
+  linux?: ReleasePlatformManifest;
+};
+
 type Account = {
   id: string;
   role: AuthRole;
@@ -263,6 +276,30 @@ type CelebrationMoment = {
   title: string;
   detail: string;
 };
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const readManifestString = (value: unknown) => (typeof value === "string" ? value : undefined);
+
+function normalizeReleasePlatformManifest(value: unknown): ReleasePlatformManifest {
+  if (!isRecord(value)) return {};
+  return {
+    url: readManifestString(value.url),
+    x64Url: readManifestString(value.x64Url),
+    arm64Url: readManifestString(value.arm64Url),
+  };
+}
+
+function normalizeReleaseDownloadManifest(value: unknown): ReleaseDownloadManifest {
+  if (!isRecord(value)) return {};
+  return {
+    checksumsUrl: readManifestString(value.checksumsUrl),
+    macos: normalizeReleasePlatformManifest(value.macos),
+    windows: normalizeReleasePlatformManifest(value.windows),
+    linux: normalizeReleasePlatformManifest(value.linux),
+  };
+}
 
 function detectDesktopInstallerFromBrowser(): DesktopInstallerId | null {
   if (typeof window === "undefined") return null;
@@ -2574,6 +2611,7 @@ function LandingPage({
   const [isStandaloneMobile, setIsStandaloneMobile] = useState(false);
   const [showDesktopInstallerChoices, setShowDesktopInstallerChoices] = useState(false);
   const [detectedInstallerId] = useState<DesktopInstallerId | null>(() => detectDesktopInstallerFromBrowser());
+  const [releaseDownloads, setReleaseDownloads] = useState<ReleaseDownloadManifest>({});
   const cleanUrl = (value: string | undefined) => {
     const trimmed = value?.trim();
     return trimmed ? trimmed : undefined;
@@ -2592,7 +2630,7 @@ function LandingPage({
   };
 
   const donationUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_DONATE_URL as string | undefined);
-  const checksumUrl = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_CHECKSUMS_URL as string | undefined);
+  const checksumUrl = cleanExternalReleaseUrl(releaseDownloads.checksumsUrl);
 
   type DesktopDownloadOption = {
     id: DesktopInstallerId;
@@ -2601,9 +2639,9 @@ function LandingPage({
     url?: string;
   };
 
-  const macArm64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL_ARM64 as string | undefined);
-  const macX64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL_X64 as string | undefined);
-  const macUrl = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_MAC_DOWNLOAD_URL as string | undefined);
+  const macArm64Url = cleanExternalReleaseUrl(releaseDownloads.macos?.arm64Url);
+  const macX64Url = cleanExternalReleaseUrl(releaseDownloads.macos?.x64Url);
+  const macUrl = cleanExternalReleaseUrl(releaseDownloads.macos?.url);
   const macOptions: DesktopDownloadOption[] = [];
   if (macArm64Url) {
     macOptions.push({
@@ -2630,9 +2668,9 @@ function LandingPage({
     });
   }
 
-  const windowsX64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL_X64 as string | undefined);
-  const windowsArm64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL_ARM64 as string | undefined);
-  const windowsUrl = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL as string | undefined);
+  const windowsX64Url = cleanExternalReleaseUrl(releaseDownloads.windows?.x64Url);
+  const windowsArm64Url = cleanExternalReleaseUrl(releaseDownloads.windows?.arm64Url);
+  const windowsUrl = cleanExternalReleaseUrl(releaseDownloads.windows?.url);
   const windowsOptions: DesktopDownloadOption[] = [];
   if (windowsX64Url) {
     windowsOptions.push({
@@ -2659,9 +2697,9 @@ function LandingPage({
     });
   }
 
-  const linuxX64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL_X64 as string | undefined);
-  const linuxArm64Url = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL_ARM64 as string | undefined);
-  const linuxUrl = cleanExternalReleaseUrl(import.meta.env.VITE_CLASSLOOP_LINUX_DOWNLOAD_URL as string | undefined);
+  const linuxX64Url = cleanExternalReleaseUrl(releaseDownloads.linux?.x64Url);
+  const linuxArm64Url = cleanExternalReleaseUrl(releaseDownloads.linux?.arm64Url);
+  const linuxUrl = cleanExternalReleaseUrl(releaseDownloads.linux?.url);
   const linuxOptions: DesktopDownloadOption[] = [];
   if (linuxX64Url) {
     linuxOptions.push({
@@ -2748,9 +2786,27 @@ function LandingPage({
     setMobileMessage(
       isStandaloneMobile
         ? "ClassLoop is already running like an app on this device."
-        : "On iPhone, tap Share then Add to Home Screen. On Android, open the browser menu and choose Install app.",
+      : "On iPhone, tap Share then Add to Home Screen. On Android, open the browser menu and choose Install app.",
     );
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/classloop-downloads.json", { cache: "no-cache" })
+      .then(async (response) => {
+        if (!response.ok) return {};
+        return normalizeReleaseDownloadManifest(await response.json());
+      })
+      .then((manifest) => {
+        if (!cancelled) setReleaseDownloads(manifest);
+      })
+      .catch(() => {
+        if (!cancelled) setReleaseDownloads({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const displayModeQuery = window.matchMedia("(display-mode: standalone)");
@@ -3023,7 +3079,7 @@ function LandingPage({
                 <article className="landing-doc-section">
                   <h2>Release setup</h2>
                   <p>Set platform download URLs after the installer is uploaded. Missing URLs stay visibly marked as packaging pending, and checksums can be linked separately.</p>
-                  <code>VITE_CLASSLOOP_MAC_DOWNLOAD_URL=https://...</code>
+                  <code>public/classloop-downloads.json</code>
                 </article>
               </div>
             </section>

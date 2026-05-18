@@ -118,11 +118,7 @@ function writeRollbackSimulation() {
       version: rollbackTarget,
       action: "Restore the previous known-good hosted deployment and public installer URLs.",
     },
-    publicDownloadEnv: [
-      "VITE_CLASSLOOP_MAC_DOWNLOAD_URL",
-      "VITE_CLASSLOOP_WINDOWS_DOWNLOAD_URL",
-      "VITE_CLASSLOOP_LINUX_DOWNLOAD_URL",
-    ],
+    publicDownloadManifest: "public/classloop-downloads.json",
     verification: [
       "Hosted landing page shows the previous known-good installer link or Packaging pending.",
       "Manual install-over-replace keeps Electron user data in the per-user data directory.",
@@ -140,7 +136,7 @@ function writeRollbackSimulation() {
     "",
     "Internal next steps:",
     "1. Restore the previous Vercel deployment or redeploy main at the known-good commit.",
-    "2. Replace bad installer URLs with known-good URLs, or leave them unset so the UI says Packaging pending.",
+    "2. Replace bad installer URLs in public/classloop-downloads.json with known-good external-host URLs, or leave them unset so the UI says Packaging pending.",
     "3. Run hosted web smoke, packaged first-run smoke, and release distribution verification before announcing recovery.",
     "",
   ].join("\n");

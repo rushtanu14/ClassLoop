@@ -1,0 +1,19 @@
+{
+  "note": "Keep desktop installer binaries outside Vercel Blob. Put future URLs on GitHub Releases, Cloudflare R2, S3, or another large-file download host.",
+  "checksumsUrl": "",
+  "macos": {
+    "url": "",
+    "x64Url": "",
+    "arm64Url": ""
+  },
+  "windows": {
+    "url": "",
+    "x64Url": "",
+    "arm64Url": ""
+  },
+  "linux": {
+    "url": "",
+    "x64Url": "",
+    "arm64Url": ""
+  }
+}
