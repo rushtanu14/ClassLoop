@@ -99,20 +99,20 @@ The local desktop app still works without paid services or cloud credentials. Fo
 - Stripe Checkout for Pro subscriptions.
 - Stripe webhook endpoint for server-owned subscription status updates.
 - Pilot feedback endpoint for collecting early user feedback.
-- A Vercel landing page at `/` with routed Home, Features, Screenshots, Docs, Privacy, Donate, and Download pages instead of a single scroll-through site.
+- A Vercel landing page at `/` with routed Home, Features, Screenshots, Docs, Privacy, Terms, EULA, Support, Donate, and Download pages instead of a single scroll-through site.
 - A PWA/mobile shell with `manifest.webmanifest`, a service worker, mobile meta tags, and an "Add to phone" landing action.
 
 Hosted route behavior:
 
 - `https://your-domain.com/` shows the public ClassLoop landing page.
-- `https://your-domain.com/#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` open separate public landing pages.
+- `https://your-domain.com/#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/terms`, `#/eula`, `#/support`, `#/donate`, and `#/download` open separate public landing pages.
 - `https://your-domain.com/#/dashboard` opens the safe web demo sign-in flow.
 - The hosted web demo uses sample teacher/student accounts only. Account creation and durable personal workspaces belong in the downloaded desktop app.
 - Sample account changes are ephemeral and should not be treated as saved data.
 - `https://your-domain.com/api/config` returns safe booleans that confirm whether server-only Supabase and Stripe env vars were picked up by Vercel.
 - Set desktop installer URLs in `public/classloop-downloads.json` when release assets are ready. Use GitHub Releases, Cloudflare R2, S3, or another large-file download host for these binaries; do not use Vercel Blob for installer artifacts because it quickly fills the Vercel storage quota. Until external installer URLs are ready, the landing page clearly says installers are still being packaged and directs visitors to the web demo.
 - Set `VITE_CLASSLOOP_DONATE_URL` to a public donation page when donations are ready. Until then, the Donate page explains that the donation link has not been connected.
-- Student follow-up usefulness ratings are transcript-attached product feedback for the ClassLoop creator. Hosted builds post the rating, optional note, app context, and relevant transcript to `/api/feedback`; set `CLASSLOOP_FEEDBACK_NOTIFY_EMAIL` plus SMTP/Gmail env vars for creator notifications. Desktop builds can set `VITE_CLASSLOOP_PRODUCT_FEEDBACK_URL` to the hosted feedback endpoint.
+- Student follow-up usefulness ratings and installer issue reports are product feedback for the ClassLoop creator. Hosted builds post the rating/report, optional note, app context, and relevant transcript or installer metadata to `/api/feedback`; set `CLASSLOOP_FEEDBACK_NOTIFY_EMAIL` plus SMTP/Gmail env vars for creator notifications. Desktop builds can set `VITE_CLASSLOOP_PRODUCT_FEEDBACK_URL` to the hosted feedback endpoint.
 - Phone and tablet access runs through the hosted web app. Visitors can open the Vercel URL in Safari/Chrome and use Add to Home Screen or Install app for app-like access.
 
 Suggested pricing:
@@ -210,11 +210,14 @@ For public distribution, upload signed/notarized release files to GitHub Release
   "checksumsUrl": "https://example.com/SHA256SUMS.txt",
   "macos": {
     "x64Url": "https://example.com/ClassLoop-0.1.0.dmg",
-    "arm64Url": "https://example.com/ClassLoop-0.1.0-arm64.dmg"
+    "arm64Url": "https://example.com/ClassLoop-0.1.0-arm64.dmg",
+    "x64ZipUrl": "https://example.com/ClassLoop-0.1.0-mac.zip",
+    "arm64ZipUrl": "https://example.com/ClassLoop-0.1.0-arm64-mac.zip"
   },
   "windows": {
     "x64Url": "https://example.com/ClassLoop-Setup-0.1.0.exe",
-    "arm64Url": "https://example.com/ClassLoop-0.1.0-arm64-win.zip"
+    "x64ZipUrl": "https://example.com/ClassLoop-0.1.0-win.zip",
+    "arm64ZipUrl": "https://example.com/ClassLoop-0.1.0-arm64-win.zip"
   },
   "linux": {
     "x64Url": "https://example.com/ClassLoop-0.1.0.AppImage",
@@ -228,6 +231,7 @@ Keep these Vercel/server variables separate:
 ```bash
 VITE_CLASSLOOP_DONATE_URL=
 VITE_CLASSLOOP_PRODUCT_FEEDBACK_URL=
+VITE_CLASSLOOP_SUPPORT_EMAIL=
 CLASSLOOP_FEEDBACK_NOTIFY_EMAIL=
 ```
 
@@ -254,13 +258,14 @@ The rollback drill validates the packaged artifacts and writes a non-destructive
 ## Privacy And School Readiness
 
 - Retention settings, export/delete workspace data, and audit logs live in the teacher-only privacy area.
+- Public Terms, Privacy, EULA, and Support pages are available from `#/terms`, `#/privacy`, `#/eula`, and `#/support`; treat them as the launch baseline until legal counsel reviews final production language.
 - Student usefulness ratings are product feedback for the ClassLoop creator, not the teacher. They include the related transcript context for product debugging, but should not add separate roster exports, student emails, teacher emails, grades, or non-transcript class artifacts unless an explicit support/export flow asks for them.
 - Recording or live capture should require clear consent before use.
 - Student data is marked as “no training” by default unless a school or teacher explicitly allows otherwise.
 - Analytics stay teacher-only and should be framed as private support signals, not public rankings.
 - Local desktop data files such as `.classloop-data.json` and `.classloop-storage-key` are ignored by git and should never be committed.
 - Desktop state is encrypted with ClassLoop's local AES-GCM storage key file instead of Electron `safeStorage`, so ClassLoop should not trigger macOS Keychain or OS password prompts while saving.
-- See [LEGAL.md](LEGAL.md) for the pre-launch Terms, Privacy, EULA, support, retention, and child-safety baseline. Convert that baseline into reviewed public pages before enabling durable hosted public signups.
+- See [LEGAL.md](LEGAL.md) for the pre-launch Terms, Privacy, EULA, support, retention, and child-safety baseline. The public pages exist now; get final legal review before enabling durable hosted public signups.
 
 ## Sample Accounts
 

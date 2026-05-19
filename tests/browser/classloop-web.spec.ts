@@ -196,6 +196,7 @@ test("hosted public screenshots and privacy routes expose compliance boundaries"
   await expect(page.getByRole("heading", { name: /retention and exports/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /hosted demo boundary/i })).toBeVisible();
   await expect(page.getByText(/sample accounts only/i)).toBeVisible();
+  await expect(page.getByText(/deleted on request/i)).toBeVisible();
   await expect(page.getByPlaceholder("name@example.com")).toHaveCount(0);
   await expect(page.getByPlaceholder("Enter password")).toHaveCount(0);
   await expectNoUnnamedInteractive(page, ".landing-page");
@@ -207,4 +208,42 @@ test("hosted public screenshots and privacy routes expose compliance boundaries"
     ".landing-policy-panel h2",
     ".landing-policy-panel p",
   ]);
+
+  await page.goto("/?demoOnly=1#/terms");
+  await expect(page.getByRole("heading", { name: /classloop terms of use/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /sample hosted demo/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /teacher review responsibility/i })).toBeVisible();
+  await expect(page.getByText(/qualified counsel/i)).toBeVisible();
+  await expectNoUnnamedInteractive(page, ".landing-page");
+
+  await page.goto("/?demoOnly=1#/eula");
+  await expect(page.getByRole("heading", { name: /classloop desktop eula/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /unsigned builds/i })).toBeVisible();
+  await expect(page.getByText(/manual install-over-replace/i)).toBeVisible();
+  await expectNoUnnamedInteractive(page, ".landing-page");
+
+  const supportFeedbackPayloads: any[] = [];
+  await page.route("**/api/feedback", async (route) => {
+    supportFeedbackPayloads.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, notified: true }),
+    });
+  });
+  await page.goto("/?demoOnly=1#/support");
+  await expect(page.getByRole("heading", { name: /classloop support/i })).toBeVisible();
+  await expect(page.getByText(/rushilcpm02@gmail.com/i)).toBeVisible();
+  await expect(page.getByRole("region", { name: /classloop installer feedback/i })).toBeVisible();
+  await page.getByLabel("Platform").selectOption("windows");
+  await page.getByLabel("Problem").selectOption("app_wont_open");
+  await page.getByLabel("Email for follow-up").fill("tester@classloop.test");
+  await page.getByLabel("What happened?").fill("Windows clean machine opened the installer but the app would not start after first launch.");
+  await page.getByRole("button", { name: /send report/i }).click();
+  await expect(page.getByRole("status").filter({ hasText: /installer report sent to classloop support/i })).toBeVisible();
+  expect(supportFeedbackPayloads).toHaveLength(1);
+  expect(supportFeedbackPayloads[0].source).toBe("download_install_feedback");
+  expect(supportFeedbackPayloads[0].metadata.platform).toBe("windows");
+  expect(supportFeedbackPayloads[0].metadata.issueType).toBe("app_wont_open");
+  expect(JSON.stringify(supportFeedbackPayloads[0])).not.toContain("maya@classloop.demo");
 });

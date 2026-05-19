@@ -492,3 +492,10 @@ All three validate with `quick_validate.py`.
 - Public root now serves fingerprinted assets `/assets/index-CkXZY_H5.js` and `/assets/index-BgBlv9cx.css`; the old fixed `/assets/index-CLI9tec8.js` path returns 404.
 - Hosted smoke passed after deploy: `npm run test:web` (4/4), and local web/PWA smoke also passed: `npm run test:web:local` (4/4).
 - Fixed the hosted screenshot route smoke race by waiting for screenshot images to finish loading and expose intrinsic dimensions before asserting them.
+
+## 2026-05-18 Public Installer / Legal / Feedback QA Update
+
+- Public landing routes now include Terms, EULA, and Support in addition to Home, Features, Screenshots, Docs, Privacy, Donate, and Download.
+- Download and Support pages include an installer feedback form for clean-machine failures, OS blocking, checksum mismatch, checkout issues, and cloud sync problems. The form posts to `/api/feedback` with installer metadata and should notify the creator when feedback SMTP/Gmail env vars are configured.
+- `public/classloop-downloads.json` should point to GitHub Release URLs for macOS DMGs/ZIPs, Windows EXE/ZIPs, Linux AppImages, and `SHA256SUMS.txt`. Keep release binaries out of Vercel Blob.
+- QA prompt update: when testing public release readiness, verify `#/download`, `#/support`, `#/terms`, `#/privacy`, and `#/eula` across desktop and phone widths; submit a mocked installer feedback report; confirm Vercel Blob URLs remain blocked; confirm missing URLs stay `Packaging pending`; confirm legal copy is treated as a launch baseline pending final legal review.

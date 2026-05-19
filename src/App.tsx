@@ -51,7 +51,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import { createPortal } from "react-dom";
 import {
   createGeneratedSession,
@@ -137,13 +137,16 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-type LandingPageKey = "home" | "features" | "screenshots" | "docs" | "privacy" | "donate" | "download";
+type LandingPageKey = "home" | "features" | "screenshots" | "docs" | "privacy" | "terms" | "eula" | "support" | "donate" | "download";
 type DesktopInstallerId = "macos" | "windows" | "linux";
 
 type ReleasePlatformManifest = {
   url?: string;
   x64Url?: string;
   arm64Url?: string;
+  zipUrl?: string;
+  x64ZipUrl?: string;
+  arm64ZipUrl?: string;
 };
 
 type ReleaseDownloadManifest = {
@@ -318,6 +321,9 @@ function normalizeReleasePlatformManifest(value: unknown): ReleasePlatformManife
     url: readManifestString(value.url),
     x64Url: readManifestString(value.x64Url),
     arm64Url: readManifestString(value.arm64Url),
+    zipUrl: readManifestString(value.zipUrl),
+    x64ZipUrl: readManifestString(value.x64ZipUrl),
+    arm64ZipUrl: readManifestString(value.arm64ZipUrl),
   };
 }
 
@@ -346,12 +352,21 @@ function releaseManifestHasBlockedUrls(manifest: ReleaseDownloadManifest) {
     manifest.macos?.url,
     manifest.macos?.x64Url,
     manifest.macos?.arm64Url,
+    manifest.macos?.zipUrl,
+    manifest.macos?.x64ZipUrl,
+    manifest.macos?.arm64ZipUrl,
     manifest.windows?.url,
     manifest.windows?.x64Url,
     manifest.windows?.arm64Url,
+    manifest.windows?.zipUrl,
+    manifest.windows?.x64ZipUrl,
+    manifest.windows?.arm64ZipUrl,
     manifest.linux?.url,
     manifest.linux?.x64Url,
     manifest.linux?.arm64Url,
+    manifest.linux?.zipUrl,
+    manifest.linux?.x64ZipUrl,
+    manifest.linux?.arm64ZipUrl,
   ].some(releaseUrlIsVercelBlob);
 }
 
@@ -683,7 +698,17 @@ function getRoute(): RouteKey {
 function getLandingPage(): LandingPageKey {
   const hash = window.location.hash.trim().replace(/^#\/?/, "");
   const route = hash.split("?")[0].replace(/^landing\/?/, "");
-  if (route === "features" || route === "screenshots" || route === "docs" || route === "privacy" || route === "donate" || route === "download") {
+  if (
+    route === "features" ||
+    route === "screenshots" ||
+    route === "docs" ||
+    route === "privacy" ||
+    route === "terms" ||
+    route === "eula" ||
+    route === "support" ||
+    route === "donate" ||
+    route === "download"
+  ) {
     return route;
   }
   if (route === "mobile") return "download";
@@ -705,12 +730,18 @@ function isLandingHash() {
     route === "screenshots" ||
     route === "mobile" ||
     route === "privacy" ||
+    route === "terms" ||
+    route === "eula" ||
+    route === "support" ||
     route === "donate" ||
     route === "download" ||
     hash === "#features" ||
     hash === "#screenshots" ||
     hash === "#mobile" ||
     hash === "#privacy" ||
+    hash === "#terms" ||
+    hash === "#eula" ||
+    hash === "#support" ||
     hash === "#donate" ||
     hash === "#download"
   );
@@ -2814,6 +2845,7 @@ function LandingPage({
   };
 
   const donationUrl = cleanUrl(import.meta.env.VITE_CLASSLOOP_DONATE_URL as string | undefined);
+  const supportEmail = cleanUrl(import.meta.env.VITE_CLASSLOOP_SUPPORT_EMAIL as string | undefined) || "rushilcpm02@gmail.com";
   const checksumUrl = cleanExternalReleaseUrl(releaseDownloads.checksumsUrl);
 
   type DesktopDownloadOption = {
@@ -2826,21 +2858,48 @@ function LandingPage({
   const macArm64Url = cleanExternalReleaseUrl(releaseDownloads.macos?.arm64Url);
   const macX64Url = cleanExternalReleaseUrl(releaseDownloads.macos?.x64Url);
   const macUrl = cleanExternalReleaseUrl(releaseDownloads.macos?.url);
+  const macArm64ZipUrl = cleanExternalReleaseUrl(releaseDownloads.macos?.arm64ZipUrl);
+  const macX64ZipUrl = cleanExternalReleaseUrl(releaseDownloads.macos?.x64ZipUrl);
+  const macZipUrl = cleanExternalReleaseUrl(releaseDownloads.macos?.zipUrl);
   const macOptions: DesktopDownloadOption[] = [];
   if (macArm64Url) {
     macOptions.push({
       id: "macos",
-      label: "macOS (Apple silicon)",
-      helper: "M-series Macs (arm64)",
+      label: "macOS (Apple silicon DMG)",
+      helper: "M-series Macs installer",
       url: macArm64Url,
     });
   }
   if (macX64Url) {
     macOptions.push({
       id: "macos",
-      label: "macOS (Intel)",
-      helper: "Intel Macs (x64)",
+      label: "macOS (Intel DMG)",
+      helper: "Intel Macs installer",
       url: macX64Url,
+    });
+  }
+  if (macArm64ZipUrl) {
+    macOptions.push({
+      id: "macos",
+      label: "macOS (Apple silicon ZIP)",
+      helper: "M-series Macs archive",
+      url: macArm64ZipUrl,
+    });
+  }
+  if (macX64ZipUrl) {
+    macOptions.push({
+      id: "macos",
+      label: "macOS (Intel ZIP)",
+      helper: "Intel Macs archive",
+      url: macX64ZipUrl,
+    });
+  }
+  if (!macArm64ZipUrl && !macX64ZipUrl && macZipUrl) {
+    macOptions.push({
+      id: "macos",
+      label: "macOS ZIP",
+      helper: "Universal archive when available",
+      url: macZipUrl,
     });
   }
   if (!macOptions.length) {
@@ -2855,12 +2914,15 @@ function LandingPage({
   const windowsX64Url = cleanExternalReleaseUrl(releaseDownloads.windows?.x64Url);
   const windowsArm64Url = cleanExternalReleaseUrl(releaseDownloads.windows?.arm64Url);
   const windowsUrl = cleanExternalReleaseUrl(releaseDownloads.windows?.url);
+  const windowsX64ZipUrl = cleanExternalReleaseUrl(releaseDownloads.windows?.x64ZipUrl);
+  const windowsArm64ZipUrl = cleanExternalReleaseUrl(releaseDownloads.windows?.arm64ZipUrl);
+  const windowsZipUrl = cleanExternalReleaseUrl(releaseDownloads.windows?.zipUrl);
   const windowsOptions: DesktopDownloadOption[] = [];
   if (windowsX64Url) {
     windowsOptions.push({
       id: "windows",
-      label: "Windows (x64)",
-      helper: "Windows 10+ on Intel/AMD",
+      label: "Windows (x64 EXE)",
+      helper: "Windows 10+ installer",
       url: windowsX64Url,
     });
   }
@@ -2868,8 +2930,32 @@ function LandingPage({
     windowsOptions.push({
       id: "windows",
       label: "Windows (arm64)",
-      helper: "Windows on ARM devices",
+      helper: "Windows on ARM installer",
       url: windowsArm64Url,
+    });
+  }
+  if (windowsX64ZipUrl) {
+    windowsOptions.push({
+      id: "windows",
+      label: "Windows (x64 ZIP)",
+      helper: "Windows 10+ archive",
+      url: windowsX64ZipUrl,
+    });
+  }
+  if (windowsArm64ZipUrl) {
+    windowsOptions.push({
+      id: "windows",
+      label: "Windows (arm64 ZIP)",
+      helper: "Windows on ARM archive",
+      url: windowsArm64ZipUrl,
+    });
+  }
+  if (!windowsX64ZipUrl && !windowsArm64ZipUrl && windowsZipUrl) {
+    windowsOptions.push({
+      id: "windows",
+      label: "Windows ZIP",
+      helper: "Portable archive when available",
+      url: windowsZipUrl,
     });
   }
   if (!windowsOptions.length) {
@@ -2888,7 +2974,7 @@ function LandingPage({
   if (linuxX64Url) {
     linuxOptions.push({
       id: "linux",
-      label: "Linux (x64)",
+      label: "Linux (x64 AppImage)",
       helper: "AppImage for amd64/x86_64",
       url: linuxX64Url,
     });
@@ -2896,7 +2982,7 @@ function LandingPage({
   if (linuxArm64Url) {
     linuxOptions.push({
       id: "linux",
-      label: "Linux (arm64)",
+      label: "Linux (arm64 AppImage)",
       helper: "AppImage for arm64",
       url: linuxArm64Url,
     });
@@ -2930,6 +3016,7 @@ function LandingPage({
     { page: "screenshots", label: "Screenshots" },
     { page: "docs", label: "Docs" },
     { page: "privacy", label: "Privacy" },
+    { page: "support", label: "Support" },
     { page: "donate", label: "Donate" },
     { page: "download", label: "Download" },
   ];
@@ -3329,10 +3416,145 @@ function LandingPage({
                 Public hosted demos use sample accounts only. Durable personal workspaces belong in the downloaded app
                 or in hosted sync after Supabase and billing are intentionally configured.
               </p>
+              <p>
+                Retention is teacher-controlled in the desktop app. For hosted pilots, classroom workspace data should
+                be deleted on request, demo data remains sample-only, and product feedback is retained only while it is
+                useful for debugging, support, security, or accounting records.
+              </p>
               <button className="landing-secondary" type="button" onClick={onOpenApp}>
                 Open sample demo
               </button>
+              <div className="landing-actions compact">
+                <button className="landing-secondary" type="button" onClick={() => goToPage("terms")}>
+                  Terms
+                </button>
+                <button className="landing-secondary" type="button" onClick={() => goToPage("eula")}>
+                  EULA
+                </button>
+                <button className="landing-secondary" type="button" onClick={() => goToPage("support")}>
+                  Support
+                </button>
+              </div>
             </section>
+          </>
+        )}
+
+        {page === "terms" && (
+          <>
+            <header className="landing-page-header">
+              <h1>ClassLoop Terms of Use.</h1>
+              <p>
+                These public terms are a launch-readiness baseline for the ClassLoop demo, desktop downloads, support,
+                and future hosted sync. They should be reviewed by qualified counsel before durable public signups open.
+              </p>
+            </header>
+            <section className="landing-legal-grid" aria-label="ClassLoop Terms of Use">
+              {[
+                ["Sample hosted demo", "The public hosted site is for sample ClassLoop accounts and demonstration data. Do not paste real student records into the hosted demo unless a separate pilot agreement is in place."],
+                ["Teacher review responsibility", "ClassLoop generates draft classroom follow-ups from teacher-provided records. A teacher or authorized school staff member must review, edit, and approve outputs before sharing them with students."],
+                ["Acceptable use", "Do not use ClassLoop to harass, rank, surveil, or make automated high-stakes decisions about students. Use participation and completion signals as support context, not as a substitute for professional judgment."],
+                ["Accounts and billing", "Free desktop use remains useful without paid services. Pro billing, when enabled, is processed through Stripe Checkout and subscription status is stored server-side."],
+                ["Support and feedback", "Installer reports, pilot feedback, and student usefulness ratings may be sent to the ClassLoop creator for debugging and product improvement. Avoid sending unnecessary student data in support notes."],
+                ["Changes", "ClassLoop may change these terms as the product moves from demo to pilot to broader public availability. Material changes should be reflected on this page before new public signups are opened."],
+              ].map(([title, body]) => (
+                <article key={title}>
+                  <h2>{title}</h2>
+                  <p>{body}</p>
+                </article>
+              ))}
+            </section>
+            <section className="landing-policy-panel">
+              <h2>Contact</h2>
+              <p>Questions about these terms or classroom data handling can be sent to {supportEmail}.</p>
+              <div className="landing-actions compact">
+                <button className="landing-secondary" type="button" onClick={() => goToPage("privacy")}>
+                  Privacy
+                </button>
+                <button className="landing-secondary" type="button" onClick={() => goToPage("eula")}>
+                  Desktop EULA
+                </button>
+              </div>
+            </section>
+          </>
+        )}
+
+        {page === "eula" && (
+          <>
+            <header className="landing-page-header">
+              <h1>ClassLoop Desktop EULA.</h1>
+              <p>
+                This desktop license covers downloaded ClassLoop installers for macOS, Windows, and Linux. It is a
+                practical launch baseline and should be legally reviewed before broad public distribution.
+              </p>
+            </header>
+            <section className="landing-legal-grid" aria-label="ClassLoop desktop EULA">
+              {[
+                ["License", "ClassLoop grants you a limited, revocable, non-transferable license to install and use the desktop app for classroom follow-up workflows."],
+                ["Local storage", "The desktop app stores account and classroom workspace data on the local device. Local data is encrypted where the app supports it, and deleting app data or using the in-app deletion tools removes that local workspace."],
+                ["Unsigned builds", "Free builds may be unsigned or ad-hoc signed. Verify SHA256 checksums and only install files from the official ClassLoop download page or GitHub Release."],
+                ["Updates", "Desktop updates are manual install-over-replace until an automatic updater is intentionally added. User data is stored outside the app bundle so normal replacement should not erase the workspace."],
+                ["No warranty", "ClassLoop is provided as-is for early use and pilots. You are responsible for checking generated follow-ups before relying on them in a classroom setting."],
+                ["Termination", "Stop using ClassLoop and delete local app data if you no longer accept the license or if your school policy does not allow the workflow."],
+              ].map(([title, body]) => (
+                <article key={title}>
+                  <h2>{title}</h2>
+                  <p>{body}</p>
+                </article>
+              ))}
+            </section>
+            <section className="landing-policy-panel">
+              <h2>Installer help</h2>
+              <p>
+                If an installer fails on a clean machine, send the platform, filename, OS version, and the exact error.
+                Do not include real student records in installer support notes.
+              </p>
+              <div className="landing-actions compact">
+                <button className="landing-secondary" type="button" onClick={() => goToPage("support")}>
+                  Get support
+                </button>
+                <button className="landing-secondary" type="button" onClick={() => goToPage("download")}>
+                  Downloads
+                </button>
+              </div>
+            </section>
+          </>
+        )}
+
+        {page === "support" && (
+          <>
+            <header className="landing-page-header">
+              <h1>ClassLoop support.</h1>
+              <p>
+                Send installer failures, checkout problems, import bugs, and privacy/deletion requests directly to
+                ClassLoop support. Keep real student data out of support notes unless a specific pilot agreement says otherwise.
+              </p>
+            </header>
+            <section className="landing-support-layout" aria-label="ClassLoop support options">
+              <article className="landing-policy-panel">
+                <Mail size={24} />
+                <h2>Support contact</h2>
+                <p>{supportEmail}</p>
+                <button
+                  className="landing-secondary"
+                  type="button"
+                  onClick={() => {
+                    window.location.href = `mailto:${supportEmail}?subject=${encodeURIComponent("ClassLoop support request")}`;
+                  }}
+                >
+                  Email support
+                </button>
+              </article>
+              <article className="landing-policy-panel">
+                <Trash2 size={24} />
+                <h2>Retention and deletion</h2>
+                <p>
+                  Desktop users can export and delete local workspace data in the app. Hosted pilot users can request
+                  deletion by email; support feedback is retained only as long as needed for debugging, safety, accounting,
+                  or required records.
+                </p>
+              </article>
+            </section>
+            <InstallerFeedbackForm supportEmail={supportEmail} defaultPlatform={detectedInstallerId ?? "web/mobile"} />
           </>
         )}
 
@@ -3474,7 +3696,7 @@ function LandingPage({
               {showDesktopInstallerChoices && (
                 <div className="landing-platform-list" aria-label="Desktop download options">
                   {downloadOptions.map((option) => (
-                    <button key={option.id} type="button" onClick={() => handleDownload(option)}>
+                    <button key={`${option.id}-${option.label}`} type="button" onClick={() => handleDownload(option)}>
                       <Download size={16} />
                       <span>
                         <strong>{option.label}</strong>
@@ -3532,10 +3754,160 @@ function LandingPage({
                 </p>
               )}
             </section>
+            <InstallerFeedbackForm supportEmail={supportEmail} defaultPlatform={detectedInstallerId ?? "web/mobile"} />
           </>
         )}
       </div>
     </main>
+  );
+}
+
+function InstallerFeedbackForm({
+  supportEmail,
+  defaultPlatform,
+}: {
+  supportEmail: string;
+  defaultPlatform: string;
+}) {
+  const [platform, setPlatform] = useState(defaultPlatform);
+  const [issueType, setIssueType] = useState("installer_failed");
+  const [contactEmail, setContactEmail] = useState("");
+  const [details, setDetails] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "sent" | "saved" | "error">("idle");
+  const [message, setMessage] = useState("");
+  const submitDisabled = status === "submitting" || !details.trim();
+
+  const submitFeedback = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!details.trim()) return;
+    setStatus("submitting");
+    setMessage("");
+    const note = [
+      `Platform: ${platform}`,
+      `Issue: ${issueType}`,
+      contactEmail.trim() ? `Contact: ${contactEmail.trim()}` : "",
+      "",
+      details.trim().slice(0, 1200),
+    ]
+      .filter(Boolean)
+      .join("\n");
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: issueType === "checksum_mismatch" ? 1 : 2,
+          note,
+          role: "teacher",
+          source: "download_install_feedback",
+          transcript: "",
+          metadata: {
+            platform,
+            issueType,
+            contactEmail: contactEmail.trim().slice(0, 180),
+            page: "download",
+            build: classLoopBuildMarker(),
+            userAgent: window.navigator.userAgent.slice(0, 200),
+          },
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Unable to send installer feedback.");
+      }
+      setStatus(result.notified === false ? "saved" : "sent");
+      setMessage(
+        result.notified === false
+          ? `Report saved. Email notification is not configured yet, so email ${supportEmail} for urgent installer problems.`
+          : "Thanks, installer report sent to ClassLoop support.",
+      );
+      setDetails("");
+    } catch (error) {
+      setStatus("error");
+      setMessage(
+        error instanceof Error
+          ? `${error.message} Email ${supportEmail} if this keeps happening.`
+          : `Unable to send installer feedback. Email ${supportEmail} if this keeps happening.`,
+      );
+    }
+  };
+
+  return (
+    <section className="landing-feedback-panel" aria-label="ClassLoop installer feedback">
+      <div>
+        <span className="landing-card-kicker">Installer feedback</span>
+        <h2>Tell me what failed on your machine.</h2>
+        <p>
+          Reports go to ClassLoop support for clean-machine installer issues, blocked downloads, checksum mismatches,
+          checkout problems, and confusing first-run behavior.
+        </p>
+      </div>
+      <form className="landing-feedback-form" onSubmit={submitFeedback}>
+        <label>
+          Platform
+          <select value={platform} onChange={(event) => setPlatform(event.target.value)}>
+            <option value="macos">macOS</option>
+            <option value="windows">Windows</option>
+            <option value="linux">Linux</option>
+            <option value="web/mobile">Web or mobile</option>
+            <option value="unknown">Not sure</option>
+          </select>
+        </label>
+        <label>
+          Problem
+          <select value={issueType} onChange={(event) => setIssueType(event.target.value)}>
+            <option value="installer_failed">Installer failed</option>
+            <option value="os_blocked">OS blocked the app</option>
+            <option value="checksum_mismatch">Checksum mismatch</option>
+            <option value="app_wont_open">App will not open</option>
+            <option value="checkout_problem">Checkout problem</option>
+            <option value="sync_problem">Cloud sync problem</option>
+            <option value="other">Something else</option>
+          </select>
+        </label>
+        <label>
+          Email for follow-up
+          <input
+            type="email"
+            value={contactEmail}
+            onChange={(event) => setContactEmail(event.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
+        </label>
+        <label className="feedback-details-field">
+          What happened?
+          <textarea
+            value={details}
+            onChange={(event) => setDetails(event.target.value)}
+            placeholder="Include the filename, OS version, and exact error. Please do not paste real student data."
+            maxLength={1200}
+            required
+          />
+        </label>
+        <div className="landing-actions compact">
+          <button className="landing-primary" type="submit" disabled={submitDisabled}>
+            <Send size={18} />
+            {status === "submitting" ? "Sending..." : "Send report"}
+          </button>
+          <button
+            className="landing-secondary"
+            type="button"
+            onClick={() => {
+              window.location.href = `mailto:${supportEmail}?subject=${encodeURIComponent("ClassLoop installer issue")}`;
+            }}
+          >
+            <Mail size={18} />
+            Email instead
+          </button>
+        </div>
+        {message && (
+          <p className={`landing-message${status === "error" ? " warning" : ""}`} role="status" aria-live="polite">
+            {message}
+          </p>
+        )}
+      </form>
+    </section>
   );
 }
 

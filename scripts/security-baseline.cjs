@@ -174,17 +174,17 @@ function verifyLegalBaseline() {
   const requiredLegalLanguage = [
     ["not legal advice disclaimer", /not legal advice/i],
     ["public signup status", /Public Signup Status/i],
-    ["reviewed docs required before signup", /reviewed public Terms of Use, Privacy Policy, and desktop EULA pages/i],
-    ["hosted signup stays sample-only", /Hosted ClassLoop should stay sample-only until these documents are reviewed and published/i],
+    ["legal review required before signup", /have qualified counsel review final production language before durable hosted public signups/i],
+    ["hosted signup stays sample-only", /Hosted ClassLoop should stay sample-only until these documents are legally reviewed/i],
     ["sample-only hosted demo boundary", /sample accounts/i],
     ["Terms", /Terms/i],
     ["Privacy", /Privacy/i],
     ["EULA", /EULA/i],
     ["Support", /Support/i],
-    ["support contact", /classloop\.donotreply@gmail\.com/i],
+    ["support contact", /rushilcpm02@gmail\.com|VITE_CLASSLOOP_SUPPORT_EMAIL/i],
     ["privacy-safe support requests", /support requests should avoid raw student transcripts/i],
     ["Data retention", /Data Retention/i],
-    ["hosted retention SLA before public accounts", /retention and deletion SLAs must be published before durable public hosted accounts are enabled/i],
+    ["hosted retention SLA before public accounts", /retention and deletion SLAs must be legally reviewed before durable public hosted accounts are enabled/i],
     ["local desktop encryption", /Desktop data is local-first/i],
     ["manual install-over-replace updates", /manual install-over-replace/i],
     ["no-training default", /no-training/i],
@@ -203,6 +203,10 @@ function verifyLegalBaseline() {
     ["sample-only hosted demo copy", /Public hosted demos use sample accounts only/i],
     ["local desktop data copy", /Desktop state is encrypted locally/i],
     ["no student-data training copy", /No student-data training claim/i],
+    ["public Terms route", /ClassLoop Terms of Use/i],
+    ["public EULA route", /ClassLoop Desktop EULA/i],
+    ["public support route", /ClassLoop support/i],
+    ["installer feedback route", /ClassLoop installer feedback/i],
   ];
   requiredPublicCopy.forEach(([label, pattern]) => {
     if (!pattern.test(appSource)) fail(`Public app copy is missing ${label}.`);

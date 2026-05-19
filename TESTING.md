@@ -66,7 +66,7 @@
 - **Secret Scanning**: The same script scans tracked text files for high-confidence Stripe, OpenAI, GitHub, private-key, and non-empty server-secret env assignments.
 - **Storage Hardening**: The script verifies browser data uses `classloop:secure:*` AES-GCM storage keys, demo data is filtered before persistence, and the cloud offline queue is ClassLoop-namespaced.
 - **Desktop / Hosted Boundaries**: The script verifies prompt-free desktop AES-GCM state encryption, restrictive desktop data permissions, trusted-origin local APIs, server-side email session lookup, Supabase auth requirements, Stripe webhook signature verification, and workspace RLS markers.
-- **Logging / Legal Baseline**: The script blocks runtime debug/info logs and requires [LEGAL.md](LEGAL.md) plus public privacy-route copy to cover Terms, Privacy, EULA, support, retention, local encryption, no-training posture, public signup boundaries, school-safety expectations, and child-appropriate safety. It also asserts durable public hosted signups stay sample-only until reviewed public Terms/Privacy/EULA pages and hosted retention/deletion SLAs are published.
+- **Logging / Legal Baseline**: The script blocks runtime debug/info logs and requires [LEGAL.md](LEGAL.md) plus public privacy, Terms, EULA, and Support copy to cover Terms, Privacy, EULA, support, retention, local encryption, no-training posture, public signup boundaries, school-safety expectations, and child-appropriate safety. It also asserts durable public hosted signups stay sample-only until final legal review and hosted retention/deletion SLAs are complete.
 
 ### Browser Access Tests
 - **Login**: Teacher and student sample accounts can sign in.
@@ -93,9 +93,10 @@
 - **WCAG-Targeted Accessibility Smoke**: Browser tests cover keyboard tab order, visible focus indicators, accessible names for controls, contrast ratios on key app and landing surfaces, screen-reader status announcements, and phone-width PWA readability.
 
 ### Hosted Web Smoke Tests
-- **Landing Page**: Hosted root page loads ClassLoop marketing UI, with separate `#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/donate`, and `#/download` routes instead of one scroll-through page.
+- **Landing Page**: Hosted root page loads ClassLoop marketing UI, with separate `#/features`, `#/screenshots`, `#/docs`, `#/privacy`, `#/terms`, `#/eula`, `#/support`, `#/donate`, and `#/download` routes instead of one scroll-through page.
 - **Screenshots / Workflow**: `#/screenshots` shows ClassLoop teacher review, student dashboard, and analytics screenshots with readable explanations.
-- **Public Privacy Boundary**: `#/privacy` exposes local desktop storage, no-training, retention/export, and sample-only hosted-demo boundary copy without revealing sign-in form fields.
+- **Public Privacy / Legal Boundary**: `#/privacy`, `#/terms`, `#/eula`, and `#/support` expose local desktop storage, no-training, retention/deletion, desktop license, support contact, and sample-only hosted-demo boundary copy without revealing sign-in form fields.
+- **Installer Feedback**: `#/download` and `#/support` include a report form for clean-machine install, checksum, first-run, checkout, and sync failures. The form posts to `/api/feedback` with installer metadata and should notify the configured creator inbox when SMTP/Gmail feedback notification env vars are set.
 - **Desktop Downloads**: macOS, Windows, and Linux download controls are visible; missing installer URLs show packaging/demo fallback copy.
 - **Download Manifest Recovery**: Browser tests verify missing, malformed, or Vercel Blob-backed `public/classloop-downloads.json` manifests keep installers marked `Packaging pending` with visible recovery copy.
 - **Donation Path**: Donate route exposes support amounts and clearly reports when `VITE_CLASSLOOP_DONATE_URL` has not been connected.
@@ -202,7 +203,7 @@ When the user says "use the testing script," run the saved ClassLoop QA sequence
 - whether Supabase auth transitions, token expiry handling, conflict resolution, network-loss queueing, and missing-credential desktop fallback pass
 - whether Free/Pro entitlement boundaries, webhook-driven entitlement updates, upgrade/downgrade flows, and unpaid locked-feature UI pass
 - whether local data files and `.env.local` are ignored/untracked, no high-confidence tracked secrets are present, runtime debug/info logs are absent, startup/error logging is actionable without sensitive payloads, and the legal baseline is present
-- whether public hosted signups remain gated/sample-only until reviewed Terms of Use, Privacy Policy, desktop EULA, hosted retention/deletion SLAs, support contact, and child-safety expectations are published
+- whether public hosted signups remain gated/sample-only until Terms of Use, Privacy Policy, desktop EULA, hosted retention/deletion SLAs, support contact, and child-safety expectations have final legal review
 - whether bad transcript format, malformed URLs, sync API outage, package init failures, and desktop storage corruption show recoverable user-visible states
 - whether realistic-scale import, repeated large imports, partial transcript failures, and 100+ student rosters pass
 - whether multi-session teacher/student E2E coverage passes for Math review, CS workshop, and Club meeting without cross-user workspace leakage

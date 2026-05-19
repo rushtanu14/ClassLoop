@@ -143,12 +143,13 @@ function feedbackEmailConfig() {
 async function notifyCreator(feedback) {
   const config = feedbackEmailConfig();
   if (!config) return false;
+  const feedbackLabel = feedback.source === "download_install_feedback" ? "ClassLoop installer feedback" : "ClassLoop product feedback";
   const metadata = Object.entries(feedback.metadata || {})
     .map(([key, value]) => `- ${key}: ${String(value)}`)
     .join("\n");
   const transcriptSnippet = emailTranscriptSnippet(feedback.transcript);
   const text = [
-    `ClassLoop product feedback: ${feedback.rating}/5`,
+    `${feedbackLabel}: ${feedback.rating}/5`,
     "",
     `Role: ${feedback.role}`,
     `Source: ${feedback.source}`,
@@ -161,7 +162,7 @@ async function notifyCreator(feedback) {
   await nodemailer.createTransport(config.transport).sendMail({
     from: config.from,
     to: config.to,
-    subject: `ClassLoop product feedback: ${feedback.rating}/5`,
+    subject: `${feedbackLabel}: ${feedback.rating}/5`,
     text,
   });
   return true;

@@ -573,7 +573,9 @@ select:focus-visible,
 .mobile-step,
 .landing-download-band,
 .landing-donation-panel article,
-.landing-policy-panel {
+.landing-policy-panel,
+.landing-legal-grid article,
+.landing-feedback-panel {
   border: 1px solid rgba(124, 139, 154, 0.24);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.84);
@@ -644,7 +646,9 @@ select:focus-visible,
 .landing-feature-band svg,
 .landing-feature-matrix svg,
 .landing-callout-grid svg,
-.landing-mobile-card svg {
+.landing-mobile-card svg,
+.landing-policy-panel svg,
+.landing-feedback-panel svg {
   color: #0f766e;
 }
 
@@ -728,10 +732,18 @@ select:focus-visible,
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.landing-legal-grid,
+.landing-support-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
 .landing-feature-band article,
 .landing-feature-matrix article,
 .landing-callout-grid article,
-.landing-donation-panel article {
+.landing-donation-panel article,
+.landing-legal-grid article {
   display: grid;
   align-content: start;
   justify-items: start;
@@ -753,6 +765,10 @@ select:focus-visible,
 .landing-policy-panel p,
 .landing-doc-section h2,
 .landing-doc-section p,
+.landing-legal-grid h2,
+.landing-legal-grid p,
+.landing-feedback-panel h2,
+.landing-feedback-panel p,
 .landing-donation-panel strong,
 .landing-donation-panel span {
   margin: 0;
@@ -764,7 +780,9 @@ select:focus-visible,
 .landing-download-band h2,
 .landing-mobile-card h2,
 .landing-policy-panel h2,
-.landing-doc-section h2 {
+.landing-doc-section h2,
+.landing-legal-grid h2,
+.landing-feedback-panel h2 {
   color: #17202b;
   font-size: 1.16rem;
   line-height: 1.25;
@@ -773,7 +791,9 @@ select:focus-visible,
 .landing-callout-grid h2,
 .landing-download-band h2,
 .landing-mobile-card h2,
-.landing-policy-panel h2 {
+.landing-policy-panel h2,
+.landing-legal-grid h2,
+.landing-feedback-panel h2 {
   font-size: 1.55rem;
 }
 
@@ -783,7 +803,9 @@ select:focus-visible,
 .landing-download-band p,
 .landing-mobile-card p,
 .landing-policy-panel p,
-.landing-doc-section p {
+.landing-doc-section p,
+.landing-legal-grid p,
+.landing-feedback-panel p {
   color: #687381;
   line-height: 1.6;
 }
@@ -993,6 +1015,56 @@ select:focus-visible,
   gap: 14px;
   margin-top: 16px;
   padding: 28px;
+}
+
+.landing-support-layout .landing-policy-panel {
+  margin-top: 0;
+}
+
+.landing-feedback-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(360px, 1fr);
+  gap: 22px;
+  align-items: start;
+  margin-top: 16px;
+  padding: 28px;
+}
+
+.landing-feedback-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.landing-feedback-form label {
+  display: grid;
+  gap: 7px;
+  color: #17202b;
+  font-weight: 900;
+}
+
+.landing-feedback-form input,
+.landing-feedback-form select,
+.landing-feedback-form textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid rgba(124, 139, 154, 0.28);
+  border-radius: 8px;
+  color: #17202b;
+  background: #ffffff;
+  font: inherit;
+}
+
+.landing-feedback-form textarea {
+  min-height: 118px;
+  resize: vertical;
+}
+
+.landing-feedback-form .feedback-details-field,
+.landing-feedback-form .landing-actions,
+.landing-feedback-form .landing-message {
+  grid-column: 1 / -1;
 }
 
 .landing-donation-panel article {
@@ -5940,8 +6012,12 @@ th {
   .landing-callout-grid,
   .landing-mobile-band,
   .landing-docs-layout,
+  .landing-legal-grid,
+  .landing-support-layout,
   .landing-donation-panel,
-  .landing-download-band {
+  .landing-download-band,
+  .landing-feedback-panel,
+  .landing-feedback-form {
     grid-template-columns: 1fr;
   }
 
