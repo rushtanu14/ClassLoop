@@ -89,7 +89,9 @@ export function planForTier(tier: PlanTier) {
 }
 
 export function isPaidPlan(profile?: BillingProfile | null) {
-  return Boolean(profile && profile.tier === "pro" && ["active", "trialing"].includes(profile.status));
+  return Boolean(
+    profile?.customerId && profile.tier === "pro" && ["active", "trialing"].includes(profile.status),
+  );
 }
 
 export async function getCloudSession() {

@@ -601,6 +601,14 @@ const defaultBillingProfile: BillingProfile = {
   status: "not_configured",
 };
 
+function normalizeBillingProfile(profile?: Partial<BillingProfile> | null): BillingProfile {
+  const candidate: BillingProfile = { ...defaultBillingProfile, ...(profile ?? {}) };
+  if (candidate.tier !== "pro") return candidate;
+  if (isPaidPlan(candidate)) return candidate;
+  if (!candidate.customerId) return defaultBillingProfile;
+  return { ...candidate, tier: "free" };
+}
+
 const secureLocalKeys = {
   accounts: "classloop:secure:accounts:v1",
   sessions: "classloop:secure:sessions:v3",
@@ -750,11 +758,6 @@ function isLandingHash() {
 function isPublicHostedDemo() {
   const hostname = window.location.hostname;
   return Boolean(hostname && !["localhost", "127.0.0.1", "::1"].includes(hostname));
-}
-
-function isLocalBrowserRuntime() {
-  const hostname = window.location.hostname;
-  return !hostname || ["localhost", "127.0.0.1", "::1"].includes(hostname);
 }
 
 function isDemoOnlyOverride() {
@@ -1415,7 +1418,7 @@ function persistableSharedState(
     rosterTemplates: state.rosterTemplates.filter((template) => normalizeEmail(template.ownerEmail) !== demoOwner),
     privacySettings: state.privacySettings,
     auditLog: state.auditLog.filter((entry) => !isDemoEmail(entry.actorEmail)),
-    billingProfile: state.billingProfile,
+    billingProfile: normalizeBillingProfile(state.billingProfile),
   };
 }
 
@@ -1465,7 +1468,7 @@ function normalizeSharedState(data: Partial<SharedState>): SharedState {
     rosterTemplates: Array.isArray(data.rosterTemplates) ? data.rosterTemplates : [],
     privacySettings: { ...defaultPrivacySettings, ...(data.privacySettings ?? {}) },
     auditLog: Array.isArray(data.auditLog) ? data.auditLog : [],
-    billingProfile: { ...defaultBillingProfile, ...(data.billingProfile ?? {}) },
+    billingProfile: normalizeBillingProfile(data.billingProfile),
   });
 
   return {
@@ -5463,8 +5466,7 @@ function SyncBillingPage({
   const currentPlanTier: PlanTier = isPaidPlan(billingProfile) ? "pro" : "free";
   const hasPro = currentPlanTier === "pro";
   const isDemoAccount = Boolean(auth.demo);
-  const hostedBillingRuntime = backendStatus.webReady && !isLocalBrowserRuntime();
-  const showCloudAccountPanel = hasPro || (hostedBillingRuntime && !isDemoAccount);
+  const showCloudAccountPanel = hasPro || (backendStatus.webReady && !isDemoAccount);
   const demoBillingMessage =
     "Demo account upgrades are disabled. Create your own account in the desktop app or sign in with a hosted teacher account to upgrade.";
 
@@ -5475,7 +5477,7 @@ function SyncBillingPage({
   const refreshProfile = async () => {
     try {
       const profile = await getCloudProfile();
-      setBillingProfile(profile.billingProfile);
+      setBillingProfile(normalizeBillingProfile(profile.billingProfile));
       setMessage("Account plan refreshed from hosted sync.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to refresh account plan.");
@@ -5526,16 +5528,17 @@ function SyncBillingPage({
         setMessage(demoBillingMessage);
         return;
       }
-      if (hostedBillingRuntime && !connectedEmail) {
-        setMessage("Sign in or create a cloud account before starting Stripe Checkout so billing is tied to the right account.");
+      if (!backendStatus.webReady) {
+        setMessage("Pro now requires Stripe Checkout. Finish live Supabase and Stripe env vars before starting an upgrade.");
         return;
       }
-      if (!backendStatus.webReady || (!connectedEmail && isLocalBrowserRuntime())) {
-        setBillingProfile({ tier, status: "active" });
-        setMessage("Pro enabled on this device for local testing. Connect hosted sync and Stripe to make billing server-owned.");
-        appendAudit("plan_switch_local", `Switched local plan to ${tier}.`);
+      if (!connectedEmail) {
+        setMessage(
+          "Connect or create a cloud login first. Cloud login is your multi-device account, and Stripe uses it to verify paid Pro access.",
+        );
         return;
       }
+      setMessage("Opening Stripe Checkout. Pro turns on only after payment succeeds and ClassLoop refreshes your plan.");
       const checkout = await createCheckoutSession(tier);
       window.location.href = checkout.url;
     } catch (error) {
@@ -5561,13 +5564,7 @@ function SyncBillingPage({
       setMessage(demoBillingMessage);
       return;
     }
-    if (hostedBillingRuntime) {
-      setMessage("Use Manage billing to cancel or change a live Stripe subscription. ClassLoop updates the plan after Stripe sends the webhook.");
-      return;
-    }
-    setBillingProfile({ tier: "free", status: "not_configured" });
-    setMessage("Downgraded this device to the Free plan. Hosted subscriptions should also be canceled in Stripe when billing is connected.");
-    appendAudit("plan_downgrade", "Downgraded account to Free.");
+    setMessage("Use Manage billing to cancel or change a Stripe subscription. ClassLoop updates Pro after the Stripe webhook verifies the account.");
   };
 
   const disconnect = async () => {
@@ -5591,21 +5588,20 @@ function SyncBillingPage({
 
       <section className="content-grid two-columns align-start">
         {showCloudAccountPanel ? (
-          <Panel title={hasPro ? "Pro cloud sync" : "Cloud checkout"} icon={RefreshCw}>
+          <Panel title={hasPro ? "Pro cloud sync" : "Cloud login for multiple devices"} icon={RefreshCw}>
             <div className="settings-stack">
               <div className="integration-card">
                 <strong>{backendStatus.supabaseConfigured ? "Cloud account ready" : "Cloud keys needed"}</strong>
                 <small>
                   {backendStatus.supabaseConfigured
-                    ? "Sign in or create an account here before Stripe Checkout so Pro access belongs to the right teacher."
+                    ? "Sign in or create an account here before Stripe Checkout. This is the account that follows you across desktop, browser, and phone PWA sessions."
                     : "Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable multi-device Pro login."}
                 </small>
               </div>
               <div className="integration-card soft-note">
-                <strong>Normal login vs cloud email</strong>
+                <strong>Local login vs cloud login</strong>
                 <small>
-                  Normal login opens the account saved on this device. Cloud email is the hosted Pro account that syncs
-                  the same workspace across devices and keeps paid access tied to the account.
+                  Local login opens the account saved on this device. Cloud login syncs the same workspace across devices and gives Stripe one account to verify before Pro unlocks.
                 </small>
               </div>
               <label className="field compact">
@@ -5658,7 +5654,9 @@ function SyncBillingPage({
               </div>
               <div className="integration-card">
                 <strong>Work from more than one device</strong>
-                <small>Cloud login appears with Pro so your workspace can sync between desktop and browser.</small>
+                <small>
+                  Cloud login is the multi-device account for desktop, browser, and phone PWA access. Stripe Checkout must verify it before Pro turns on.
+                </small>
               </div>
               {isDemoAccount && (
                 <p className="settings-message" role="status">
@@ -5716,6 +5714,41 @@ function SyncBillingPage({
           </div>
         </Panel>
       </section>
+
+      <Panel title="What Pro unlocks after payment" icon={Sparkles}>
+        <div className="settings-stack">
+          <div className="integration-card active">
+            <strong>1. Stripe verifies the upgrade</strong>
+            <small>
+              The app no longer flips Pro on for testing. Checkout has to complete, the webhook updates your cloud profile, and Refresh plan pulls that verified status back into ClassLoop.
+            </small>
+          </div>
+          <div className="integration-card">
+            <strong>2. Unlimited generated sessions</strong>
+            <small>
+              Create more than one class follow-up per day and keep reusable rosters, published student dashboards, and teacher reports moving without the Free daily cap.
+            </small>
+          </div>
+          <div className="integration-card">
+            <strong>3. Live class capture modes</strong>
+            <small>
+              In-person and online meeting capture unlock on the New session screen so teachers can draft from live discussion notes when transcript files are not ready.
+            </small>
+          </div>
+          <div className="integration-card">
+            <strong>4. Multi-device workflow</strong>
+            <small>
+              Use cloud login to upload this device, download the cloud copy somewhere else, and keep paid access tied to the same teacher account.
+            </small>
+          </div>
+          <div className="integration-card">
+            <strong>5. Pro review tools</strong>
+            <small>
+              Delivery logs, privacy exports, and advanced reports stay grouped with the paid workspace so teachers can audit what was published and what students still need.
+            </small>
+          </div>
+        </div>
+      </Panel>
     </div>
   );
 }

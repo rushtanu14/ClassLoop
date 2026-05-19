@@ -30,8 +30,21 @@ function fakeSupabase() {
 }
 
 assert.equal(isPaidPlan({ tier: "free", status: "not_configured" }), false, "Free accounts should not have Pro access");
-assert.equal(isPaidPlan({ tier: "pro", status: "active" }), true, "Active Pro subscriptions should unlock paid features");
-assert.equal(isPaidPlan({ tier: "pro", status: "trialing" }), true, "Trialing Pro subscriptions should unlock paid features");
+assert.equal(
+  isPaidPlan({ tier: "pro", status: "active" }),
+  false,
+  "Local Pro state without a Stripe customer must not unlock paid features",
+);
+assert.equal(
+  isPaidPlan({ tier: "pro", status: "active", customerId: "cus_verified" }),
+  true,
+  "Active Pro subscriptions with a Stripe customer should unlock paid features",
+);
+assert.equal(
+  isPaidPlan({ tier: "pro", status: "trialing", customerId: "cus_trial" }),
+  true,
+  "Trialing Pro subscriptions with a Stripe customer should unlock paid features",
+);
 assert.equal(isPaidPlan({ tier: "pro", status: "past_due" }), false, "Past-due Pro subscriptions should not unlock paid features");
 assert.equal(isPaidPlan({ tier: "pro", status: "canceled" }), false, "Canceled Pro subscriptions should not unlock paid features");
 assert.equal(isPaidPlan({ tier: "pro", status: "unpaid" }), false, "Unpaid Pro subscriptions should not unlock paid features");

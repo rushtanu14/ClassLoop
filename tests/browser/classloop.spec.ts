@@ -136,10 +136,56 @@ async function signInAccount(page: Page, role: "teacher" | "student", email: str
   await skipAutoWalkthrough(page);
 }
 
-async function upgradeTeacherToPro(page: Page) {
+type TestBillingProfile = {
+  tier: "free" | "pro";
+  status: string;
+  customerId?: string;
+  currentPeriodEnd?: string;
+};
+
+async function waitForPersistedAccounts(page: Page) {
+  await expect
+    .poll(async () =>
+      page.evaluate(
+        () =>
+          localStorage.getItem("classloop:secure:accounts:v1") !== null ||
+          localStorage.getItem("classloop:accounts:v1") !== null,
+      ),
+    )
+    .toBe(true);
+}
+
+async function seedBillingProfile(page: Page, profile: TestBillingProfile) {
+  await page.evaluate((nextProfile) => {
+    localStorage.removeItem("classloop:secure:billing:v1");
+    localStorage.setItem("classloop:billing:v1", JSON.stringify(nextProfile));
+  }, profile);
+}
+
+async function signInWithSeededBillingProfile(
+  page: Page,
+  role: "teacher" | "student",
+  email: string,
+  password: string,
+  profile: TestBillingProfile,
+) {
+  await waitForPersistedAccounts(page);
+  await signOut(page);
+  await seedBillingProfile(page, profile);
+  await page.reload();
+  await page.goto("/#/dashboard");
+  await signInAccount(page, role, email, password);
+}
+
+async function signInWithVerifiedProEntitlement(page: Page, email: string, password: string) {
+  await signInWithSeededBillingProfile(page, "teacher", email, password, {
+    tier: "pro",
+    status: "active",
+    customerId: "cus_playwright_verified",
+    currentPeriodEnd: "2026-06-30T00:00:00.000Z",
+  });
   await page.getByRole("button", { name: /^plan options$/i }).click();
-  await page.getByRole("button", { name: /upgrade to pro/i }).click();
-  await expect(page.getByRole("button", { name: /downgrade to free/i })).toBeVisible();
+  await expect(page.getByText(/PRO · active/i)).toBeVisible();
   await page.getByLabel(/go to dashboard/i).click();
   await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 }
@@ -487,7 +533,7 @@ Leo Martinez, leo-club-${runId}@classloop.test`,
 
   await createAccount(page, "teacher", teacherA.name, teacherA.email, teacherA.password);
   await expect(page.getByText("Today in ClassLoop")).toBeVisible();
-  await upgradeTeacherToPro(page);
+  await signInWithVerifiedProEntitlement(page, teacherA.email, teacherA.password);
 
   for (const scenario of scenarios) {
     await importReviewAndPublishScenario(page, scenario);
@@ -812,8 +858,11 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
 
 test("live capture modes are visible but Pro-gated for Free accounts", async ({ page }) => {
   const runId = Date.now().toString(36);
+  const email = `capture-${runId}@classloop.test`;
+  const password = `teacher-pass-${runId}`;
   await resetBrowser(page);
-  await createAccount(page, "teacher", `Capture Teacher ${runId}`, `capture-${runId}@classloop.test`, `teacher-pass-${runId}`);
+  await createAccount(page, "teacher", `Capture Teacher ${runId}`, email, password);
+  await signInWithSeededBillingProfile(page, "teacher", email, password, { tier: "pro", status: "active" });
   await page.getByRole("button", { name: /new session/i }).first().click();
 
   await expect(page.getByText(/Use a transcript, in-person capture, or meeting audio/i)).toBeVisible();
@@ -828,6 +877,13 @@ test("live capture modes are visible but Pro-gated for Free accounts", async ({ 
   await page.getByRole("button", { name: /^plan options$/i }).click();
   await page.getByRole("button", { name: /upgrade to pro/i }).scrollIntoViewIfNeeded();
   await page.getByRole("button", { name: /upgrade to pro/i }).click({ force: true });
+  await expect(
+    page.locator(".settings-message").filter({ hasText: /Connect or create a cloud login|Pro now requires Stripe Checkout/i }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /downgrade to free/i })).toHaveCount(0);
+  await expect(page.getByText(/FREE · not_configured/i)).toBeVisible();
+
+  await signInWithVerifiedProEntitlement(page, email, password);
   await page.getByRole("button", { name: /new session/i }).first().click();
   await expect(page.getByText(/Pro only/i)).toHaveCount(0);
   await page.getByRole("button", { name: /In-person class/i }).click();
@@ -840,15 +896,6 @@ test("live capture modes are visible but Pro-gated for Free accounts", async ({ 
   await expect(page.getByRole("dialog", { name: /share the meeting tab or window with audio/i })).toBeVisible();
   await expect(page.getByText(/Paste the platform transcript after class/i)).toBeVisible();
   await page.getByRole("button", { name: /not now/i }).click();
-
-  await page.getByRole("button", { name: /^plan options$/i }).click();
-  await page.getByRole("button", { name: /downgrade to free/i }).click();
-  await expect(page.getByText(/Downgraded this device to the Free plan/i)).toBeVisible();
-  await expect(page.getByText(/why teachers upgrade/i)).toBeVisible();
-  await page.getByRole("button", { name: /new session/i }).first().click();
-  await expect(page.getByText(/Pro only/i).first()).toBeVisible();
-  await page.getByRole("button", { name: /In-person class/i }).click();
-  await expect(page.getByText(/In-person live capture is available with Pro/i)).toBeVisible();
 });
 
 test("students cannot access analytics but can save appearance while logged in, with default theme restored on logout", async ({ page }) => {

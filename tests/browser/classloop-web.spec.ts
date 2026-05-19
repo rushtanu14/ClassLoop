@@ -153,6 +153,12 @@ test("hosted web landing and sample-only demo are usable", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
   await page.getByRole("button", { name: /skip/i }).click();
   await expect(page.getByText(/You are on a demo account/i)).toBeVisible();
+  await page.getByRole("button", { name: /^plan options$/i }).click();
+  await expect(page.getByRole("button", { name: /^Demo account$/i })).toBeDisabled();
+  await expect(page.getByText(/Demo account upgrades are disabled/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /What Pro unlocks after payment/i })).toBeVisible();
+  await expect(page.getByText(/Stripe verifies the upgrade/i)).toBeVisible();
+  await expect(page.getByText(/Cloud login is the multi-device account/i)).toBeVisible();
 });
 
 test("hosted public screenshots and privacy routes expose compliance boundaries", async ({ page }) => {
