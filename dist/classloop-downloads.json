@@ -1,6 +1,6 @@
 {
   "note": "Desktop installer binaries are hosted outside Vercel Blob so Vercel only serves the web/PWA shell and API routes.",
-  "checksumsUrl": "https://github.com/rushtanu14/classloop/releases/download/v0.1.0/SHA256SUMS.txt",
+  "checksumsUrl": "https://github.com/rushtanu14/classloop/releases/download/v0.1.0/SHA256SUMS.txt?download=1",
   "macos": {
     "url": "https://github.com/rushtanu14/classloop/releases/download/v0.1.0/ClassLoop-0.1.0-arm64.dmg",
     "x64Url": "https://github.com/rushtanu14/classloop/releases/download/v0.1.0/ClassLoop-0.1.0.dmg",
@@ -9,8 +9,8 @@
     "arm64ZipUrl": "https://github.com/rushtanu14/classloop/releases/download/v0.1.0/ClassLoop-0.1.0-arm64-mac.zip"
   },
   "windows": {
-    "url": "https://github.com/rushtanu14/classloop/releases/download/v0.1.0/ClassLoop%20Setup%200.1.0.exe",
-    "x64Url": "https://github.com/rushtanu14/classloop/releases/download/v0.1.0/ClassLoop%20Setup%200.1.0.exe",
+    "url": "https://github.com/rushtanu14/classloop/releases/download/v0.1.0/ClassLoop.Setup.0.1.0.exe",
+    "x64Url": "https://github.com/rushtanu14/classloop/releases/download/v0.1.0/ClassLoop.Setup.0.1.0.exe",
     "x64ZipUrl": "https://github.com/rushtanu14/classloop/releases/download/v0.1.0/ClassLoop-0.1.0-win.zip",
     "arm64ZipUrl": "https://github.com/rushtanu14/classloop/releases/download/v0.1.0/ClassLoop-0.1.0-arm64-win.zip"
   },

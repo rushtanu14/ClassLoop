@@ -48,7 +48,8 @@ files.forEach((name) => {
 const lines = files.map((name) => {
   const fullPath = path.join(releaseDir, name);
   const hash = crypto.createHash("sha256").update(fs.readFileSync(fullPath)).digest("hex");
-  return `${hash}  ${name}`;
+  const publishedName = name.endsWith(".exe") ? name.replace(/\s+/g, ".") : name;
+  return `${hash}  ${publishedName}`;
 });
 
 fs.writeFileSync(outputPath, `${lines.join("\n")}\n`);
