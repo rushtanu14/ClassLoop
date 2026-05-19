@@ -174,8 +174,8 @@ function verifyLegalBaseline() {
   const requiredLegalLanguage = [
     ["not legal advice disclaimer", /not legal advice/i],
     ["public signup status", /Public Signup Status/i],
-    ["legal review required before signup", /have qualified counsel review final production language before durable hosted public signups/i],
-    ["hosted signup stays sample-only", /Hosted ClassLoop should stay sample-only until these documents are legally reviewed/i],
+    ["legal review required before signup", /Have qualified counsel review final production language/i],
+    ["hosted signup stays sample-only", /Hosted ClassLoop should stay sample-only until the public legal pages/i],
     ["sample-only hosted demo boundary", /sample accounts/i],
     ["Terms", /Terms/i],
     ["Privacy", /Privacy/i],
@@ -184,7 +184,7 @@ function verifyLegalBaseline() {
     ["support contact", /rushilcpm02@gmail\.com|VITE_CLASSLOOP_SUPPORT_EMAIL/i],
     ["privacy-safe support requests", /support requests should avoid raw student transcripts/i],
     ["Data retention", /Data Retention/i],
-    ["hosted retention SLA before public accounts", /retention and deletion SLAs must be legally reviewed before durable public hosted accounts are enabled/i],
+    ["hosted retention SLA before public accounts", /Hosted production retention and deletion SLAs must be legally reviewed before durable public hosted accounts are enabled/i],
     ["local desktop encryption", /Desktop data is local-first/i],
     ["manual install-over-replace updates", /manual install-over-replace/i],
     ["no-training default", /no-training/i],
@@ -198,11 +198,11 @@ function verifyLegalBaseline() {
     if (!pattern.test(legal)) fail(`LEGAL.md is missing ${label} baseline language.`);
   });
   const requiredPublicCopy = [
-    ["public privacy route", /Privacy controls before polish/i],
+    ["public privacy route", /ClassLoop Privacy Policy/i],
     ["hosted demo boundary", /Hosted demo boundary/i],
     ["sample-only hosted demo copy", /Public hosted demos use sample accounts only/i],
     ["local desktop data copy", /Desktop state is encrypted locally/i],
-    ["no student-data training copy", /No student-data training claim/i],
+    ["no student-data training copy", /No training on student records/i],
     ["public Terms route", /ClassLoop Terms of Use/i],
     ["public EULA route", /ClassLoop Desktop EULA/i],
     ["public support route", /ClassLoop support/i],

@@ -1,49 +1,122 @@
-# ClassLoop Legal And School-Safety Baseline
+# ClassLoop Legal, Privacy, EULA, And School-Safety Terms
 
-This is a launch-readiness baseline, not legal advice. Public Terms of Use, Privacy, EULA, and Support pages now exist in the web app at `#/terms`, `#/privacy`, `#/eula`, and `#/support`; have qualified counsel review final production language before durable hosted public signups.
+Last updated: 2026-05-19
+
+This is founder-authored launch language for ClassLoop. It is not legal advice and does not create an attorney-client relationship. Public Terms of Use, Privacy Policy, Desktop EULA, and Support pages exist in the web app at `#/terms`, `#/privacy`, `#/eula`, and `#/support`. Have qualified counsel review final production language, school data-processing agreements, and hosted retention/deletion SLAs before enabling durable hosted public signups with real student data.
 
 ## Public Signup Status
 
-Hosted ClassLoop should stay sample-only until these documents are legally reviewed. Teachers can create durable local accounts in the downloaded desktop app; the public hosted demo should use sample accounts and clearly banner demo data as unsaved.
+Hosted ClassLoop should stay sample-only until the public legal pages, privacy controls, support contact, school data terms, and hosted retention/deletion process are reviewed for production use. Teachers can create durable local accounts in the downloaded desktop app. The public hosted demo should use sample accounts only and clearly banner demo data as unsaved.
 
-## Terms Of Use Baseline
+## Terms Of Use
 
-- ClassLoop is a teacher-review tool for class follow-up, not an official gradebook, emergency service, or substitute for professional judgment.
-- Teachers are responsible for checking generated recaps, participation matches, tasks, and resources before publishing them to students.
-- Users may not upload content they do not have the right to process, share, or store.
-- ClassLoop may suspend access to hosted services for abuse, security risk, payment failure, or legal compliance needs.
+### What ClassLoop Provides
 
-## Privacy Baseline
+ClassLoop turns teacher-provided class records - transcripts, notes, rosters, links, participation signals, draft tasks, and completion check-ins - into reviewable classroom follow-up workflows. ClassLoop is a teacher-review tool. It is not an official gradebook, student information system, emergency service, disciplinary record, attendance authority, special-education decision tool, or substitute for a teacher's or school's professional judgment.
 
-- ClassLoop processes classroom transcripts, notes, rosters, resource links, account profiles, student follow-up tasks, completion states, audit history, and optional product/pilot feedback. Student completion-popup product feedback is sent to the ClassLoop creator, not the teacher, and may include the related transcript context for product debugging. Installer feedback sends platform, issue, optional contact email, and user-agent metadata.
-- Desktop data is local-first. Electron state is encrypted with ClassLoop's prompt-free local AES-GCM storage key, and browser fallback storage uses local AES-GCM encrypted `classloop:secure:*` keys.
-- Hosted sync, when configured, uses Supabase Auth and Row Level Security so each account can access only its own workspace state.
-- Stripe is used only for Pro billing. Subscription status is updated by signed Stripe webhooks and stored server-side.
-- Student data is set to no-training by default unless a school or teacher explicitly changes that setting.
+### Authorized Users
 
-## EULA Baseline
+Teachers, tutors, school staff, and authorized pilots may use ClassLoop for classroom follow-up. Students may use student-facing views only when a teacher or school has published approved follow-ups to them. ClassLoop should not invite children to create unsupervised public accounts.
 
-- The desktop app is licensed for classroom planning, review, and pilot use by the installing teacher or organization.
-- ClassLoop stores desktop data in the user's per-user app data directory, not inside the app bundle.
-- Updates are currently manual install-over-replace releases. ClassLoop does not silently auto-update until an updater is intentionally added.
-- Users should keep their own backups before deleting local workspaces or replacing devices.
+### Teacher Review Responsibility
+
+Teachers or authorized school staff are responsible for checking generated recaps, participation matches, assignments, resources, and student follow-ups before publishing. Do not treat generated content as fact until it has been reviewed. Do not use ClassLoop to make automated high-stakes decisions about students.
+
+### Content And Rights
+
+Only upload or paste records you are allowed to process for classroom follow-up. You keep ownership of classroom content you provide. You grant ClassLoop the limited permission needed to run the app, generate drafts, save local or hosted workspace state when configured, provide support, investigate abuse/security issues, and maintain the service.
+
+### Acceptable Use
+
+Do not use ClassLoop to harass, shame, rank publicly, surveil, discriminate, collect unnecessary sensitive data, bypass school policy, violate law, or expose student records to unauthorized people. Participation and completion signals must be framed as private teacher support context, not public rankings or grades.
+
+### Accounts, Sync, And Billing
+
+The local desktop app must remain useful without Supabase or Stripe credentials. Hosted sync, when configured, uses authenticated accounts and workspace authorization. Pro billing, when enabled, is processed through Stripe Checkout; subscription status is updated by signed Stripe webhooks and stored server-side.
+
+### Support And Feedback
+
+Installer reports, pilot feedback, and optional student usefulness ratings may be sent to the ClassLoop creator for debugging and product improvement. Support requests should avoid raw student transcripts unless a specific pilot agreement or support flow says otherwise. Prefer anonymized examples, screenshots with student names removed, platform/version details, and counts of affected records.
+
+### Suspension And Changes
+
+ClassLoop may suspend hosted access for abuse, security risk, payment failure, legal compliance, or operational risk. These terms may change as the product moves from demo to pilot to broader availability. Material changes should be reflected on the public pages before new durable hosted signups are opened.
+
+### Disclaimers
+
+ClassLoop is provided as-is during launch and pilot use. It may produce incorrect matches, incomplete summaries, or misleading draft follow-ups. Review is required before classroom use.
+
+## Privacy Policy
+
+### Data ClassLoop Processes
+
+ClassLoop may process account profiles, classroom transcripts, notes, rosters, student names/emails, aliases, resource links, generated recaps, action items, participation events, completion states, audit history, privacy settings, billing profile metadata, installer feedback, support messages, and optional product/pilot feedback.
+
+Student completion-popup product feedback is sent to the ClassLoop creator, not the teacher, and may include related transcript context for product debugging. It should not add separate roster exports, student emails, teacher emails, grades, or unrelated class artifacts unless an explicit support/export flow asks for them.
+
+### How Data Is Used
+
+ClassLoop uses data to generate teacher-reviewed follow-ups, show student-specific dashboards, save local workspace state, run hosted sync when configured, enforce free/paid limits, process billing, provide support, diagnose bugs, protect the service, and improve product quality.
+
+### Local Desktop Storage
+
+Desktop data is local-first. Electron state is encrypted with ClassLoop's prompt-free local AES-GCM storage key file (`.classloop-storage-key`) next to the encrypted data file. Browser fallback storage uses encrypted `classloop:secure:*` localStorage keys. ClassLoop should not use Electron `safeStorage` or OS credential prompts for local workspace state.
+
+### Hosted Demo And Hosted Sync
+
+The public hosted demo is sample-only and should not be used for real student records unless a separate pilot agreement is in place. Hosted sync, when configured, uses Supabase Auth and Row Level Security so each account can access only its own workspace state. Durable hosted public signups should remain gated until legal review, retention/deletion SLAs, and school data terms are ready.
+
+### Third-Party Processors
+
+ClassLoop may use Vercel for hosting, Supabase for auth/workspace sync when configured, Stripe for billing, and an email/SMTP/Gmail sender for support or product feedback notifications when configured. These services should receive only the data needed for their specific role.
+
+### No-Training Posture
+
+ClassLoop's default posture is no training on student data. Do not use student records to train general models unless a school, teacher, or authorized administrator explicitly enables a reviewed workflow that permits it.
+
+### Data Retention, Export, And Deletion
+
+Default teacher retention setting: 365 days. Teachers can export workspace data and delete class sessions/drafts from the privacy area. Hosted pilot users can request deletion by support email. Hosted production retention and deletion SLAs must be legally reviewed before durable public hosted accounts are enabled.
+
+Alpha trackers and support notes should store anonymized examples and counts, not raw transcripts or full student rosters. Support feedback is retained only as long as needed for debugging, safety, accounting, legal, or operational records.
+
+### Security
+
+ClassLoop uses local encryption, trusted-origin local desktop APIs, sample-only hosted demo boundaries, server-side entitlement handling, and privacy-safe logging checks. No software can guarantee perfect security. Report suspected security or privacy issues to the support contact below.
+
+## Desktop EULA
+
+### License
+
+ClassLoop grants a limited, revocable, non-exclusive, non-transferable license to install and use the desktop app for classroom follow-up, review, pilot, and personal teaching workflows.
+
+### Restrictions
+
+Do not reverse engineer ClassLoop except where law allows, remove legal notices, redistribute modified installers as official ClassLoop builds, use the app to violate student privacy, or use the app in ways that bypass school or district policy.
+
+### Local Data And Backups
+
+ClassLoop stores desktop data in the user's per-user app data directory, not inside the app bundle. Users are responsible for their own backups before deleting local workspaces, replacing devices, or reinstalling the app. Backup/restore flows should preserve encrypted desktop data where supported.
+
+### Installers And Updates
+
+Free desktop builds may be unsigned or ad-hoc signed. Users should verify SHA256 checksums and install only from the official ClassLoop download page or GitHub release. Updates are manual install-over-replace until an updater is intentionally added. ClassLoop does not silently auto-update.
+
+### Termination
+
+Stop using ClassLoop and delete local app data if you no longer accept these terms, if your school policy does not allow the workflow, or if you are no longer authorized to process the classroom records you imported.
 
 ## Support
 
 Support contact: `rushilcpm02@gmail.com` unless `VITE_CLASSLOOP_SUPPORT_EMAIL` is configured to a different public inbox.
 
-For pilots, support requests should avoid raw student transcripts unless necessary. Product feedback may intentionally include the related transcript context when disclosed in the student feedback prompt; other support requests should prefer anonymized examples, screenshots with student names removed, and counts of affected records.
-
-## Data Retention
-
-- Default teacher retention setting: 365 days.
-- Teachers can export workspace data and delete class sessions/drafts from the privacy area.
-- Alpha trackers and support notes should store anonymized examples and counts, not raw transcripts or full student rosters.
-- Hosted pilot users can request deletion by support email. Hosted production retention and deletion SLAs must be legally reviewed before durable public hosted accounts are enabled.
+For urgent issues, include product version/build marker, platform, browser or OS version, installer filename if relevant, and a short reproduction path. Do not include real student records unless a specific pilot support agreement requires it.
 
 ## Child-Appropriate Safety
 
 - ClassLoop should not invite children to create unsupervised public accounts.
-- Use school-authorized teacher or organization setup for real student data, and confirm any COPPA, FERPA, district, and parent/guardian requirements before production use.
-- Student-facing views should show only that student's approved follow-ups, resources, and completion status.
+- Use school-authorized teacher or organization setup for real student data.
+- Confirm COPPA, FERPA, PPRA, district, school, and parent/guardian requirements before production use with student records.
+- Student-facing views should show only that student's approved follow-ups, resources, due dates, and completion status.
 - Analytics are teacher-only private support signals, not public rankings.
+- Do not use ClassLoop for emergency, disciplinary, grading, accommodation, or eligibility decisions without the school's normal human process.

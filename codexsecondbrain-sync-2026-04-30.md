@@ -493,6 +493,14 @@ All three validate with `quick_validate.py`.
 - Hosted smoke passed after deploy: `npm run test:web` (4/4), and local web/PWA smoke also passed: `npm run test:web:local` (4/4).
 - Fixed the hosted screenshot route smoke race by waiting for screenshot images to finish loading and expose intrinsic dimensions before asserting them.
 
+## 2026-05-19 Founder-Authored Legal Terms
+
+- Replaced the short ClassLoop legal baseline with founder-authored launch language in `LEGAL.md`.
+- Public routes now expose fuller Terms of Use, Privacy Policy, Desktop EULA, and Support/retention/child-safety language instead of placeholder-style "before polish" copy.
+- Core policy stance: hosted public demo remains sample-only; durable hosted public signups with real student data stay gated until attorney/district review, school data terms, and hosted retention/deletion SLAs are ready.
+- Legal/privacy copy now explicitly covers teacher review responsibility, non-gradebook/emergency boundaries, acceptable use, content permissions, local AES-GCM desktop storage, hosted sync processors, no-training posture, support data minimization, unsigned desktop installers, manual updates, COPPA/FERPA/PPRA-aware school setup, and no unsupervised child public accounts.
+- Verification passed: `npm run build`, `npm run test:security`, `npm run test:web:local`, and `git diff --check`.
+
 ## 2026-05-18 Public Installer / Legal / Feedback QA Update
 
 - Public landing routes now include Terms, EULA, and Support in addition to Home, Features, Screenshots, Docs, Privacy, Donate, and Download.

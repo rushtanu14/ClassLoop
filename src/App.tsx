@@ -752,6 +752,11 @@ function isPublicHostedDemo() {
   return Boolean(hostname && !["localhost", "127.0.0.1", "::1"].includes(hostname));
 }
 
+function isLocalBrowserRuntime() {
+  const hostname = window.location.hostname;
+  return !hostname || ["localhost", "127.0.0.1", "::1"].includes(hostname);
+}
+
 function isDemoOnlyOverride() {
   return new URLSearchParams(window.location.search).get("demoOnly") === "1" || getParam("demoOnly") === "1";
 }
@@ -2716,6 +2721,7 @@ function App() {
         {effectiveRoute === "analytics" && <TeacherAnalytics sessions={teacherSessions} />}
         {effectiveRoute === "billing" && auth.role === "teacher" && (
           <SyncBillingPage
+            auth={auth}
             billingProfile={billingProfile}
             setBillingProfile={setBillingProfile}
             currentState={currentState}
@@ -3382,22 +3388,22 @@ function LandingPage({
         {page === "privacy" && (
           <>
             <header className="landing-page-header">
-              <h1>Privacy controls before polish.</h1>
+              <h1>ClassLoop Privacy Policy.</h1>
               <p>
-                ClassLoop handles classroom records, so the product is designed around teacher review, local desktop storage,
-                consent reminders, and hosted sync only when credentials are configured.
+                ClassLoop handles classroom records, so privacy starts with teacher review, local-first desktop storage,
+                sample-only hosted demos, and hosted sync only when credentials are intentionally configured.
               </p>
             </header>
             <section className="landing-feature-band" aria-label="ClassLoop privacy principles">
               <article>
                 <ShieldCheck size={24} />
                 <h2>Local desktop data</h2>
-                <p>Desktop state is encrypted locally without OS password prompts and stays in the user's app data directory.</p>
+                <p>Desktop state is encrypted locally without OS password prompts and stays in the user's app data directory, not inside the app bundle.</p>
               </article>
               <article>
                 <KeyRound size={24} />
-                <h2>No student-data training claim</h2>
-                <p>The privacy control surface keeps the no-training posture visible for teacher workflows.</p>
+                <h2>No training on student records</h2>
+                <p>ClassLoop's default posture is no training on student data unless a school-authorized workflow explicitly permits it.</p>
               </article>
               <article>
                 <SlidersHorizontal size={24} />
@@ -3407,19 +3413,37 @@ function LandingPage({
               <article>
                 <MessageSquare size={24} />
                 <h2>Creator product feedback</h2>
-                <p>Student ratings from completed follow-ups go to ClassLoop's creator with related transcript context, not to teacher analytics.</p>
+                <p>Optional student usefulness ratings go to the ClassLoop creator for product debugging, not to teacher analytics.</p>
               </article>
             </section>
             <section className="landing-policy-panel">
-              <h2>Hosted demo boundary</h2>
+              <h2>What ClassLoop processes</h2>
+              <p>
+                ClassLoop may process account profiles, transcripts, notes, rosters, aliases, resource links, generated
+                recaps, action items, participation events, completion states, audit history, billing metadata, support
+                messages, installer reports, and optional product feedback.
+              </p>
+              <p>
+                Hosted sync, when configured, uses Supabase Auth and workspace authorization. Billing, when configured,
+                uses Stripe Checkout and server-owned entitlement updates. Support and installer feedback should include
+                only the information needed to debug the issue.
+              </p>
+            </section>
+            <section className="landing-policy-panel">
+              <h2>Hosted demo boundary and school readiness</h2>
               <p>
                 Public hosted demos use sample accounts only. Durable personal workspaces belong in the downloaded app
-                or in hosted sync after Supabase and billing are intentionally configured.
+                or in hosted sync after Supabase, billing, retention/deletion SLAs, and school data terms are intentionally configured.
               </p>
               <p>
                 Retention is teacher-controlled in the desktop app. For hosted pilots, classroom workspace data should
                 be deleted on request, demo data remains sample-only, and product feedback is retained only while it is
                 useful for debugging, support, security, or accounting records.
+              </p>
+              <p>
+                ClassLoop should not invite children to create unsupervised public accounts. Real student data should use
+                teacher- or school-authorized setup that accounts for COPPA, FERPA, PPRA, district policy, and parent or
+                guardian requirements.
               </p>
               <button className="landing-secondary" type="button" onClick={onOpenApp}>
                 Open sample demo
@@ -3444,18 +3468,22 @@ function LandingPage({
             <header className="landing-page-header">
               <h1>ClassLoop Terms of Use.</h1>
               <p>
-                These public terms are a launch-readiness baseline for the ClassLoop demo, desktop downloads, support,
-                and future hosted sync. They should be reviewed by qualified counsel before durable public signups open.
+                These founder-authored terms cover the ClassLoop demo, desktop downloads, support, billing paths, and
+                future hosted sync. They are not legal advice and should be reviewed before durable hosted public signups
+                use real student data.
               </p>
             </header>
             <section className="landing-legal-grid" aria-label="ClassLoop Terms of Use">
               {[
+                ["Service scope", "ClassLoop turns teacher-provided transcripts, notes, rosters, resource links, and completion check-ins into reviewable classroom follow-up workflows. It is not an official gradebook, student information system, emergency service, or substitute for school judgment."],
                 ["Sample hosted demo", "The public hosted site is for sample ClassLoop accounts and demonstration data. Do not paste real student records into the hosted demo unless a separate pilot agreement is in place."],
-                ["Teacher review responsibility", "ClassLoop generates draft classroom follow-ups from teacher-provided records. A teacher or authorized school staff member must review, edit, and approve outputs before sharing them with students."],
-                ["Acceptable use", "Do not use ClassLoop to harass, rank, surveil, or make automated high-stakes decisions about students. Use participation and completion signals as support context, not as a substitute for professional judgment."],
-                ["Accounts and billing", "Free desktop use remains useful without paid services. Pro billing, when enabled, is processed through Stripe Checkout and subscription status is stored server-side."],
-                ["Support and feedback", "Installer reports, pilot feedback, and student usefulness ratings may be sent to the ClassLoop creator for debugging and product improvement. Avoid sending unnecessary student data in support notes."],
-                ["Changes", "ClassLoop may change these terms as the product moves from demo to pilot to broader public availability. Material changes should be reflected on this page before new public signups are opened."],
+                ["Authorized users", "Teachers, tutors, school staff, and authorized pilots may use ClassLoop. Students may use student-facing views only when a teacher or school has approved and published follow-ups to them."],
+                ["Teacher review responsibility", "ClassLoop generates drafts. A teacher or authorized school staff member must review, edit, and approve generated recaps, matches, tasks, resources, and follow-ups before sharing them with students."],
+                ["Acceptable use", "Do not use ClassLoop to harass, shame, rank publicly, surveil, discriminate, collect unnecessary sensitive data, bypass school policy, or make automated high-stakes decisions about students."],
+                ["Content and permissions", "Only upload records you are allowed to process for classroom follow-up. You keep ownership of your classroom content and give ClassLoop limited permission to operate the app, save workspace state, provide support, and protect the service."],
+                ["Accounts and billing", "Free desktop use remains useful without paid services. Pro billing, when enabled, is processed through Stripe Checkout and subscription status is updated server-side by signed webhooks."],
+                ["Support and feedback", "Installer reports, pilot feedback, and optional student usefulness ratings may be sent to the ClassLoop creator for debugging and product improvement. Avoid sending unnecessary student data in support notes."],
+                ["Changes and suspension", "ClassLoop may update these terms or suspend hosted access for abuse, security risk, payment failure, legal compliance, or operational risk. Material changes should be reflected before new durable hosted signups open."],
               ].map(([title, body]) => (
                 <article key={title}>
                   <h2>{title}</h2>
@@ -3483,18 +3511,20 @@ function LandingPage({
             <header className="landing-page-header">
               <h1>ClassLoop Desktop EULA.</h1>
               <p>
-                This desktop license covers downloaded ClassLoop installers for macOS, Windows, and Linux. It is a
-                practical launch baseline and should be legally reviewed before broad public distribution.
+                This desktop license covers downloaded ClassLoop installers for macOS, Windows, and Linux. It is written
+                for early launch use and should be reviewed before broad school distribution.
               </p>
             </header>
             <section className="landing-legal-grid" aria-label="ClassLoop desktop EULA">
               {[
-                ["License", "ClassLoop grants you a limited, revocable, non-transferable license to install and use the desktop app for classroom follow-up workflows."],
-                ["Local storage", "The desktop app stores account and classroom workspace data on the local device. Local data is encrypted where the app supports it, and deleting app data or using the in-app deletion tools removes that local workspace."],
+                ["License", "ClassLoop grants a limited, revocable, non-exclusive, non-transferable license to install and use the desktop app for classroom follow-up, review, pilot, and personal teaching workflows."],
+                ["Restrictions", "Do not redistribute modified installers as official ClassLoop builds, remove legal notices, violate student privacy, bypass school policy, or reverse engineer the app except where law allows."],
+                ["Local storage", "The desktop app stores account and classroom workspace data on the local device. Local data is encrypted where the app supports it, and deleting app data or using in-app deletion tools removes that local workspace."],
+                ["Backups", "Users are responsible for backups before deleting workspaces, replacing devices, or reinstalling the app. Backup/restore flows should preserve encrypted desktop data where supported."],
                 ["Unsigned builds", "Free builds may be unsigned or ad-hoc signed. Verify SHA256 checksums and only install files from the official ClassLoop download page or GitHub Release."],
                 ["Updates", "Desktop updates are manual install-over-replace until an automatic updater is intentionally added. User data is stored outside the app bundle so normal replacement should not erase the workspace."],
                 ["No warranty", "ClassLoop is provided as-is for early use and pilots. You are responsible for checking generated follow-ups before relying on them in a classroom setting."],
-                ["Termination", "Stop using ClassLoop and delete local app data if you no longer accept the license or if your school policy does not allow the workflow."],
+                ["Termination", "Stop using ClassLoop and delete local app data if you no longer accept the license, your school policy does not allow the workflow, or you are no longer authorized to process imported records."],
               ].map(([title, body]) => (
                 <article key={title}>
                   <h2>{title}</h2>
@@ -3526,7 +3556,8 @@ function LandingPage({
               <h1>ClassLoop support.</h1>
               <p>
                 Send installer failures, checkout problems, import bugs, and privacy/deletion requests directly to
-                ClassLoop support. Keep real student data out of support notes unless a specific pilot agreement says otherwise.
+                ClassLoop support. Keep real student data out of support notes unless a specific pilot agreement or
+                support flow says otherwise.
               </p>
             </header>
             <section className="landing-support-layout" aria-label="ClassLoop support options">
@@ -3551,6 +3582,14 @@ function LandingPage({
                   Desktop users can export and delete local workspace data in the app. Hosted pilot users can request
                   deletion by email; support feedback is retained only as long as needed for debugging, safety, accounting,
                   or required records.
+                </p>
+              </article>
+              <article className="landing-policy-panel">
+                <ShieldCheck size={24} />
+                <h2>School data and child safety</h2>
+                <p>
+                  Do not send raw transcripts or full rosters in normal support. For real student data, use teacher- or
+                  school-authorized workflows and confirm COPPA, FERPA, PPRA, district, and parent or guardian requirements.
                 </p>
               </article>
             </section>
@@ -5397,6 +5436,7 @@ function PlanRow({
 }
 
 function SyncBillingPage({
+  auth,
   billingProfile,
   setBillingProfile,
   currentState,
@@ -5404,6 +5444,7 @@ function SyncBillingPage({
   appendAudit,
   sessionCount,
 }: {
+  auth: AuthSession;
   billingProfile: BillingProfile;
   setBillingProfile: (profile: BillingProfile) => void;
   currentState: () => SharedState;
@@ -5418,6 +5459,11 @@ function SyncBillingPage({
   const [connectedEmail, setConnectedEmail] = useState("");
   const currentPlanTier: PlanTier = isPaidPlan(billingProfile) ? "pro" : "free";
   const hasPro = currentPlanTier === "pro";
+  const isDemoAccount = Boolean(auth.demo);
+  const hostedBillingRuntime = backendStatus.webReady && !isLocalBrowserRuntime();
+  const showCloudAccountPanel = hasPro || (hostedBillingRuntime && !isDemoAccount);
+  const demoBillingMessage =
+    "Demo account upgrades are disabled. Create your own account in the desktop app or sign in with a hosted teacher account to upgrade.";
 
   useEffect(() => {
     getCloudSession().then((session) => setConnectedEmail(session?.user.email ?? ""));
@@ -5473,7 +5519,15 @@ function SyncBillingPage({
 
   const startCheckout = async (tier: Exclude<PlanTier, "free">) => {
     try {
-      if (!backendStatus.webReady || !connectedEmail) {
+      if (isDemoAccount) {
+        setMessage(demoBillingMessage);
+        return;
+      }
+      if (hostedBillingRuntime && !connectedEmail) {
+        setMessage("Sign in or create a cloud account before starting Stripe Checkout so billing is tied to the right account.");
+        return;
+      }
+      if (!backendStatus.webReady || (!connectedEmail && isLocalBrowserRuntime())) {
         setBillingProfile({ tier, status: "active" });
         setMessage("Pro enabled on this device for local testing. Connect hosted sync and Stripe to make billing server-owned.");
         appendAudit("plan_switch_local", `Switched local plan to ${tier}.`);
@@ -5500,6 +5554,14 @@ function SyncBillingPage({
   };
 
   const downgradeToFree = () => {
+    if (isDemoAccount) {
+      setMessage(demoBillingMessage);
+      return;
+    }
+    if (hostedBillingRuntime) {
+      setMessage("Use Manage billing to cancel or change a live Stripe subscription. ClassLoop updates the plan after Stripe sends the webhook.");
+      return;
+    }
     setBillingProfile({ tier: "free", status: "not_configured" });
     setMessage("Downgraded this device to the Free plan. Hosted subscriptions should also be canceled in Stripe when billing is connected.");
     appendAudit("plan_downgrade", "Downgraded account to Free.");
@@ -5525,14 +5587,14 @@ function SyncBillingPage({
       </section>
 
       <section className="content-grid two-columns align-start">
-        {hasPro ? (
-          <Panel title="Pro cloud sync" icon={RefreshCw}>
+        {showCloudAccountPanel ? (
+          <Panel title={hasPro ? "Pro cloud sync" : "Cloud checkout"} icon={RefreshCw}>
             <div className="settings-stack">
               <div className="integration-card">
-                <strong>{backendStatus.supabaseConfigured ? "Cloud sync ready" : "Cloud keys needed"}</strong>
+                <strong>{backendStatus.supabaseConfigured ? "Cloud account ready" : "Cloud keys needed"}</strong>
                 <small>
                   {backendStatus.supabaseConfigured
-                    ? "Sign in here to use the same ClassLoop workspace across browser, desktop, and another device."
+                    ? "Sign in or create an account here before Stripe Checkout so Pro access belongs to the right teacher."
                     : "Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable multi-device Pro login."}
                 </small>
               </div>
@@ -5595,6 +5657,11 @@ function SyncBillingPage({
                 <strong>Work from more than one device</strong>
                 <small>Cloud login appears with Pro so your workspace can sync between desktop and browser.</small>
               </div>
+              {isDemoAccount && (
+                <p className="settings-message" role="status">
+                  {demoBillingMessage}
+                </p>
+              )}
               {message && <p className="settings-message">{message}</p>}
             </div>
           </Panel>
@@ -5619,8 +5686,17 @@ function SyncBillingPage({
                     )}
                   </>
                 ) : (
-                  <button className="text-button" type="button" onClick={() => startCheckout(plan.tier)}>
-                    {currentPlanTier === plan.tier && isPaidPlan(billingProfile) ? "Current plan" : `Upgrade to ${plan.name}`}
+                  <button
+                    className="text-button"
+                    type="button"
+                    onClick={() => startCheckout(plan.tier)}
+                    disabled={isDemoAccount || (currentPlanTier === plan.tier && isPaidPlan(billingProfile))}
+                  >
+                    {isDemoAccount
+                      ? "Demo account"
+                      : currentPlanTier === plan.tier && isPaidPlan(billingProfile)
+                        ? "Current plan"
+                        : `Upgrade to ${plan.name}`}
                     <ChevronRight size={16} />
                   </button>
                 )}

@@ -190,13 +190,14 @@ test("hosted public screenshots and privacy routes expose compliance boundaries"
   }
 
   await page.goto("/?demoOnly=1#/privacy");
-  await expect(page.getByRole("heading", { name: /privacy controls before polish/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /classloop privacy policy/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /local desktop data/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /no student-data training claim/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /no training on student records/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /retention and exports/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /hosted demo boundary/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /hosted demo boundary and school readiness/i })).toBeVisible();
   await expect(page.getByText(/sample accounts only/i)).toBeVisible();
   await expect(page.getByText(/deleted on request/i)).toBeVisible();
+  await expect(page.getByText(/COPPA, FERPA, PPRA/i)).toBeVisible();
   await expect(page.getByPlaceholder("name@example.com")).toHaveCount(0);
   await expect(page.getByPlaceholder("Enter password")).toHaveCount(0);
   await expectNoUnnamedInteractive(page, ".landing-page");
@@ -211,9 +212,10 @@ test("hosted public screenshots and privacy routes expose compliance boundaries"
 
   await page.goto("/?demoOnly=1#/terms");
   await expect(page.getByRole("heading", { name: /classloop terms of use/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /service scope/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /sample hosted demo/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /teacher review responsibility/i })).toBeVisible();
-  await expect(page.getByText(/qualified counsel/i)).toBeVisible();
+  await expect(page.getByText(/not an official gradebook/i)).toBeVisible();
   await expectNoUnnamedInteractive(page, ".landing-page");
 
   await page.goto("/?demoOnly=1#/eula");

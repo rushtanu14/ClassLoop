@@ -19,7 +19,7 @@ Purpose: give Rushil a daily, due-date-driven path to get ClassLoop fully live, 
 | Due | Focus | Done Means |
 | --- | --- | --- |
 | 2026-05-18 | Deploy decision and hosted smoke | Done: deployed current ClassLoop to Vercel production, confirmed fingerprinted assets, and passed `npm run test:web`. |
-| 2026-05-19 | Legal/public signup readiness | Terms, Privacy Policy, support contact, EULA, retention/deletion expectations, and child-safety language are reviewed; hosted durable signup remains gated/sample-only until docs are public. |
+| 2026-05-19 | Legal/public signup readiness | Done: founder-authored Terms, Privacy Policy, Desktop EULA, Support, retention/deletion, and child-safety language are in repo/public routes; hosted durable signup remains gated/sample-only until attorney/district review. |
 | 2026-05-20 | Desktop release package | Package macOS, generate checksums, confirm download fallback/URLs, and update install guidance for unsigned/ad-hoc builds. |
 | 2026-05-21 | Backend production config | Verify Supabase/Stripe env setup plan, webhook test path, credential-absent desktop behavior, and free-first external-services boundaries. |
 | 2026-05-22 | Support and privacy-safe logging | Confirm user-visible recovery for bad transcripts, malformed URLs, sync/API outage, package init failure, and storage corruption; confirm logs help support without classroom/account payloads. |
@@ -48,7 +48,7 @@ Today: decide whether to deploy the current ClassLoop project. If approved, depl
 
 Subject: ClassLoop launch work due today - legal/public signup readiness
 
-Today: review public Terms, Privacy Policy, support contact, desktop EULA, retention/deletion expectations, and child-safety language. Keep durable hosted signups gated/sample-only until those docs are public and reviewed.
+Today: founder-authored Terms, Privacy Policy, support contact, desktop EULA, retention/deletion expectations, and child-safety language are in place. Keep durable hosted signups gated/sample-only until attorney/district review.
 
 ### 2026-05-20
 

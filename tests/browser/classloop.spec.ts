@@ -782,13 +782,11 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   await expect(page.getByPlaceholder("you@school.org")).toHaveCount(0);
   await expect(page.getByText(/school pilot/i)).toHaveCount(0);
   await expect(page.getByRole("button", { name: /keep free/i })).toHaveCount(0);
-  await page.getByRole("button", { name: /upgrade to pro/i }).click();
-  await expect(page.getByRole("button", { name: /downgrade to free/i })).toBeVisible();
-  await expect(page.getByText(/normal login vs cloud email/i)).toBeVisible();
-  await page.getByPlaceholder("you@school.org").fill("teacher@example.edu");
-  await page.locator('input[type="password"]').fill("cloud-password");
-  await page.getByRole("button", { name: /^sign in$/i }).click();
-  await expect(page.locator(".settings-message").filter({ hasText: /supabase keys|cloud sync connected|invalid login|unable|email|password/i })).toBeVisible();
+  const demoUpgradeButton = page.getByRole("button", { name: /demo account/i });
+  await expect(demoUpgradeButton).toBeVisible();
+  await expect(demoUpgradeButton).toBeDisabled();
+  await expect(page.getByText(/demo account upgrades are disabled/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /downgrade to free/i })).toHaveCount(0);
 
   await page.getByRole("button", { name: /^privacy$/i }).click();
   await expect(page.getByText(/manage retention, recording consent/i)).toBeVisible();
@@ -803,7 +801,9 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
 });
 
 test("live capture modes are visible but Pro-gated for Free accounts", async ({ page }) => {
-  await signIn(page, "teacher");
+  const runId = Date.now().toString(36);
+  await resetBrowser(page);
+  await createAccount(page, "teacher", `Capture Teacher ${runId}`, `capture-${runId}@classloop.test`, `teacher-pass-${runId}`);
   await page.getByRole("button", { name: /new session/i }).first().click();
 
   await expect(page.getByText(/Use a transcript, in-person capture, or meeting audio/i)).toBeVisible();
