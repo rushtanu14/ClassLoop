@@ -6,6 +6,7 @@ const rootDir = path.resolve(__dirname, "..");
 const releaseDir = path.join(rootDir, "release");
 const outputPath = path.join(releaseDir, "SHA256SUMS.txt");
 const artifactPattern = /\.(?:AppImage|deb|dmg|exe|zip|yml)$/i;
+const privateArtifacts = new Set(["builder-debug.yml"]);
 const minimumArtifactBytes = {
   ".appimage": 10 * 1024 * 1024,
   ".deb": 10 * 1024 * 1024,
@@ -26,6 +27,7 @@ if (!fs.existsSync(releaseDir)) {
 const files = fs
   .readdirSync(releaseDir)
   .filter((name) => artifactPattern.test(name))
+  .filter((name) => !privateArtifacts.has(name))
   .filter((name) => fs.statSync(path.join(releaseDir, name)).isFile())
   .sort();
 
