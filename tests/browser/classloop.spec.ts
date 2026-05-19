@@ -579,7 +579,17 @@ test("account creation, settings, and password reset work", async ({ page }) => 
   const originalPassword = "classloop-new-teacher";
   const resetPassword = "classloop-reset-teacher";
 
+  await page.getByRole("button", { name: /show password/i }).click();
+  await expect(page.locator('input[placeholder="Enter password"]')).toHaveAttribute("type", "text");
   await page.getByRole("button", { name: /create account/i }).click();
+  await expect(page.locator('input[placeholder="Enter password"]')).toHaveAttribute("type", "password");
+  await expect(page.locator('input[placeholder="Re-enter password"]')).toHaveAttribute("type", "password");
+  await page.locator(".password-control").first().getByRole("button", { name: /show password/i }).click();
+  await expect(page.locator('input[placeholder="Enter password"]')).toHaveAttribute("type", "text");
+  await expect(page.locator('input[placeholder="Re-enter password"]')).toHaveAttribute("type", "text");
+  await page.locator(".password-control").first().getByRole("button", { name: /hide password/i }).click();
+  await expect(page.locator('input[placeholder="Enter password"]')).toHaveAttribute("type", "password");
+  await expect(page.locator('input[placeholder="Re-enter password"]')).toHaveAttribute("type", "password");
   await page.getByLabel(/^name$/i).fill("Test Teacher");
   await page.getByPlaceholder("name@example.com").fill(uniqueEmail);
   await page.locator('input[placeholder="Enter password"]').fill(originalPassword);

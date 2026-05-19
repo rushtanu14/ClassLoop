@@ -4021,6 +4021,7 @@ function LoginPage({
     setNotice("");
     setPassword("");
     setConfirmPassword("");
+    setShowPassword(false);
     setResetOpen(false);
     if (nextMode === "create") {
       setEmail("");
@@ -4032,6 +4033,7 @@ function LoginPage({
     setMode("signin");
     setEmail(demoEmail);
     setPassword(demoPassword);
+    setShowPassword(false);
     setError("");
     setNotice("");
   };
@@ -4044,6 +4046,7 @@ function LoginPage({
     setResetPassword("");
     setResetConfirmPassword("");
     setResetMessage("");
+    setShowPassword(false);
   };
 
   const requestReset = async () => {
