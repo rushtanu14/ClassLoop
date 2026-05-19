@@ -206,7 +206,16 @@ export default async function handler(request, response) {
       ...feedback,
     });
     if (error) throw error;
-    const notified = await notifyCreator(feedback).catch(() => false);
+    const notified = await notifyCreator(feedback).catch((error) => {
+      console.warn("[classloop-feedback] notification delivery failed", {
+        name: error?.name,
+        code: error?.code,
+        command: error?.command,
+        responseCode: error?.responseCode,
+        message: error?.message,
+      });
+      return false;
+    });
     return json(response, 200, { ok: true, notified });
   } catch (error) {
     return json(response, error.statusCode || 500, { error: error.message || "Unable to save feedback." });
