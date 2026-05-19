@@ -181,7 +181,7 @@ export async function signIntoCloud(email: string, password: string): Promise<Cl
   const client = getSupabaseClient();
   if (!client) return { ok: false, message: "Add Supabase keys to .env.local before using cloud sync." };
   const { data, error } = await client.auth.signInWithPassword({ email, password });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: `Unable to sign in: ${error.message}` };
   await flushQueuedCloudRequests();
   return { ok: true, message: "Cloud sync connected.", session: data.session };
 }
@@ -190,7 +190,7 @@ export async function createCloudAccount(email: string, password: string): Promi
   const client = getSupabaseClient();
   if (!client) return { ok: false, message: "Add Supabase keys to .env.local before creating cloud accounts." };
   const { data, error } = await client.auth.signUp({ email, password });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: `Unable to create cloud account: ${error.message}` };
   await flushQueuedCloudRequests();
   return { ok: true, message: "Cloud account created. Check email if confirmation is enabled.", session: data.session };
 }

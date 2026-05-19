@@ -50,7 +50,7 @@ import {
   Wand2,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -4544,14 +4544,14 @@ function GuidedWalkthroughOverlay({
             detail: "This is your daily home base. Click New session when you have a transcript, notes, or recording.",
             route: "dashboard" as RouteKey,
             position: "top-left",
-            target: '[data-tour="dashboard-hero"]',
+            target: '[data-tour="dashboard-overview"]',
           },
           {
             title: "Create the session",
             detail: "Pick a template, preload a class roster, then choose transcript, in-person capture, or online meeting capture.",
             route: "new-session" as RouteKey,
             position: "top-right",
-            target: '[data-tour="new-session-button"], [data-tour="nav-new-session"]',
+            target: '[data-tour="new-session-button"]',
           },
           {
             title: "Review before publishing",
@@ -4596,12 +4596,14 @@ function GuidedWalkthroughOverlay({
   const [highlightStyle, setHighlightStyle] = useState<TourRect | null>(null);
   const [popoverStyle, setPopoverStyle] = useState<CSSProperties | null>(null);
   const [areaVisitStarted, setAreaVisitStarted] = useState(false);
+  const popoverRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setAreaVisitStarted(false);
   }, [stepIndex]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    let frameId = 0;
     const measureTarget = () => {
       const target = document.querySelector<HTMLElement>(activeStep.target);
       if (!target) {
@@ -4631,15 +4633,16 @@ function GuidedWalkthroughOverlay({
         return;
       }
       const popoverWidth = Math.min(430, viewportWidth - viewportInset * 2);
-      const estimatedPopoverHeight = 320;
+      const measuredPopoverHeight = popoverRef.current?.getBoundingClientRect().height ?? 280;
+      const popoverHeight = Math.min(Math.max(220, measuredPopoverHeight), viewportHeight - viewportInset * 2);
       const gap = 18;
       const maxPopoverLeft = Math.max(viewportInset, viewportWidth - popoverWidth - viewportInset);
-      const maxPopoverTop = Math.max(viewportInset, viewportHeight - estimatedPopoverHeight - viewportInset);
+      const maxPopoverTop = Math.max(viewportInset, viewportHeight - popoverHeight - viewportInset);
       const clampLeft = (value: number) => Math.min(Math.max(viewportInset, value), maxPopoverLeft);
       const clampTop = (value: number) => Math.min(Math.max(viewportInset, value), maxPopoverTop);
       const overlapsHighlight = (candidate: { left: number; top: number }) => {
         const candidateRight = candidate.left + popoverWidth;
-        const candidateBottom = candidate.top + estimatedPopoverHeight;
+        const candidateBottom = candidate.top + popoverHeight;
         return !(
           candidateRight + gap <= highlight.left ||
           candidate.left >= highlight.left + highlight.width + gap ||
@@ -4647,44 +4650,61 @@ function GuidedWalkthroughOverlay({
           candidate.top >= highlight.top + highlight.height + gap
         );
       };
-      const firstSlide = stepIndex === 0;
-      const candidates = firstSlide
-        ? [
-            { left: highlight.left + highlight.width + gap, top: rect.top },
-            { left: highlight.left - popoverWidth - gap, top: rect.top },
-            { left: rect.left, top: highlight.top - estimatedPopoverHeight - gap },
-            { left: rect.right - popoverWidth, top: highlight.top - estimatedPopoverHeight - gap },
-            { left: rect.left, top: highlight.top + highlight.height + gap },
-            { left: rect.right - popoverWidth, top: highlight.top + highlight.height + gap },
-            { left: viewportWidth - popoverWidth - viewportInset, top: viewportHeight - estimatedPopoverHeight - viewportInset },
-            { left: viewportInset, top: viewportHeight - estimatedPopoverHeight - viewportInset },
-          ]
-        : [
-            { left: rect.left, top: highlight.top + highlight.height + gap },
-            { left: highlight.left + highlight.width + gap, top: rect.top },
-            { left: highlight.left - popoverWidth - gap, top: rect.top },
-            { left: rect.left, top: highlight.top - estimatedPopoverHeight - gap },
-          ];
+      const overlapArea = (candidate: { left: number; top: number }) => {
+        const right = candidate.left + popoverWidth;
+        const bottom = candidate.top + popoverHeight;
+        const overlapWidth = Math.max(
+          0,
+          Math.min(right, highlight.left + highlight.width) - Math.max(candidate.left, highlight.left),
+        );
+        const overlapHeight = Math.max(
+          0,
+          Math.min(bottom, highlight.top + highlight.height) - Math.max(candidate.top, highlight.top),
+        );
+        return overlapWidth * overlapHeight;
+      };
+      const candidates = [
+        { left: highlight.left + highlight.width + gap, top: highlight.top },
+        { left: highlight.left - popoverWidth - gap, top: highlight.top },
+        { left: highlight.left, top: highlight.top + highlight.height + gap },
+        { left: highlight.left + highlight.width - popoverWidth, top: highlight.top + highlight.height + gap },
+        { left: highlight.left, top: highlight.top - popoverHeight - gap },
+        { left: highlight.left + highlight.width - popoverWidth, top: highlight.top - popoverHeight - gap },
+        { left: viewportInset, top: viewportInset },
+        { left: viewportWidth - popoverWidth - viewportInset, top: viewportInset },
+        { left: viewportInset, top: viewportHeight - popoverHeight - viewportInset },
+        { left: viewportWidth - popoverWidth - viewportInset, top: viewportHeight - popoverHeight - viewportInset },
+      ];
+      const positionedCandidates = candidates.map((candidate) => ({
+        left: clampLeft(candidate.left),
+        top: clampTop(candidate.top),
+      }));
       const popoverPosition =
-        candidates
-          .map((candidate) => ({ left: clampLeft(candidate.left), top: clampTop(candidate.top) }))
-          .find((candidate) => !overlapsHighlight(candidate)) ?? {
-          left: clampLeft(rect.left),
-          top: clampTop(rect.bottom + gap),
+        positionedCandidates.find((candidate) => !overlapsHighlight(candidate)) ??
+        positionedCandidates.sort((a, b) => overlapArea(a) - overlapArea(b))[0] ?? {
+          left: viewportInset,
+          top: viewportInset,
         };
 
       setHighlightStyle(highlight);
       setPopoverStyle({ left: popoverPosition.left, top: popoverPosition.top, width: popoverWidth });
     };
 
-    measureTarget();
-    window.addEventListener("resize", measureTarget);
-    window.addEventListener("scroll", measureTarget, true);
-    return () => {
-      window.removeEventListener("resize", measureTarget);
-      window.removeEventListener("scroll", measureTarget, true);
+    const scheduleMeasure = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(measureTarget);
     };
-  }, [activeStep.target, stepIndex]);
+
+    measureTarget();
+    scheduleMeasure();
+    window.addEventListener("resize", scheduleMeasure);
+    window.addEventListener("scroll", scheduleMeasure, true);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", scheduleMeasure);
+      window.removeEventListener("scroll", scheduleMeasure, true);
+    };
+  }, [activeStep.target, areaVisitStarted, stepIndex]);
 
   const backdropPieces = highlightStyle
     ? [
@@ -4765,7 +4785,11 @@ function GuidedWalkthroughOverlay({
         style={(highlightStyle as CSSProperties | null) ?? undefined}
         aria-hidden="true"
       />
-      <section className={`tour-popover ${popoverStyle ? "anchored" : activeStep.position}`} style={popoverStyle ?? undefined}>
+      <section
+        ref={popoverRef}
+        className={`tour-popover ${popoverStyle ? "anchored" : activeStep.position}`}
+        style={popoverStyle ?? undefined}
+      >
         <span className="eyebrow">Step {stepIndex + 1} of {steps.length}</span>
         <h2>{activeStep.title}</h2>
         <p>{activeStep.detail}</p>
@@ -4903,7 +4927,10 @@ function Topbar({
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
   return (
-    <header className="topbar">
+    <header
+      className="topbar"
+      data-tour={auth.role === "teacher" && route === "dashboard" ? "dashboard-overview" : undefined}
+    >
       <div>
         <span className="eyebrow">{routeLabels[route]}</span>
         <h1>

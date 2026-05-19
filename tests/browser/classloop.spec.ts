@@ -42,6 +42,45 @@ async function expectDownloaded(downloadPromise: Promise<Download>, filenamePatt
   expect(download.suggestedFilename()).toMatch(filenamePattern);
 }
 
+type TourBox = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+};
+
+function boxesOverlap(a: TourBox, b: TourBox) {
+  return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+}
+
+async function tourBox(page: Page, selector: string): Promise<TourBox> {
+  const box = await page.locator(selector).boundingBox();
+  expect(box, `${selector} should have a rendered box`).not.toBeNull();
+  return {
+    left: box!.x,
+    top: box!.y,
+    right: box!.x + box!.width,
+    bottom: box!.y + box!.height,
+    width: box!.width,
+    height: box!.height,
+  };
+}
+
+async function expectTourSpotlight(page: Page, targetSelector: string) {
+  const target = await tourBox(page, targetSelector);
+  const highlight = await tourBox(page, ".tour-highlight");
+  const popover = await tourBox(page, ".tour-popover");
+
+  expect(highlight.left).toBeLessThanOrEqual(target.left + 2);
+  expect(highlight.top).toBeLessThanOrEqual(target.top + 2);
+  expect(highlight.right).toBeGreaterThanOrEqual(target.right - 2);
+  expect(highlight.bottom).toBeGreaterThanOrEqual(target.bottom - 2);
+  expect(boxesOverlap(popover, target)).toBe(false);
+  expect(boxesOverlap(popover, highlight)).toBe(false);
+}
+
 type EndToEndScenario = {
   title: string;
   template: SessionType;
@@ -657,6 +696,34 @@ test("teacher can log in, import a sample, preview publishing, publish, open stu
   await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 });
 
+test("guided walkthrough spotlight stays aligned with the explained controls", async ({ page }) => {
+  await signIn(page, "teacher", true, false);
+  await expect(page.getByRole("dialog", { name: /classloop guided walkthrough/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /start on the dashboard/i })).toBeVisible();
+
+  if ((page.viewportSize()?.width ?? 0) > 920) {
+    await expectTourSpotlight(page, '[data-tour="dashboard-overview"]');
+  }
+
+  await page.getByRole("button", { name: /^next/i }).click();
+  await expect(page.getByRole("heading", { name: /create the session/i })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) > 920) {
+    await expectTourSpotlight(page, '[data-tour="new-session-button"]');
+  }
+
+  await page.getByRole("button", { name: /^next/i }).click();
+  await expect(page.getByRole("heading", { name: /review before publishing/i })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) > 920) {
+    await expectTourSpotlight(page, '[data-tour="nav-review"]');
+  }
+
+  await page.getByRole("button", { name: /^next/i }).click();
+  await expect(page.getByRole("heading", { name: /track follow-through/i })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) > 920) {
+    await expectTourSpotlight(page, '[data-tour="nav-analytics"]');
+  }
+});
+
 test("privacy, sync billing, appearance, and tutorial controls are usable", async ({ page }) => {
   await signIn(page, "teacher");
 
@@ -681,10 +748,7 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   await page.getByRole("button", { name: /return home/i }).click();
   await expect(page.getByRole("button", { name: /go to this area/i })).toBeVisible();
   if ((page.viewportSize()?.width ?? 0) > 920) {
-    const firstStepTarget = await page.locator('[data-tour="dashboard-hero"]').boundingBox();
-    const firstStepPopover = await page.locator(".tour-popover").boundingBox();
-    expect(firstStepTarget).not.toBeNull();
-    expect(firstStepPopover).not.toBeNull();
+    await expectTourSpotlight(page, '[data-tour="dashboard-overview"]');
   }
   const tourBackdropFilter = await page
     .locator(".guided-tour")
@@ -696,6 +760,17 @@ test("privacy, sync billing, appearance, and tutorial controls are usable", asyn
   await expect(page.locator(".tour-corner-mask")).toHaveCount(4);
   if ((page.viewportSize()?.width ?? 0) > 920) {
     await expect.poll(async () => (await page.locator(".tour-highlight").boundingBox())?.height ?? 999).toBeLessThan(90);
+    await expectTourSpotlight(page, '[data-tour="new-session-button"]');
+  }
+  await page.getByRole("button", { name: /^next/i }).click();
+  await expect(page.getByRole("heading", { name: /review before publishing/i })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) > 920) {
+    await expectTourSpotlight(page, '[data-tour="nav-review"]');
+  }
+  await page.getByRole("button", { name: /^next/i }).click();
+  await expect(page.getByRole("heading", { name: /track follow-through/i })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) > 920) {
+    await expectTourSpotlight(page, '[data-tour="nav-analytics"]');
   }
   await page.getByRole("button", { name: /skip/i }).click();
   await expect(page.getByText("Today in ClassLoop")).toBeVisible();

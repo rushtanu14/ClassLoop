@@ -122,6 +122,7 @@ function feedbackEmailConfig() {
   }
 
   if (process.env.CLASSLOOP_GMAIL_USER && process.env.CLASSLOOP_GMAIL_APP_PASSWORD) {
+    const gmailAppPassword = process.env.CLASSLOOP_GMAIL_APP_PASSWORD.replace(/\s+/g, "");
     return {
       to,
       from: from || process.env.CLASSLOOP_GMAIL_USER,
@@ -131,7 +132,7 @@ function feedbackEmailConfig() {
         secure: true,
         auth: {
           user: process.env.CLASSLOOP_GMAIL_USER,
-          pass: process.env.CLASSLOOP_GMAIL_APP_PASSWORD,
+          pass: gmailAppPassword,
         },
       },
     };
