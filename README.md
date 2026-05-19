@@ -174,7 +174,7 @@ npm run package:win
 npm run package:linux
 ```
 
-These scripts build both x64 and arm64 desktop artifacts where Electron Builder supports it. Generated installers are written to `release/` and are not committed. After packaging on a clean machine, run the first-run smoke for that host OS:
+These scripts build both x64 and arm64 desktop artifacts where Electron Builder supports it. The default Linux package is AppImage because macOS cross-built `.deb` output is not trustworthy enough to publish; build Debian packages separately on a Linux host with `npm run package:linux:deb` before offering `.deb` downloads. Generated installers are written to `release/` and are not committed. After packaging on a clean machine, run the first-run smoke for that host OS:
 
 ```bash
 npm run test:desktop:first-run

@@ -6,6 +6,14 @@ const rootDir = path.resolve(__dirname, "..");
 const releaseDir = path.join(rootDir, "release");
 const outputPath = path.join(releaseDir, "SHA256SUMS.txt");
 const artifactPattern = /\.(?:AppImage|deb|dmg|exe|zip|yml)$/i;
+const minimumArtifactBytes = {
+  ".appimage": 10 * 1024 * 1024,
+  ".deb": 10 * 1024 * 1024,
+  ".dmg": 10 * 1024 * 1024,
+  ".exe": 10 * 1024 * 1024,
+  ".zip": 10 * 1024 * 1024,
+  ".yml": 80,
+};
 
 function fail(message) {
   throw new Error(message);
@@ -24,6 +32,18 @@ const files = fs
 if (!files.length) {
   fail("No release artifacts found for checksum generation.");
 }
+
+files.forEach((name) => {
+  const fullPath = path.join(releaseDir, name);
+  const extension = path.extname(name).toLowerCase();
+  const minimumBytes = minimumArtifactBytes[extension] ?? 1;
+  const size = fs.statSync(fullPath).size;
+  if (size < minimumBytes) {
+    fail(
+      `${name} is only ${size} bytes. Refusing to publish a checksum for an invalid or truncated release artifact.`,
+    );
+  }
+});
 
 const lines = files.map((name) => {
   const fullPath = path.join(releaseDir, name);

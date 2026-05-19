@@ -11,21 +11,24 @@ const productName = packageJson.build?.productName || "ClassLoop";
 const rollbackTarget = process.argv[2] || process.env.CLASSLOOP_ROLLBACK_TARGET_VERSION || "last-known-good";
 
 const requiredArtifacts = [
-  { rel: `${productName}-${version}.dmg`, label: "macOS x64 DMG" },
-  { rel: `${productName}-${version}-mac.zip`, label: "macOS x64 ZIP" },
-  { rel: `${productName}-${version}-arm64.dmg`, label: "macOS arm64 DMG" },
-  { rel: `${productName}-${version}-arm64-mac.zip`, label: "macOS arm64 ZIP" },
-  { rel: `${productName} Setup ${version}.exe`, label: "Windows x64 NSIS installer" },
-  { rel: `${productName}-${version}-win.zip`, label: "Windows x64 ZIP" },
-  { rel: `${productName}-${version}-arm64-win.zip`, label: "Windows arm64 ZIP" },
-  { rel: `${productName}-${version}.AppImage`, label: "Linux x64 AppImage" },
-  { rel: `${productName}-${version}-arm64.AppImage`, label: "Linux arm64 AppImage" },
-  { rel: `classloop_${version}_amd64.deb`, label: "Linux x64 deb" },
-  { rel: `classloop_${version}_arm64.deb`, label: "Linux arm64 deb" },
-  { rel: "latest-mac.yml", label: "macOS update metadata" },
-  { rel: "latest.yml", label: "Windows update metadata" },
-  { rel: "latest-linux.yml", label: "Linux x64 update metadata" },
-  { rel: "latest-linux-arm64.yml", label: "Linux arm64 update metadata" },
+  { rel: `${productName}-${version}.dmg`, label: "macOS x64 DMG", minBytes: 10 * 1024 * 1024 },
+  { rel: `${productName}-${version}-mac.zip`, label: "macOS x64 ZIP", minBytes: 10 * 1024 * 1024 },
+  { rel: `${productName}-${version}-arm64.dmg`, label: "macOS arm64 DMG", minBytes: 10 * 1024 * 1024 },
+  { rel: `${productName}-${version}-arm64-mac.zip`, label: "macOS arm64 ZIP", minBytes: 10 * 1024 * 1024 },
+  { rel: `${productName} Setup ${version}.exe`, label: "Windows x64 NSIS installer", minBytes: 10 * 1024 * 1024 },
+  { rel: `${productName}-${version}-win.zip`, label: "Windows x64 ZIP", minBytes: 10 * 1024 * 1024 },
+  { rel: `${productName}-${version}-arm64-win.zip`, label: "Windows arm64 ZIP", minBytes: 10 * 1024 * 1024 },
+  { rel: `${productName}-${version}.AppImage`, label: "Linux x64 AppImage", minBytes: 10 * 1024 * 1024 },
+  { rel: `${productName}-${version}-arm64.AppImage`, label: "Linux arm64 AppImage", minBytes: 10 * 1024 * 1024 },
+  { rel: "latest-mac.yml", label: "macOS update metadata", minBytes: 80 },
+  { rel: "latest.yml", label: "Windows update metadata", minBytes: 80 },
+  { rel: "latest-linux.yml", label: "Linux x64 update metadata", minBytes: 80 },
+  { rel: "latest-linux-arm64.yml", label: "Linux arm64 update metadata", minBytes: 80 },
+];
+
+const optionalArtifacts = [
+  { rel: `classloop_${version}_amd64.deb`, label: "Linux x64 deb", minBytes: 10 * 1024 * 1024 },
+  { rel: `classloop_${version}_arm64.deb`, label: "Linux arm64 deb", minBytes: 10 * 1024 * 1024 },
 ];
 
 const platformTargets = [
@@ -65,11 +68,14 @@ function fail(message) {
   throw new Error(message);
 }
 
-function requireFile(relPath, label) {
+function requireFile(relPath, label, minBytes = 1) {
   const fullPath = path.join(rootDir, relPath);
   if (!fs.existsSync(fullPath)) fail(`${label} is missing: ${relPath}`);
   const stat = fs.statSync(fullPath);
   if (!stat.isFile() || stat.size <= 0) fail(`${label} is empty or not a file: ${relPath}`);
+  if (stat.size < minBytes) {
+    fail(`${label} is too small to be a valid release artifact: ${relPath} (${stat.size.toLocaleString()} bytes)`);
+  }
   console.log(`PASS ${label}: ${relPath} (${stat.size.toLocaleString()} bytes)`);
   return fullPath;
 }
@@ -152,7 +158,15 @@ function run() {
   }
 
   for (const artifact of requiredArtifacts) {
-    requireFile(path.join("release", artifact.rel), artifact.label);
+    requireFile(path.join("release", artifact.rel), artifact.label, artifact.minBytes);
+  }
+  for (const artifact of optionalArtifacts) {
+    const relPath = path.join("release", artifact.rel);
+    if (fs.existsSync(path.join(rootDir, relPath))) {
+      requireFile(relPath, artifact.label, artifact.minBytes);
+    } else {
+      console.warn(`WARN optional ${artifact.label} is absent. Publish the AppImage, or build .deb on a Linux host before offering Debian packages.`);
+    }
   }
   for (const metadata of ["latest-mac.yml", "latest.yml", "latest-linux.yml", "latest-linux-arm64.yml"]) {
     verifyMetadata(metadata);

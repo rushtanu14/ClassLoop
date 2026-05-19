@@ -57,16 +57,25 @@ function buildTargets(productName) {
     id: "linux-x64",
     label: "Linux x64",
     executable: `release/linux-unpacked/${linuxPackageName}`,
-    artifacts: [`release/${productName}-${version}.AppImage`, `release/${linuxPackageName}_${version}_amd64.deb`],
+    artifacts: [`release/${productName}-${version}.AppImage`],
   },
   {
     id: "linux-arm64",
     label: "Linux arm64",
     executable: `release/linux-arm64-unpacked/${linuxPackageName}`,
-    artifacts: [`release/${productName}-${version}-arm64.AppImage`, `release/${linuxPackageName}_${version}_arm64.deb`],
+    artifacts: [`release/${productName}-${version}-arm64.AppImage`],
   },
   ];
 }
+
+const minimumReleaseArtifactBytes = {
+  ".AppImage": 10 * 1024 * 1024,
+  ".deb": 10 * 1024 * 1024,
+  ".dmg": 10 * 1024 * 1024,
+  ".exe": 10 * 1024 * 1024,
+  ".zip": 10 * 1024 * 1024,
+  ".yml": 80,
+};
 
 function fail(message) {
   throw new Error(message);
@@ -88,6 +97,34 @@ function targetIsPackaged(target) {
   if (target.appPath && exists(target.appPath)) return true;
   if (target.executable && exists(target.executable)) return true;
   return target.artifacts.some((artifact) => exists(artifact));
+}
+
+function minimumBytesForArtifact(relPath) {
+  const extension = Object.keys(minimumReleaseArtifactBytes).find((suffix) => relPath.endsWith(suffix));
+  return extension ? minimumReleaseArtifactBytes[extension] : 1;
+}
+
+function verifyArtifactSize(relPath, label) {
+  if (!exists(relPath)) return;
+  const fullPath = abs(relPath);
+  const stat = fs.statSync(fullPath);
+  const minimumBytes = minimumBytesForArtifact(relPath);
+  if (!stat.isFile() || stat.size < minimumBytes) {
+    fail(`${label} is too small to be a valid release artifact: ${relPath} (${stat.size.toLocaleString()} bytes).`);
+  }
+}
+
+function verifyReleaseArtifacts(packagedTargets) {
+  packagedTargets.forEach((target) => {
+    target.artifacts.forEach((artifact) => verifyArtifactSize(artifact, `${target.label} artifact`));
+  });
+
+  const optionalDebs = fs.existsSync(abs("release"))
+    ? fs.readdirSync(abs("release")).filter((name) => /^classloop_.*_(?:amd64|arm64)\.deb$/i.test(name))
+    : [];
+  optionalDebs.forEach((name) => {
+    verifyArtifactSize(path.join("release", name), `Optional Debian package ${name}`);
+  });
 }
 
 function run(command, args, label) {
@@ -247,6 +284,7 @@ function main() {
 
   console.log(`Checking ${selectedProductName} ${version} release artifacts.`);
   console.log(`Distribution mode: ${isDeveloperIdMode() ? "Developer ID/notarized" : "free unsigned/ad-hoc"}.`);
+  verifyReleaseArtifacts(packagedTargets);
   verifyMacSigning(packagedTargets);
   verifyCleanHostEvidence(packagedTargets);
   console.log(

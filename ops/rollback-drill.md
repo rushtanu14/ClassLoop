@@ -12,7 +12,7 @@ The drill is non-destructive. It verifies the local `release/` artifacts and upd
 
 Pass criteria:
 
-- macOS DMG/ZIP, Windows NSIS/ZIP, Linux AppImage/deb, and `latest*.yml` files exist and are non-empty.
+- macOS DMG/ZIP, Windows NSIS/ZIP, Linux AppImage, and `latest*.yml` files exist and are large enough to be real release artifacts. Debian packages are optional and must be built/verified on a Linux host before offering `.deb` downloads.
 - Each unpacked app has a readable executable, `package.json`, `desktop/main.cjs`, and `dist/index.html` inside `app.asar`.
 - Public download links can be rolled back to known-good URLs or left unset so the landing page says `Packaging pending`.
 
