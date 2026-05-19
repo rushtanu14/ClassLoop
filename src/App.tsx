@@ -5467,12 +5467,61 @@ function SyncBillingPage({
   const hasPro = currentPlanTier === "pro";
   const isDemoAccount = Boolean(auth.demo);
   const showCloudAccountPanel = hasPro || (backendStatus.webReady && !isDemoAccount);
+  const billingReturnStatus = getParam("billing");
   const demoBillingMessage =
     "Demo account upgrades are disabled. Create your own account in the desktop app or sign in with a hosted teacher account to upgrade.";
 
   useEffect(() => {
     getCloudSession().then((session) => setConnectedEmail(session?.user.email ?? ""));
   }, []);
+
+  useEffect(() => {
+    if (isDemoAccount) return;
+    if (billingReturnStatus === "canceled") {
+      setMessage("Stripe Checkout was canceled. Your plan was not changed.");
+      return;
+    }
+    if (billingReturnStatus !== "success") return;
+
+    let active = true;
+    let retryTimer: number | null = null;
+
+    const verifyPaidProfile = async (attempt = 1) => {
+      if (!active) return;
+      setMessage("Stripe sent you back to ClassLoop. Verifying the paid subscription before Pro unlocks...");
+      try {
+        const profile = await getCloudProfile();
+        const verifiedProfile = normalizeBillingProfile(profile.billingProfile);
+        if (!active) return;
+        setBillingProfile(verifiedProfile);
+        if (isPaidPlan(verifiedProfile)) {
+          setMessage("Payment verified by Stripe. Pro is active on this cloud account.");
+          return;
+        }
+        if (attempt < 5) {
+          setMessage("Checkout was submitted. Waiting for the Stripe webhook to confirm payment before Pro unlocks...");
+          retryTimer = window.setTimeout(() => void verifyPaidProfile(attempt + 1), 1500);
+          return;
+        }
+        setMessage(
+          "Checkout returned, but Pro is still pending. ClassLoop will stay Free until Stripe confirms payment; click Refresh plan after the receipt/webhook finishes.",
+        );
+      } catch (error) {
+        if (!active) return;
+        if (attempt < 5) {
+          retryTimer = window.setTimeout(() => void verifyPaidProfile(attempt + 1), 1500);
+          return;
+        }
+        setMessage(error instanceof Error ? error.message : "Unable to verify the Stripe payment yet. Sign in to cloud and click Refresh plan.");
+      }
+    };
+
+    void verifyPaidProfile();
+    return () => {
+      active = false;
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
+  }, [billingReturnStatus, isDemoAccount, setBillingProfile]);
 
   const refreshProfile = async () => {
     try {
@@ -5540,6 +5589,9 @@ function SyncBillingPage({
       }
       setMessage("Opening Stripe Checkout. Pro turns on only after payment succeeds and ClassLoop refreshes your plan.");
       const checkout = await createCheckoutSession(tier);
+      if (!checkout.url || new URL(checkout.url).hostname !== "checkout.stripe.com") {
+        throw new Error("Stripe Checkout did not return a valid checkout.stripe.com payment URL.");
+      }
       window.location.href = checkout.url;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Stripe Checkout is not configured yet.");

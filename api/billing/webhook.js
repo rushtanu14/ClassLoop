@@ -71,6 +71,10 @@ async function applyInvoiceSubscriptionUpdate(stripe, supabase, invoice, fallbac
   await applySubscriptionUpdate(supabase, subscription, fallbackStatus);
 }
 
+export function checkoutSessionPaymentAccepted(session) {
+  return session?.payment_status === "paid";
+}
+
 export default async function handler(request, response) {
   if (request.method !== "POST") return json(response, 405, { error: "Method not allowed." });
 
@@ -83,6 +87,9 @@ export default async function handler(request, response) {
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
+      if (!checkoutSessionPaymentAccepted(session)) {
+        return json(response, 200, { received: true, ignored: "payment_not_accepted" });
+      }
       const subscription =
         typeof session.subscription === "string"
           ? await stripe.subscriptions.retrieve(session.subscription)

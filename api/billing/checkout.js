@@ -1,6 +1,13 @@
 import { json, originUrl, requireUser, requiredEnv } from "../_shared.js";
 import { createStripeClient } from "./stripe-client.js";
 
+export function checkoutReturnUrls(baseUrl) {
+  return {
+    success_url: `${baseUrl}/#/billing?billing=success`,
+    cancel_url: `${baseUrl}/#/billing?billing=canceled`,
+  };
+}
+
 export default async function handler(request, response) {
   if (request.method !== "POST") return json(response, 405, { error: "Method not allowed." });
 
@@ -38,8 +45,7 @@ export default async function handler(request, response) {
       line_items: [{ price, quantity: 1 }],
       allow_promotion_codes: true,
       client_reference_id: user.id,
-      success_url: `${baseUrl}/#/dashboard?billing=success`,
-      cancel_url: `${baseUrl}/#/dashboard?billing=canceled`,
+      ...checkoutReturnUrls(baseUrl),
       subscription_data: {
         metadata: {
           supabaseUserId: user.id,

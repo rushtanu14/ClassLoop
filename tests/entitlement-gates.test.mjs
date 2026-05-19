@@ -6,7 +6,8 @@ import {
   subscriptionProfilePayload,
 } from "../api/billing/entitlements.js";
 import { stripeApiVersion } from "../api/billing/stripe-client.js";
-import { subscriptionIdFromInvoice } from "../api/billing/webhook.js";
+import { checkoutReturnUrls } from "../api/billing/checkout.js";
+import { checkoutSessionPaymentAccepted, subscriptionIdFromInvoice } from "../api/billing/webhook.js";
 import { billingProfileFromRow, profilePatchColumns } from "../api/profile.js";
 import { isPaidPlan } from "../.test-build/src/cloud.js";
 
@@ -42,8 +43,8 @@ assert.equal(
 );
 assert.equal(
   isPaidPlan({ tier: "pro", status: "trialing", customerId: "cus_trial" }),
-  true,
-  "Trialing Pro subscriptions with a Stripe customer should unlock paid features",
+  false,
+  "Trialing subscriptions should not unlock paid features before payment is accepted",
 );
 assert.equal(isPaidPlan({ tier: "pro", status: "past_due" }), false, "Past-due Pro subscriptions should not unlock paid features");
 assert.equal(isPaidPlan({ tier: "pro", status: "canceled" }), false, "Canceled Pro subscriptions should not unlock paid features");
@@ -51,7 +52,7 @@ assert.equal(isPaidPlan({ tier: "pro", status: "unpaid" }), false, "Unpaid Pro s
 assert.equal(isPaidPlan({ tier: "pro", status: "paused" }), false, "Paused Pro subscriptions should not unlock paid features");
 
 assert.equal(planTierForSubscriptionStatus("pro", "active"), "pro");
-assert.equal(planTierForSubscriptionStatus("pro", "trialing"), "pro");
+assert.equal(planTierForSubscriptionStatus("pro", "trialing"), "free");
 assert.equal(planTierForSubscriptionStatus("pro", "past_due"), "free");
 assert.equal(planTierForSubscriptionStatus("pro", "canceled"), "free");
 assert.equal(planTierForSubscriptionStatus("pro", "unpaid"), "free");
@@ -69,6 +70,25 @@ assert.equal(
   subscriptionIdFromInvoice({ parent: { subscription_details: { subscription: "sub_parent" } } }),
   "sub_parent",
   "latest invoice parent subscription ids should be supported",
+);
+assert.deepEqual(
+  checkoutReturnUrls("https://classloop-followup.vercel.app"),
+  {
+    success_url: "https://classloop-followup.vercel.app/#/billing?billing=success",
+    cancel_url: "https://classloop-followup.vercel.app/#/billing?billing=canceled",
+  },
+  "Stripe Checkout must return users to the billing verifier, not directly grant Pro on the dashboard",
+);
+assert.equal(checkoutSessionPaymentAccepted({ payment_status: "paid" }), true, "paid Checkout sessions may update entitlements");
+assert.equal(
+  checkoutSessionPaymentAccepted({ payment_status: "no_payment_required" }),
+  false,
+  "Checkout sessions with no accepted payment must not update entitlements",
+);
+assert.equal(
+  checkoutSessionPaymentAccepted({ payment_status: "unpaid" }),
+  false,
+  "unpaid Checkout sessions must not update Pro entitlements",
 );
 
 const activePayload = subscriptionProfilePayload({
@@ -104,8 +124,8 @@ await applySubscriptionProfileUpdate(userTargetSupabase, {
   customerId: "cus_user",
   userId: "supabase-user-1",
   tier: "pro",
-  status: "trialing",
-  subscriptionId: "sub_trial",
+  status: "active",
+  subscriptionId: "sub_active",
   currentPeriodEndIso: "2026-06-12T00:00:00.000Z",
   updatedAt: "2026-05-12T12:00:00.000Z",
 });
