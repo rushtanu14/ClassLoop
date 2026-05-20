@@ -190,6 +190,38 @@ async function signInWithVerifiedProEntitlement(page: Page, email: string, passw
   await expect(page.getByText("Today in ClassLoop")).toBeVisible();
 }
 
+async function mockCloudAuthForStripeCheckout(page: Page, cloudEmail: string) {
+  const fakeUser = {
+    id: "00000000-0000-4000-8000-000000000123",
+    aud: "authenticated",
+    role: "authenticated",
+    email: cloudEmail,
+    email_confirmed_at: "2026-05-19T00:00:00.000Z",
+    confirmed_at: "2026-05-19T00:00:00.000Z",
+    last_sign_in_at: "2026-05-19T00:00:00.000Z",
+    app_metadata: { provider: "email", providers: ["email"] },
+    user_metadata: {},
+    identities: [],
+    created_at: "2026-05-19T00:00:00.000Z",
+    updated_at: "2026-05-19T00:00:00.000Z",
+  };
+
+  await page.route("**/auth/v1/token?grant_type=password", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        access_token: "playwright-access-token",
+        token_type: "bearer",
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        refresh_token: "playwright-refresh-token",
+        user: fakeUser,
+      }),
+    });
+  });
+}
+
 async function waitForPersistedSessions(page: Page) {
   await expect
     .poll(async () => page.evaluate(() => localStorage.getItem("classloop:secure:sessions:v3") !== null))
@@ -331,6 +363,11 @@ test("public root shows landing page and can enter the app demo", async ({ page 
     await expect(platformDownloads.getByRole("button", { name: /macos.*packaging pending/i })).toBeVisible();
     await expect(platformDownloads.getByRole("button", { name: /windows.*packaging pending/i })).toBeVisible();
     await expect(platformDownloads.getByRole("button", { name: /linux.*packaging pending/i })).toBeVisible();
+  } else {
+    const appleSiliconDmg = platformDownloads.getByRole("button", { name: /macOS \(Apple silicon DMG\)/i });
+    await expect(appleSiliconDmg).toBeVisible();
+    await expect(appleSiliconDmg).toContainText(/Recommended default/i);
+    await expect(appleSiliconDmg).toContainText(/M-series Macs arm64 installer/i);
   }
   await expect(page.locator(".landing-mobile-band").getByRole("button", { name: /add .*to phone/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /use classloop from a browser or add it to your home screen/i })).toBeVisible();
@@ -896,6 +933,73 @@ test("live capture modes are visible but Pro-gated for Free accounts", async ({ 
   await expect(page.getByRole("dialog", { name: /share the meeting tab or window with audio/i })).toBeVisible();
   await expect(page.getByText(/Paste the platform transcript after class/i)).toBeVisible();
   await page.getByRole("button", { name: /not now/i }).click();
+});
+
+test("Stripe Checkout opens from Pro upgrade without unlocking Pro first", async ({ page }) => {
+  const runId = Date.now().toString(36);
+  const email = `stripe-${runId}@classloop.test`;
+  const password = `teacher-pass-${runId}`;
+  const cloudEmail = `stripe-cloud-${runId}@classloop.test`;
+  const checkoutUrl = "https://checkout.stripe.com/c/pay/cs_live_playwright_open_smoke";
+  const checkoutRequests: Array<{ authorization: string | undefined; body: Record<string, unknown> }> = [];
+
+  await mockCloudAuthForStripeCheckout(page, cloudEmail);
+  await page.route("**/api/profile", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        email: cloudEmail,
+        role: "teacher",
+        billingProfile: { tier: "free", status: "not_configured" },
+        noTrainingOnStudentData: true,
+      }),
+    });
+  });
+  await page.route("**/api/billing/checkout", async (route) => {
+    checkoutRequests.push({
+      authorization: route.request().headers().authorization,
+      body: route.request().postDataJSON() as Record<string, unknown>,
+    });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ url: checkoutUrl }),
+    });
+  });
+  await page.route("https://checkout.stripe.com/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: "<!doctype html><title>Stripe Checkout</title><h1>Stripe Checkout payment page</h1>",
+    });
+  });
+
+  await resetBrowser(page);
+  await createAccount(page, "teacher", `Stripe Teacher ${runId}`, email, password);
+  await page.getByRole("button", { name: /^plan options$/i }).click();
+  await page.getByPlaceholder("you@school.org").fill(cloudEmail);
+  await page.getByLabel(/cloud password/i).fill("cloud-pass-123");
+  await page.getByRole("button", { name: /^sign in$/i }).click();
+  await expect(page.getByText(`Connected as ${cloudEmail}`)).toBeVisible();
+  await expect(page.getByText(/FREE · not_configured/i)).toBeVisible();
+
+  await page.getByRole("button", { name: /upgrade to pro/i }).click();
+  await expect.poll(() => checkoutRequests.length).toBe(1);
+  expect(checkoutRequests[0]).toMatchObject({
+    authorization: "Bearer playwright-access-token",
+    body: { tier: "pro" },
+  });
+  await expect(page).toHaveURL(checkoutUrl);
+  await expect(page.getByRole("heading", { name: /stripe checkout payment page/i })).toBeVisible();
+
+  await page.goto("/#/dashboard");
+  await signInAccount(page, "teacher", email, password);
+  await page.goto("/#/billing?billing=success");
+  await expect(page.getByText(/FREE · not_configured/i)).toBeVisible();
+  await expect(
+    page.locator(".settings-message").filter({ hasText: /Waiting for the Stripe webhook|ClassLoop will stay Free/i }),
+  ).toBeVisible();
 });
 
 test("students cannot access analytics but can save appearance while logged in, with default theme restored on logout", async ({ page }) => {

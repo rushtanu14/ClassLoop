@@ -2,6 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 const testPort = 5177;
 const baseURL = `http://127.0.0.1:${testPort}`;
+const browserTestEnv =
+  "VITE_SUPABASE_URL=https://classloop-playwright.supabase.co " +
+  "VITE_SUPABASE_ANON_KEY=classloop-playwright-anon-key " +
+  "VITE_STRIPE_PRO_PRICE_ID=price_classloop_playwright";
 
 export default defineConfig({
   testDir: "./tests/browser",
@@ -15,7 +19,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: `env -u FORCE_COLOR -u NO_COLOR npm run dev -- --port ${testPort} --strictPort`,
+    command: `env -u FORCE_COLOR -u NO_COLOR ${browserTestEnv} npm run dev -- --port ${testPort} --strictPort`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 60_000,

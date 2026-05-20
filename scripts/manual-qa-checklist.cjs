@@ -8,6 +8,7 @@ const automatedGate = [
   "npm run test:import",
   "npm run test:cloud",
   "npm run test:entitlements",
+  "npm run test:stripe",
   "npm run build",
   "npm run test:browser",
   "npm run test:web",
@@ -91,7 +92,7 @@ const sections = [
     [
       "With credentials absent, confirm desktop/local mode works and hosted sync/billing failures are clear.",
       "With test credentials configured, verify Supabase login/logout, token expiry, upload/download, conflict resolution, and offline queue behavior.",
-      "Verify Stripe checkout, portal, webhook updates, upgrade, downgrade, canceled/past-due/unpaid states, and locked-feature UI.",
+      "Verify Stripe checkout opens from the Pro button, returns to the billing verifier, keeps Pro locked until paid webhook/profile confirmation, and handles portal, downgrade/cancel, canceled/past-due/unpaid states, and locked-feature UI.",
       "Attempt client-side entitlement tampering and confirm profile/API helpers ignore paid fields submitted by the client.",
     ],
   ],

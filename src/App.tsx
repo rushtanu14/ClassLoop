@@ -2861,6 +2861,7 @@ function LandingPage({
     id: DesktopInstallerId;
     label: string;
     helper: string;
+    badge?: string;
     url?: string;
   };
 
@@ -2875,7 +2876,8 @@ function LandingPage({
     macOptions.push({
       id: "macos",
       label: "macOS (Apple silicon DMG)",
-      helper: "M-series Macs installer",
+      helper: "M-series Macs arm64 installer",
+      badge: "Recommended default",
       url: macArm64Url,
     });
   }
@@ -2883,7 +2885,7 @@ function LandingPage({
     macOptions.push({
       id: "macos",
       label: "macOS (Intel DMG)",
-      helper: "Intel Macs installer",
+      helper: "Intel Macs x64 fallback",
       url: macX64Url,
     });
   }
@@ -2891,7 +2893,7 @@ function LandingPage({
     macOptions.push({
       id: "macos",
       label: "macOS (Apple silicon ZIP)",
-      helper: "M-series Macs archive",
+      helper: "M-series Macs arm64 archive",
       url: macArm64ZipUrl,
     });
   }
@@ -3019,6 +3021,11 @@ function LandingPage({
         : releaseManifestStatus === "blocked"
           ? "Installer links pointing at Vercel Blob are ignored to keep project storage from filling up."
           : null;
+  const detectedInstallerCopy = detectedDownload
+    ? detectedDownload.id === "macos" && macArm64Url
+      ? "ClassLoop detected macOS. The Apple silicon arm64 DMG is the default installer for M-series Macs; Intel builds stay available in the full desktop list."
+      : `ClassLoop detected ${detectedDownload.label} from browser hints. Use the detected installer or reveal the full desktop list.`
+    : "This device looks best for the web/PWA path. You can still open desktop installers when downloading ClassLoop for another computer.";
   const publicNav: Array<{ page: LandingPageKey; label: string }> = [
     { page: "home", label: "Home" },
     { page: "features", label: "Features" },
@@ -3687,11 +3694,7 @@ function LandingPage({
             <section className="landing-download-band">
               <div>
                 <h2>Desktop installers</h2>
-                <p>
-                  {detectedDownload
-                    ? `ClassLoop detected ${detectedDownload.label} from browser hints. Use the detected installer or reveal the full desktop list.`
-                    : "This device looks best for the web/PWA path. You can still open desktop installers when downloading ClassLoop for another computer."}
-                </p>
+                <p>{detectedInstallerCopy}</p>
                 {releaseManifestMessage && (
                   <p className="landing-message warning" role="status" aria-live="polite">
                     {releaseManifestMessage}
@@ -3743,7 +3746,7 @@ function LandingPage({
                       <span>
                         <strong>{option.label}</strong>
                         <small>{option.url ? "Download ready" : "Packaging pending"}</small>
-                        {!option.url && <em>{option.helper}</em>}
+                        <em>{option.badge ? `${option.badge} - ${option.helper}` : option.helper}</em>
                       </span>
                     </button>
                   ))}

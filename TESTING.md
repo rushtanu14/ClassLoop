@@ -8,6 +8,7 @@
 - `npm run test:import`
 - `npm run test:cloud`
 - `npm run test:entitlements`
+- `npm run test:stripe`
 - `npm run test:security`
 - `npm run test:package:init`
 - `npm run test:browser`
@@ -51,10 +52,11 @@
 - **Network Loss / Offline Queue**: The cloud test verifies mutating cloud sync requests are queueable, duplicate queued writes are deduped, successful queue flushes are removed, and failed flushes remain queued with incremented attempts.
 
 ### Entitlement Gate Tests
-- **Free / Paid Boundaries**: `npm run test:entitlements` verifies Free, active Pro, trialing Pro, past-due, canceled, unpaid, paused, and incomplete subscription states map to the right feature access.
+- **Free / Paid Boundaries**: `npm run test:entitlements` verifies Free, paid active Pro, trialing, past-due, canceled, unpaid, paused, and incomplete subscription states map to the right feature access. Trialing/no-payment states stay locked until Stripe reports an accepted payment.
+- **Stripe Checkout Open Smoke**: `npm run test:stripe` clicks the real Pro upgrade button with mocked cloud auth and checkout APIs, verifies ClassLoop requests `/api/billing/checkout`, verifies the returned URL is `checkout.stripe.com`, verifies the browser lands on a Stripe-hosted checkout page, and verifies returning to ClassLoop still shows Free while the webhook/profile confirmation is pending.
 - **Webhook-Owned Updates**: Entitlement tests verify Stripe checkout/subscription/invoice webhook payload mapping updates `classloop_profiles` with `plan_tier`, `subscription_status`, customer id, subscription id, and current period end.
 - **Client Tampering Guard**: Entitlement tests verify `/api/profile` PATCH helpers ignore client-submitted paid fields like `plan_tier`, camelCase paid entitlement fields, `subscription_status`, Stripe customer ids, nested billing profiles, invalid roles, and snake-case privacy tampering.
-- **Locked UI Behavior**: Browser tests verify unpaid users see Pro-only live capture cards, Free one-session-per-day copy, disabled second draft generation, local upgrade unlocks paid controls, and downgrade returns the locks.
+- **Locked UI Behavior**: Browser tests verify unpaid users see Pro-only live capture cards, Free one-session-per-day copy, disabled second draft generation, verified Stripe-owned Pro unlocks paid controls, and unpaid/local entitlement attempts keep the locks.
 
 ### Package Init / Startup Failure Tests
 - **Missing Packaged Executable**: `npm run test:package:init` runs the packaged first-run smoke against a missing executable and verifies the failure explains what artifact is absent without logging classroom/account data.
@@ -161,6 +163,7 @@ Playwright is installed in the repo through `@playwright/test`.
 **Automated install**: `npm install` runs `playwright install chromium` through `postinstall`.
 **Run cloud sync tests**: `npm run test:cloud`
 **Run entitlement tests**: `npm run test:entitlements`
+**Run Stripe Checkout open smoke**: `npm run test:stripe`
 **Run security baseline**: `npm run test:security`
 **Run package init failure smoke**: `npm run test:package:init`
 **Run browser tests**: `npm run test:browser`
@@ -184,7 +187,7 @@ CLASSLOOP_WEB_TEST_URL=https://your-domain.com npm run test:web
 
 For desktop state QA, run `npm run build && npm run test:desktop:state`; this covers encrypted local state read/write, corrupt-file crash recovery, read-only overwrite protection, and encrypted backup restore against the local Electron app. The smoke uses configurable startup guards (`CLASSLOOP_DESKTOP_LAUNCH_TIMEOUT_MS`, `CLASSLOOP_DESKTOP_FIRST_WINDOW_TIMEOUT_MS`, and `CLASSLOOP_DESKTOP_LOGIN_READY_TIMEOUT_MS`) so slow Electron launches fail with a specific launch/window/login readiness reason. For desktop release QA, run the package command for the current OS first, then `npm run test:desktop:first-run`. The first-run smoke uses a temporary `CLASSLOOP_USER_DATA_DIR` to simulate a clean packaged launch, creates a local teacher account, confirms state writes outside the app bundle, relaunches, and signs back in. Cross-platform launch still needs an actual macOS, Windows, or Linux host for the matching binary; building artifacts alone does not prove a foreign OS can launch them.
 
-For installer publication QA, run `npm run test:release:distribution` after packaging. Free mode is the default: it accepts unsigned/ad-hoc macOS artifacts with explicit warnings and does not require paid Apple Developer ID notarization. Linux desktop downloads should default to AppImage from `npm run package:linux`; only offer `.deb` packages after building them on a Linux host with `npm run package:linux:deb` and re-running release verification. Add `npm run release:checksums` before publishing so visitors can verify downloads. Set `CLASSLOOP_DISTRIBUTION_MODE=developer-id` to enforce paid Developer ID signing, Gatekeeper assessment, stapled notarization tickets on DMGs, and ignored clean-host evidence in `test-results/clean-host-verification.json` for each packaged macOS/Windows/Linux target, using `ops/clean-host-verification.example.json` as the template.
+For installer publication QA, run `npm run test:release:distribution` after packaging. Free mode is the default: it accepts unsigned/ad-hoc macOS artifacts with explicit warnings and does not require paid Apple Developer ID notarization. The public download manifest should put the Apple silicon arm64 DMG in both `macos.url` and `macos.arm64Url`, keep the Intel build in `macos.x64Url`, and the browser smoke checks should show `macOS (Apple silicon DMG)` as the recommended default when installer URLs are live. Linux desktop downloads should default to AppImage from `npm run package:linux`; only offer `.deb` packages after building them on a Linux host with `npm run package:linux:deb` and re-running release verification. Add `npm run release:checksums` before publishing so visitors can verify downloads. Set `CLASSLOOP_DISTRIBUTION_MODE=developer-id` to enforce paid Developer ID signing, Gatekeeper assessment, stapled notarization tickets on DMGs, and ignored clean-host evidence in `test-results/clean-host-verification.json` for each packaged macOS/Windows/Linux target, using `ops/clean-host-verification.example.json` as the template.
 
 For ops readiness, run `npm run drill:rollback` after packaging and `npm run drill:incidents` before alpha or release handoff. The runbooks live in `ops/rollback-drill.md` and `ops/incident-response.md`, with a reusable log template in `ops/drill-log-template.md`.
 
@@ -202,6 +205,7 @@ When the user says "use the testing script," run the saved ClassLoop QA sequence
 - whether every supported noisy Zoom/CSV import variation still parses, including malformed rows, duplicate emails/names, mixed aliases, and transcript-only roster estimation
 - whether Supabase auth transitions, token expiry handling, conflict resolution, network-loss queueing, and missing-credential desktop fallback pass
 - whether Free/Pro entitlement boundaries, webhook-driven entitlement updates, upgrade/downgrade flows, and unpaid locked-feature UI pass
+- whether clicking Upgrade to Pro opens Stripe Checkout and still keeps Pro locked until the paid webhook/profile state is verified
 - whether local data files and `.env.local` are ignored/untracked, no high-confidence tracked secrets are present, runtime debug/info logs are absent, startup/error logging is actionable without sensitive payloads, and the legal baseline is present
 - whether public hosted signups remain gated/sample-only until Terms of Use, Privacy Policy, desktop EULA, hosted retention/deletion SLAs, support contact, and child-safety expectations have final legal review
 - whether bad transcript format, malformed URLs, sync API outage, package init failures, and desktop storage corruption show recoverable user-visible states
