@@ -983,6 +983,12 @@ test("Stripe Checkout opens from Pro upgrade without unlocking Pro first", async
   await page.getByRole("button", { name: /^sign in$/i }).click();
   await expect(page.getByText(`Connected as ${cloudEmail}`)).toBeVisible();
   await expect(page.getByText(/FREE · not_configured/i)).toBeVisible();
+  await expect(page.getByText("Cloud workspace")).toBeVisible();
+  await expect(page.getByText("Billing options")).toBeVisible();
+  await expect(page.getByRole("button", { name: /manage billing/i })).toBeHidden();
+  await page.getByText("Billing options").click();
+  await expect(page.getByRole("button", { name: /manage billing/i })).toBeVisible();
+  await page.getByText("Billing options").click();
 
   await page.getByRole("button", { name: /upgrade to pro/i }).click();
   await expect.poll(() => checkoutRequests.length).toBe(1);

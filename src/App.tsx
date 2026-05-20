@@ -5676,22 +5676,69 @@ function SyncBillingPage({
                 </button>
               </div>
               {connectedEmail && <p className="settings-message success">Connected as {connectedEmail}</p>}
-              <div className="button-row">
-                <button className="ghost-button" type="button" onClick={uploadCloud} disabled={!connectedEmail}>
-                  Upload this device
-                </button>
-                <button className="ghost-button" type="button" onClick={downloadCloud} disabled={!connectedEmail}>
-                  Download cloud copy
-                </button>
-                <button className="text-button" type="button" onClick={refreshProfile} disabled={!connectedEmail}>
-                  Refresh plan
-                </button>
-                <button className="text-button" type="button" onClick={disconnect} disabled={!connectedEmail}>
-                  Disconnect
-                </button>
-                <button className="text-button" type="button" onClick={openBillingPortal}>
-                  Manage billing
-                </button>
+              <div className="settings-options-list">
+                <details className="settings-options-panel">
+                  <summary>
+                    <span>
+                      <strong>Cloud workspace</strong>
+                      <small>Upload this device or pull the latest cloud copy.</small>
+                    </span>
+                    <ChevronDown size={18} aria-hidden="true" />
+                  </summary>
+                  <div className="settings-option-actions">
+                    <button className="settings-option-button" type="button" onClick={uploadCloud} disabled={!connectedEmail}>
+                      <UploadCloud size={18} aria-hidden="true" />
+                      <span>
+                        <strong>Upload this device</strong>
+                        <small>Replace the hosted workspace with this device.</small>
+                      </span>
+                      <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                    <button className="settings-option-button" type="button" onClick={downloadCloud} disabled={!connectedEmail}>
+                      <Download size={18} aria-hidden="true" />
+                      <span>
+                        <strong>Download cloud copy</strong>
+                        <small>Bring the hosted workspace onto this device.</small>
+                      </span>
+                      <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                    <button className="settings-option-button" type="button" onClick={disconnect} disabled={!connectedEmail}>
+                      <LogOut size={18} aria-hidden="true" />
+                      <span>
+                        <strong>Disconnect cloud login</strong>
+                        <small>Sign out of hosted sync on this device only.</small>
+                      </span>
+                      <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                  </div>
+                </details>
+                <details className="settings-options-panel">
+                  <summary>
+                    <span>
+                      <strong>Billing options</strong>
+                      <small>Stripe handles plan changes, receipts, and subscription management.</small>
+                    </span>
+                    <ChevronDown size={18} aria-hidden="true" />
+                  </summary>
+                  <div className="settings-option-actions">
+                    <button className="settings-option-button" type="button" onClick={refreshProfile} disabled={!connectedEmail}>
+                      <RefreshCw size={18} aria-hidden="true" />
+                      <span>
+                        <strong>Refresh plan</strong>
+                        <small>Check whether Stripe has verified a recent payment.</small>
+                      </span>
+                      <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                    <button className="settings-option-button" type="button" onClick={openBillingPortal}>
+                      <Settings2 size={18} aria-hidden="true" />
+                      <span>
+                        <strong>Manage billing</strong>
+                        <small>Open Stripe for invoices, cards, cancellation, and plan changes.</small>
+                      </span>
+                      <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                  </div>
+                </details>
               </div>
               {message && <p className="settings-message">{message}</p>}
             </div>

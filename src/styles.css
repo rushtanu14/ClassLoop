@@ -3356,6 +3356,94 @@ button:disabled:hover {
   gap: 10px;
 }
 
+.settings-options-list {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-options-panel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fbfaf5;
+  overflow: hidden;
+}
+
+.settings-options-panel summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 11px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.settings-options-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-options-panel summary span,
+.settings-option-button span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-options-panel summary strong,
+.settings-option-button strong {
+  color: var(--ink);
+}
+
+.settings-options-panel summary small,
+.settings-option-button small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.settings-options-panel summary > svg {
+  color: var(--muted);
+  transition: transform 150ms ease;
+}
+
+.settings-options-panel[open] summary > svg {
+  transform: rotate(180deg);
+}
+
+.settings-option-actions {
+  display: grid;
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+
+.settings-option-button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px;
+  border: 1px solid rgba(222, 214, 202, 0.82);
+  border-radius: 12px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.68);
+  text-align: left;
+}
+
+.settings-option-button > svg:first-child {
+  color: var(--green);
+}
+
+.settings-option-button > svg:last-child {
+  color: var(--muted);
+}
+
+.settings-option-button:hover:not(:disabled) {
+  border-color: rgba(15, 118, 110, 0.32);
+  background: #ffffff;
+}
+
 .delivery-log-row,
 .publish-audit-row,
 .audit-row {
@@ -4624,6 +4712,8 @@ th {
   .capture-guidance,
   .delivery-card,
   .integration-card,
+  .settings-options-panel,
+  .settings-option-button,
   .upload-zone,
   .processing-core,
   .processing-step,
@@ -4679,6 +4769,8 @@ th {
   .capture-guidance,
   .delivery-card,
   .integration-card,
+  .settings-options-panel,
+  .settings-option-button,
   .upload-zone,
   .processing-core,
   .processing-step,
@@ -4765,6 +4857,8 @@ th {
   .delivery-card p,
   .delivery-card small,
   .integration-card small,
+  .settings-options-panel summary small,
+  .settings-option-button small,
   .integration-note,
   .upload-zone small,
   .summary-card ul,
@@ -4817,6 +4911,8 @@ th {
   .delivery-card p,
   .delivery-card small,
   .integration-card small,
+  .settings-options-panel summary small,
+  .settings-option-button small,
   .integration-note,
   .upload-zone small,
   .summary-card ul,
