@@ -6,7 +6,7 @@ import {
   subscriptionProfilePayload,
 } from "../api/billing/entitlements.js";
 import { stripeApiVersion } from "../api/billing/stripe-client.js";
-import { checkoutReturnUrls } from "../api/billing/checkout.js";
+import { checkoutReturnUrls, embeddedCheckoutReturnUrl } from "../api/billing/checkout.js";
 import { checkoutSessionPaymentAccepted, subscriptionIdFromInvoice } from "../api/billing/webhook.js";
 import { billingProfileFromRow, profilePatchColumns } from "../api/profile.js";
 import { isPaidPlan } from "../.test-build/src/cloud.js";
@@ -78,6 +78,11 @@ assert.deepEqual(
     cancel_url: "https://classloop-followup.vercel.app/#/billing?billing=canceled",
   },
   "Stripe Checkout must return users to the billing verifier, not directly grant Pro on the dashboard",
+);
+assert.equal(
+  embeddedCheckoutReturnUrl("https://classloop-followup.vercel.app"),
+  "https://classloop-followup.vercel.app/#/checkout?billing=success",
+  "Embedded Checkout should return to the hidden checkout verifier route",
 );
 assert.equal(checkoutSessionPaymentAccepted({ payment_status: "paid" }), true, "paid Checkout sessions may update entitlements");
 assert.equal(

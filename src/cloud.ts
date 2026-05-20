@@ -28,6 +28,7 @@ export type BillingProfile = {
 export type BackendStatus = {
   supabaseConfigured: boolean;
   stripeConfigured: boolean;
+  stripeEmbeddedConfigured: boolean;
   webReady: boolean;
 };
 
@@ -64,6 +65,7 @@ export const planCatalog = [
 const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? {};
 const supabaseUrl = viteEnv.VITE_SUPABASE_URL;
 const supabaseAnonKey = viteEnv.VITE_SUPABASE_ANON_KEY;
+const stripePublishableKey = viteEnv.VITE_STRIPE_PUBLISHABLE_KEY;
 const offlineQueueKey = "classloop:cloud-offline-queue:v1";
 
 let supabaseClient: SupabaseClient | null = null;
@@ -71,11 +73,17 @@ let supabaseClient: SupabaseClient | null = null;
 export function getBackendStatus(): BackendStatus {
   const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
   const stripeConfigured = Boolean(viteEnv.VITE_STRIPE_PRO_PRICE_ID);
+  const stripeEmbeddedConfigured = Boolean(stripePublishableKey);
   return {
     supabaseConfigured,
     stripeConfigured,
+    stripeEmbeddedConfigured,
     webReady: supabaseConfigured && stripeConfigured,
   };
+}
+
+export function getStripePublishableKey() {
+  return stripePublishableKey || "";
 }
 
 export function getSupabaseClient() {
@@ -239,6 +247,13 @@ export async function createCheckoutSession(tier: Exclude<PlanTier, "free">) {
   return cloudRequest<{ url: string }>("/api/billing/checkout", {
     method: "POST",
     body: JSON.stringify({ tier }),
+  });
+}
+
+export async function createEmbeddedCheckoutSession(tier: Exclude<PlanTier, "free">) {
+  return cloudRequest<{ clientSecret: string }>("/api/billing/checkout", {
+    method: "POST",
+    body: JSON.stringify({ tier, uiMode: "embedded" }),
   });
 }
 

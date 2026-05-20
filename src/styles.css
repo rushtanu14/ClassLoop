@@ -3194,6 +3194,18 @@ button:disabled:hover {
   background: #e8f8f5;
 }
 
+.stripe-checkout-shell {
+  min-height: 560px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.stripe-checkout-shell.inactive {
+  display: none;
+}
+
 .capture-mode-card.locked {
   border-style: dashed;
   color: var(--muted);

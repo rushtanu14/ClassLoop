@@ -16,7 +16,7 @@
     "test:entitlements": "tsc -p tsconfig.test.json && node tests/entitlement-gates.test.mjs",
     "test:security": "node scripts/security-baseline.cjs",
     "test:package:init": "node scripts/package-init-failure-smoke.cjs",
-    "test:stripe": "env -u FORCE_COLOR -u NO_COLOR playwright test tests/browser/classloop.spec.ts -g \"Stripe Checkout opens\"",
+    "test:stripe": "env -u FORCE_COLOR -u NO_COLOR playwright test tests/browser/classloop.spec.ts -g \"Stripe embedded Checkout\"",
     "test:browser": "env -u FORCE_COLOR -u NO_COLOR playwright test",
     "test:web": "env -u FORCE_COLOR -u NO_COLOR playwright test -c playwright.web.config.ts",
     "test:web:local": "env -u FORCE_COLOR -u NO_COLOR CLASSLOOP_WEB_TEST_URL=http://127.0.0.1:5177 playwright test -c playwright.web.config.ts",
@@ -40,6 +40,7 @@
     "release:checksums": "node scripts/generate-release-checksums.cjs"
   },
   "dependencies": {
+    "@stripe/stripe-js": "^9.6.0",
     "@supabase/supabase-js": "^2.105.4",
     "lucide-react": "^0.468.0",
     "nodemailer": "^8.0.7",

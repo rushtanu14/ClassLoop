@@ -135,18 +135,19 @@ The mobile version is best for checking dashboards, student follow-ups, and quic
 
 ### Stripe Setup
 
-ClassLoop creates Stripe Checkout sessions on the server. The React app does not need to embed a checkout form like Stripe's starter example; it calls `/api/billing/checkout`, receives a Checkout URL, and redirects the teacher there.
+ClassLoop creates Stripe Checkout sessions on the server. Plan options link to a hidden `#/checkout` page that mounts Stripe Embedded Checkout inside ClassLoop when `VITE_STRIPE_PUBLISHABLE_KEY` is configured, and keeps a hosted Checkout fallback if Stripe.js cannot load or the publishable key is missing.
 
 1. In Stripe, stay in **Test mode** while setting this up.
 2. Go to **Product catalog** and create `ClassLoop Pro`.
 3. Add a recurring monthly price, recommended `$9/month`.
 4. Copy the recurring price ID that starts with `price_`.
 5. Put that same price ID in both `VITE_STRIPE_PRO_PRICE_ID` and `STRIPE_PRO_PRICE_ID`.
-6. Copy your Stripe secret key into `STRIPE_SECRET_KEY`. Never commit it.
-7. Add a webhook endpoint for `https://your-domain.com/api/billing/webhook`.
-8. Subscribe the webhook to `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, and `invoice.payment_failed`.
-9. Copy the webhook signing secret into `STRIPE_WEBHOOK_SECRET`.
-10. Set `CLASSLOOP_PUBLIC_URL` to your deployed app URL, such as `https://classloop-followup.vercel.app`.
+6. Copy your Stripe publishable key into `VITE_STRIPE_PUBLISHABLE_KEY`; it starts with `pk_` and is safe for browser code.
+7. Copy your Stripe secret key into `STRIPE_SECRET_KEY`. Never commit it.
+8. Add a webhook endpoint for `https://your-domain.com/api/billing/webhook`.
+9. Subscribe the webhook to `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, and `invoice.payment_failed`.
+10. Copy the webhook signing secret into `STRIPE_WEBHOOK_SECRET`.
+11. Set `CLASSLOOP_PUBLIC_URL` to your deployed app URL, such as `https://classloop-followup.vercel.app`.
 
 Use Stripe live mode only when you are ready to accept real payments from real teachers. Live mode requires a separate live product/price, live secret key, live webhook endpoint/signing secret, and an activated Stripe account. Do not reuse sandbox/test keys in production Vercel variables. A good rollout is:
 
@@ -154,13 +155,13 @@ Use Stripe live mode only when you are ready to accept real payments from real t
 2. Activate the Stripe account and complete business/banking/tax details.
 3. Toggle Stripe to live mode.
 4. Recreate or copy the `ClassLoop Pro` product and `$9/month` recurring price in live mode.
-5. Replace Vercel production env vars with live `STRIPE_SECRET_KEY`, live `STRIPE_PRO_PRICE_ID`, live `VITE_STRIPE_PRO_PRICE_ID`, and live `STRIPE_WEBHOOK_SECRET`.
+5. Replace Vercel production env vars with live `STRIPE_SECRET_KEY`, live `STRIPE_PRO_PRICE_ID`, live `VITE_STRIPE_PRO_PRICE_ID`, live `VITE_STRIPE_PUBLISHABLE_KEY`, and live `STRIPE_WEBHOOK_SECRET`.
 6. Add a live webhook endpoint at `https://your-domain.com/api/billing/webhook` with `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, and `invoice.payment_failed`.
 7. Redeploy and run one low-risk live checkout with your own account, then cancel/refund it from Stripe if needed.
 
 After editing Vercel environment variables, redeploy the latest `main` branch. If `/api/config` still includes old fields such as `stripeSchoolConfigured`, Vercel is serving an older deployment.
 
-Your Stripe publishable key starts with `pk_`. It is safe for browser code, but this current Checkout flow does not require it because the server creates the Checkout session. If ClassLoop later adds Stripe Elements or client-side Stripe.js, add it as `VITE_STRIPE_PUBLISHABLE_KEY` in `.env.local` and Vercel.
+Your Stripe publishable key starts with `pk_`. It is safe for browser code and is required for the embedded checkout page. Keep `STRIPE_SECRET_KEY` server-only.
 
 For secure production billing, Stripe Pro access should be tied to a hosted Supabase account. The full cloud sync login panel is shown only after Pro is active, but the deployed checkout flow still needs backend auth available so the webhook can attach the subscription to the right account.
 

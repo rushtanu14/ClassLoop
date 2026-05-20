@@ -53,7 +53,7 @@
 
 ### Entitlement Gate Tests
 - **Free / Paid Boundaries**: `npm run test:entitlements` verifies Free, paid active Pro, trialing, past-due, canceled, unpaid, paused, and incomplete subscription states map to the right feature access. Trialing/no-payment states stay locked until Stripe reports an accepted payment.
-- **Stripe Checkout Open Smoke**: `npm run test:stripe` clicks the real Pro upgrade button with mocked cloud auth and checkout APIs, verifies ClassLoop requests `/api/billing/checkout`, verifies the returned URL is `checkout.stripe.com`, verifies the browser lands on a Stripe-hosted checkout page, and verifies returning to ClassLoop still shows Free while the webhook/profile confirmation is pending.
+- **Stripe Embedded Checkout Smoke**: `npm run test:stripe` clicks the real Pro upgrade button with mocked cloud auth and checkout APIs, verifies ClassLoop routes to the hidden `#/checkout` page instead of the left nav, verifies `/api/billing/checkout` requests embedded mode and mounts the Stripe embedded frame, verifies the hosted Checkout fallback still opens `checkout.stripe.com`, and verifies returning to ClassLoop still keeps Pro locked while webhook/profile confirmation is pending.
 - **Webhook-Owned Updates**: Entitlement tests verify Stripe checkout/subscription/invoice webhook payload mapping updates `classloop_profiles` with `plan_tier`, `subscription_status`, customer id, subscription id, and current period end.
 - **Client Tampering Guard**: Entitlement tests verify `/api/profile` PATCH helpers ignore client-submitted paid fields like `plan_tier`, camelCase paid entitlement fields, `subscription_status`, Stripe customer ids, nested billing profiles, invalid roles, and snake-case privacy tampering.
 - **Locked UI Behavior**: Browser tests verify unpaid users see Pro-only live capture cards, Free one-session-per-day copy, disabled second draft generation, verified Stripe-owned Pro unlocks paid controls, and unpaid/local entitlement attempts keep the locks.
@@ -163,7 +163,7 @@ Playwright is installed in the repo through `@playwright/test`.
 **Automated install**: `npm install` runs `playwright install chromium` through `postinstall`.
 **Run cloud sync tests**: `npm run test:cloud`
 **Run entitlement tests**: `npm run test:entitlements`
-**Run Stripe Checkout open smoke**: `npm run test:stripe`
+**Run Stripe Embedded Checkout smoke**: `npm run test:stripe`
 **Run security baseline**: `npm run test:security`
 **Run package init failure smoke**: `npm run test:package:init`
 **Run browser tests**: `npm run test:browser`
@@ -205,7 +205,7 @@ When the user says "use the testing script," run the saved ClassLoop QA sequence
 - whether every supported noisy Zoom/CSV import variation still parses, including malformed rows, duplicate emails/names, mixed aliases, and transcript-only roster estimation
 - whether Supabase auth transitions, token expiry handling, conflict resolution, network-loss queueing, and missing-credential desktop fallback pass
 - whether Free/Pro entitlement boundaries, webhook-driven entitlement updates, upgrade/downgrade flows, and unpaid locked-feature UI pass
-- whether clicking Upgrade to Pro opens Stripe Checkout and still keeps Pro locked until the paid webhook/profile state is verified
+- whether clicking Upgrade to Pro opens the hidden embedded Stripe Checkout page, keeps the hosted Checkout fallback working, and still keeps Pro locked until the paid webhook/profile state is verified
 - whether local data files and `.env.local` are ignored/untracked, no high-confidence tracked secrets are present, runtime debug/info logs are absent, startup/error logging is actionable without sensitive payloads, and the legal baseline is present
 - whether public hosted signups remain gated/sample-only until Terms of Use, Privacy Policy, desktop EULA, hosted retention/deletion SLAs, support contact, and child-safety expectations have final legal review
 - whether bad transcript format, malformed URLs, sync API outage, package init failures, and desktop storage corruption show recoverable user-visible states

@@ -50,6 +50,7 @@ import {
   Wand2,
   X,
 } from "lucide-react";
+import { loadStripe, type StripeEmbeddedCheckout } from "@stripe/stripe-js";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import { createPortal } from "react-dom";
@@ -65,10 +66,12 @@ import {
   cloudRequest,
   createBillingPortalSession,
   createCheckoutSession,
+  createEmbeddedCheckoutSession,
   createCloudAccount,
   getBackendStatus,
   getCloudProfile,
   getCloudSession,
+  getStripePublishableKey,
   isPaidPlan,
   planCatalog,
   signIntoCloud,
@@ -111,6 +114,7 @@ type RouteKey =
   | "rosters"
   | "analytics"
   | "billing"
+  | "checkout"
   | "tutorial"
   | "appearance"
   | "privacy";
@@ -685,6 +689,7 @@ const routeLabels: Record<RouteKey, string> = {
   rosters: "Roster manager",
   analytics: "Teacher analytics",
   billing: "Plan options",
+  checkout: "Pro checkout",
   tutorial: "How it works",
   appearance: "Appearance",
   privacy: "Privacy controls",
@@ -698,6 +703,7 @@ function getRoute(): RouteKey {
     route === "student-session" ||
     route === "publish-preview" ||
     route === "billing" ||
+    route === "checkout" ||
     route === "privacy"
     ? route
     : "dashboard";
@@ -2732,6 +2738,9 @@ function App() {
             appendAudit={appendAudit}
             sessionCount={freeSessionsToday}
           />
+        )}
+        {effectiveRoute === "checkout" && auth.role === "teacher" && (
+          <EmbeddedCheckoutPage auth={auth} billingProfile={billingProfile} setBillingProfile={setBillingProfile} />
         )}
         {effectiveRoute === "tutorial" &&
           (auth.role === "teacher" ? (
@@ -5444,6 +5453,261 @@ function PlanRow({
   );
 }
 
+let embeddedCheckoutSessionCache:
+  | {
+      userId: string;
+      startedAt: number;
+      promise: Promise<string>;
+    }
+  | null = null;
+
+function embeddedCheckoutClientSecretFor(userId: string) {
+  const now = Date.now();
+  if (embeddedCheckoutSessionCache?.userId === userId && now - embeddedCheckoutSessionCache.startedAt < 10_000) {
+    return embeddedCheckoutSessionCache.promise;
+  }
+
+  const promise = createEmbeddedCheckoutSession("pro")
+    .then((session) => {
+      if (!session.clientSecret) throw new Error("Stripe did not return an embedded checkout client secret.");
+      return session.clientSecret;
+    })
+    .catch((error) => {
+      if (embeddedCheckoutSessionCache?.promise === promise) embeddedCheckoutSessionCache = null;
+      throw error;
+    });
+  embeddedCheckoutSessionCache = { userId, startedAt: now, promise };
+  return promise;
+}
+
+function EmbeddedCheckoutPage({
+  auth,
+  billingProfile,
+  setBillingProfile,
+}: {
+  auth: AuthSession;
+  billingProfile: BillingProfile;
+  setBillingProfile: (profile: BillingProfile) => void;
+}) {
+  const backendStatus = getBackendStatus();
+  const publishableKey = getStripePublishableKey();
+  const billingReturnStatus = getParam("billing");
+  const checkoutContainerRef = useRef<HTMLDivElement | null>(null);
+  const [message, setMessage] = useState("Preparing secure checkout...");
+  const [status, setStatus] = useState<"loading" | "ready" | "error" | "verifying" | "success">("loading");
+  const [connectedEmail, setConnectedEmail] = useState("");
+  const isDemoAccount = Boolean(auth.demo);
+  const hasPro = isPaidPlan(billingProfile);
+
+  useEffect(() => {
+    getCloudSession().then((session) => setConnectedEmail(session?.user.email ?? ""));
+  }, []);
+
+  useEffect(() => {
+    if (billingReturnStatus !== "success" || isDemoAccount) return;
+    let active = true;
+    let retryTimer: number | null = null;
+
+    const verifyPaidProfile = async (attempt = 1) => {
+      if (!active) return;
+      setStatus("verifying");
+      setMessage("Stripe returned to ClassLoop. Verifying the paid subscription before Pro unlocks...");
+      try {
+        const profile = await getCloudProfile();
+        const verifiedProfile = normalizeBillingProfile(profile.billingProfile);
+        if (!active) return;
+        setBillingProfile(verifiedProfile);
+        if (isPaidPlan(verifiedProfile)) {
+          setStatus("success");
+          setMessage("Payment verified by Stripe. Pro is active on this cloud account.");
+          return;
+        }
+        if (attempt < 5) {
+          setMessage("Checkout was submitted. Waiting for the Stripe webhook to confirm payment before Pro unlocks...");
+          retryTimer = window.setTimeout(() => void verifyPaidProfile(attempt + 1), 1500);
+          return;
+        }
+        setStatus("error");
+        setMessage("Checkout returned, but Pro is still pending. ClassLoop will stay Free until Stripe confirms payment.");
+      } catch (error) {
+        if (!active) return;
+        if (attempt < 5) {
+          retryTimer = window.setTimeout(() => void verifyPaidProfile(attempt + 1), 1500);
+          return;
+        }
+        setStatus("error");
+        setMessage(error instanceof Error ? error.message : "Unable to verify the Stripe payment yet.");
+      }
+    };
+
+    void verifyPaidProfile();
+    return () => {
+      active = false;
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
+  }, [billingReturnStatus, isDemoAccount, setBillingProfile]);
+
+  useEffect(() => {
+    if (billingReturnStatus === "success" || hasPro) return;
+    let active = true;
+    let checkout: StripeEmbeddedCheckout | null = null;
+
+    const mountCheckout = async () => {
+      try {
+        if (isDemoAccount) {
+          setStatus("error");
+          setMessage("Demo account upgrades are disabled. Create your own account or sign in with a hosted teacher account to upgrade.");
+          return;
+        }
+        if (!backendStatus.webReady) {
+          setStatus("error");
+          setMessage("Stripe Checkout needs hosted Supabase and Stripe environment variables before upgrades can start.");
+          return;
+        }
+        const session = await getCloudSession();
+        if (!session) {
+          setStatus("error");
+          setMessage("Connect or create a cloud login on Plan options first. Stripe uses that account to verify Pro access.");
+          return;
+        }
+        setConnectedEmail(session.user.email ?? "");
+        if (!backendStatus.stripeEmbeddedConfigured || !publishableKey) {
+          setStatus("error");
+          setMessage("Embedded Checkout needs VITE_STRIPE_PUBLISHABLE_KEY. You can still open hosted Stripe Checkout from this page.");
+          return;
+        }
+        setStatus("loading");
+        setMessage("Loading Stripe's embedded checkout form...");
+        const stripe = await loadStripe(publishableKey);
+        if (!stripe) throw new Error("Stripe.js could not load. Check your network or publishable key.");
+        const clientSecret = await embeddedCheckoutClientSecretFor(session.user.id);
+        if (!active || !checkoutContainerRef.current) return;
+        checkout = await stripe.createEmbeddedCheckoutPage({ clientSecret });
+        if (!active) {
+          checkout?.destroy();
+          return;
+        }
+        checkout?.mount(checkoutContainerRef.current);
+        setStatus("ready");
+        setMessage("Complete Stripe Checkout here. Pro turns on only after the webhook verifies payment.");
+      } catch (error) {
+        if (!active) return;
+        setStatus("error");
+        setMessage(error instanceof Error ? error.message : "Unable to load embedded Stripe Checkout.");
+      }
+    };
+
+    void mountCheckout();
+    return () => {
+      active = false;
+      checkout?.destroy();
+    };
+  }, [backendStatus.stripeEmbeddedConfigured, backendStatus.webReady, billingReturnStatus, hasPro, isDemoAccount, publishableKey]);
+
+  const openHostedCheckout = async () => {
+    try {
+      if (isDemoAccount) {
+        setMessage("Demo account upgrades are disabled.");
+        return;
+      }
+      const session = await getCloudSession();
+      if (!backendStatus.webReady || !session) {
+        setMessage("Connect cloud login on Plan options before opening hosted Stripe Checkout.");
+        return;
+      }
+      setMessage("Opening hosted Stripe Checkout in this tab...");
+      const checkout = await createCheckoutSession("pro");
+      if (!checkout.url || new URL(checkout.url).hostname !== "checkout.stripe.com") {
+        throw new Error("Stripe Checkout did not return a valid checkout.stripe.com payment URL.");
+      }
+      window.location.href = checkout.url;
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Hosted Stripe Checkout is not configured yet.");
+    }
+  };
+
+  if (hasPro) {
+    return (
+      <div className="page-stack">
+        <section className="review-banner">
+          <div>
+            <span className="eyebrow">Pro checkout</span>
+            <h2>Pro is already active.</h2>
+            <p>This account has a Stripe-verified Pro subscription. Manage billing from Plan options.</p>
+          </div>
+        </section>
+        <Panel title="Subscription verified" icon={ShieldCheck}>
+          <div className="settings-stack">
+            <p className="settings-message success">Payment verified by Stripe. Pro is active on this cloud account.</p>
+            <button className="primary-button" type="button" onClick={() => navigate("billing")}>
+              Back to Plan options
+            </button>
+          </div>
+        </Panel>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-stack checkout-page">
+      <section className="review-banner">
+        <div>
+          <span className="eyebrow">Pro checkout</span>
+          <h2>Upgrade inside ClassLoop.</h2>
+          <p>
+            This hidden checkout page is linked from Plan options and does not appear in the left navigation. Stripe stays in charge of payment, receipts, and subscription verification.
+          </p>
+        </div>
+      </section>
+
+      <section className="content-grid two-columns align-start">
+        <Panel title="Stripe embedded checkout" icon={ShieldCheck}>
+          <div className="settings-stack">
+            <div className={`integration-card ${status === "ready" || status === "success" ? "active" : ""}`}>
+              <span>
+                <strong>
+                  {status === "ready"
+                    ? "Checkout ready"
+                    : status === "verifying"
+                      ? "Verifying payment"
+                      : status === "error"
+                        ? "Checkout needs attention"
+                        : "Loading checkout"}
+                </strong>
+                <small>{message}</small>
+              </span>
+            </div>
+            {connectedEmail && <p className="settings-message success">Cloud account: {connectedEmail}</p>}
+            <div
+              ref={checkoutContainerRef}
+              className={status === "error" || status === "success" || status === "verifying" ? "stripe-checkout-shell inactive" : "stripe-checkout-shell"}
+              aria-label="Stripe embedded checkout"
+            />
+          </div>
+        </Panel>
+
+        <Panel title="Checkout controls" icon={Settings2}>
+          <div className="settings-stack">
+            <div className="integration-card">
+              <span>
+                <strong>Server-owned unlock</strong>
+                <small>ClassLoop stays Free until Stripe sends the paid webhook and the cloud profile refreshes.</small>
+              </span>
+            </div>
+            <button className="primary-button" type="button" onClick={() => navigate("billing")}>
+              Back to Plan options
+            </button>
+            <button className="ghost-button" type="button" onClick={openHostedCheckout} disabled={isDemoAccount || !backendStatus.webReady}>
+              Open hosted Stripe Checkout instead
+            </button>
+          </div>
+        </Panel>
+      </section>
+    </div>
+  );
+}
+
 function SyncBillingPage({
   auth,
   billingProfile,
@@ -5590,12 +5854,8 @@ function SyncBillingPage({
         );
         return;
       }
-      setMessage("Opening Stripe Checkout. Pro turns on only after payment succeeds and ClassLoop refreshes your plan.");
-      const checkout = await createCheckoutSession(tier);
-      if (!checkout.url || new URL(checkout.url).hostname !== "checkout.stripe.com") {
-        throw new Error("Stripe Checkout did not return a valid checkout.stripe.com payment URL.");
-      }
-      window.location.href = checkout.url;
+      setMessage("Opening the linked Pro checkout page. Pro turns on only after payment succeeds and ClassLoop refreshes your plan.");
+      navigate("checkout", { tier });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Stripe Checkout is not configured yet.");
     }

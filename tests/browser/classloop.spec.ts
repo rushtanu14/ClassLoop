@@ -222,6 +222,32 @@ async function mockCloudAuthForStripeCheckout(page: Page, cloudEmail: string) {
   });
 }
 
+async function mockStripeJsForEmbeddedCheckout(page: Page) {
+  await page.route("https://js.stripe.com/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/javascript",
+      body: `
+        window.Stripe = function(publishableKey) {
+          window.__classloopStripePublishableKey = publishableKey;
+          return {
+            createEmbeddedCheckoutPage: async function(options) {
+              window.__classloopEmbeddedClientSecret = options.clientSecret;
+              return {
+                mount: function(target) {
+                  const element = typeof target === "string" ? document.querySelector(target) : target;
+                  element.innerHTML = '<section role="region" aria-label="Stripe test checkout"><h2>Stripe embedded checkout test frame</h2><button type="button">Pay ClassLoop Pro</button></section>';
+                },
+                destroy: function() {}
+              };
+            }
+          };
+        };
+      `,
+    });
+  });
+}
+
 async function waitForPersistedSessions(page: Page) {
   await expect
     .poll(async () => page.evaluate(() => localStorage.getItem("classloop:secure:sessions:v3") !== null))
@@ -935,7 +961,7 @@ test("live capture modes are visible but Pro-gated for Free accounts", async ({ 
   await page.getByRole("button", { name: /not now/i }).click();
 });
 
-test("Stripe Checkout opens from Pro upgrade without unlocking Pro first", async ({ page }) => {
+test("Stripe embedded Checkout page opens from Pro upgrade without unlocking Pro first", async ({ page }) => {
   const runId = Date.now().toString(36);
   const email = `stripe-${runId}@classloop.test`;
   const password = `teacher-pass-${runId}`;
@@ -944,6 +970,7 @@ test("Stripe Checkout opens from Pro upgrade without unlocking Pro first", async
   const checkoutRequests: Array<{ authorization: string | undefined; body: Record<string, unknown> }> = [];
 
   await mockCloudAuthForStripeCheckout(page, cloudEmail);
+  await mockStripeJsForEmbeddedCheckout(page);
   await page.route("**/api/profile", async (route) => {
     await route.fulfill({
       status: 200,
@@ -957,14 +984,15 @@ test("Stripe Checkout opens from Pro upgrade without unlocking Pro first", async
     });
   });
   await page.route("**/api/billing/checkout", async (route) => {
+    const body = route.request().postDataJSON() as Record<string, unknown>;
     checkoutRequests.push({
       authorization: route.request().headers().authorization,
-      body: route.request().postDataJSON() as Record<string, unknown>,
+      body,
     });
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ url: checkoutUrl }),
+      body: JSON.stringify(body.uiMode === "embedded" ? { clientSecret: "cs_test_embedded_secret" } : { url: checkoutUrl }),
     });
   });
   await page.route("https://checkout.stripe.com/**", async (route) => {
@@ -991,8 +1019,20 @@ test("Stripe Checkout opens from Pro upgrade without unlocking Pro first", async
   await page.getByText("Billing options").click();
 
   await page.getByRole("button", { name: /upgrade to pro/i }).click();
+  await expect(page).toHaveURL(/#\/checkout\?tier=pro/);
+  await expect(page.getByRole("heading", { name: /upgrade inside classloop/i })).toBeVisible();
+  await expect(page.locator(".nav-list").getByRole("button", { name: /checkout/i })).toHaveCount(0);
   await expect.poll(() => checkoutRequests.length).toBe(1);
   expect(checkoutRequests[0]).toMatchObject({
+    authorization: "Bearer playwright-access-token",
+    body: { tier: "pro", uiMode: "embedded" },
+  });
+  await expect(page.getByRole("region", { name: /stripe test checkout/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /pay classloop pro/i })).toBeVisible();
+
+  await page.getByRole("button", { name: /open hosted stripe checkout instead/i }).click();
+  await expect.poll(() => checkoutRequests.length).toBe(2);
+  expect(checkoutRequests[1]).toMatchObject({
     authorization: "Bearer playwright-access-token",
     body: { tier: "pro" },
   });
@@ -1001,18 +1041,15 @@ test("Stripe Checkout opens from Pro upgrade without unlocking Pro first", async
 
   await page.goto("/#/dashboard");
   await signInAccount(page, "teacher", email, password);
-  await page.goto("/#/billing?billing=success");
-  await expect(page.getByText(/FREE · not_configured/i)).toBeVisible();
-  await expect(
-    page.locator(".settings-message").filter({ hasText: /Waiting for the Stripe webhook|ClassLoop will stay Free/i }),
-  ).toBeVisible();
+  await page.goto("/#/checkout?billing=success");
+  await expect(page.getByText(/Checkout returned, but Pro is still pending|ClassLoop will stay Free/i)).toBeVisible();
 });
 
 test("students cannot access analytics but can save appearance while logged in, with default theme restored on logout", async ({ page }) => {
   await signIn(page, "student");
   await expect(page.getByRole("button", { name: /analytics/i })).toHaveCount(0);
 
-  const restrictedRoutes = ["analytics", "classes", "rosters", "report", "billing", "privacy", "new-session", "review"];
+  const restrictedRoutes = ["analytics", "classes", "rosters", "report", "billing", "checkout", "privacy", "new-session", "review"];
   for (const restrictedRoute of restrictedRoutes) {
     await page.goto(`/#/${restrictedRoute}`);
     await expect(page.getByText(/follow-up dashboard/i)).toBeVisible();

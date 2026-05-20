@@ -5,7 +5,8 @@ const baseURL = `http://127.0.0.1:${testPort}`;
 const browserTestEnv =
   "VITE_SUPABASE_URL=https://classloop-playwright.supabase.co " +
   "VITE_SUPABASE_ANON_KEY=classloop-playwright-anon-key " +
-  "VITE_STRIPE_PRO_PRICE_ID=price_classloop_playwright";
+  "VITE_STRIPE_PRO_PRICE_ID=price_classloop_playwright " +
+  "VITE_STRIPE_PUBLISHABLE_KEY=pk_test_classloop_playwright";
 
 export default defineConfig({
   testDir: "./tests/browser",
